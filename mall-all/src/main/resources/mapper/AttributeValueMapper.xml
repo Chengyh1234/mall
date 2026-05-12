@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.cyh.mallportal.mapper.AttributeValueMapper">
+
+    <!-- 根据属性ID获取属性值列表 -->
+    <select id="getByAttrId" resultType="com.cyh.mallportal.entity.AttributeValue">
+        SELECT * FROM attribute_values WHERE attr_id = #{attrId} ORDER BY sort ASC
+    </select>
+
+    <!-- 根据多个属性ID获取属性值列表 -->
+    <select id="getByAttrIds" resultType="com.cyh.mallportal.entity.AttributeValue">
+        SELECT * FROM attribute_values 
+        WHERE attr_id IN 
+        <foreach collection="attrIds" item="attrId" open="(" separator="," close=")">
+            #{attrId}
+        </foreach>
+        ORDER BY attr_id ASC, sort ASC
+    </select>
+
+</mapper>

@@ -1,0 +1,541 @@
+package com.cyh.mallportal.service.impl;
+
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.cyh.mallportal.entity.*;
+import com.cyh.mallportal.mapper.*;
+import com.cyh.mallportal.service.SkuService;
+import com.cyh.mallportal.vo.SkuVo;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.*;
+import java.util.stream.Collectors;
+
+/**
+ * SKU服务实现类
+ * 提供商品库存单元业务逻辑的具体实现
+ */
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class SkuServiceImpl implements SkuService {
+
+    private final SkuMapper skuMapper;
+    private final AttributeMapper attributeMapper;
+    private final AttributeValueMapper attributeValueMapper;
+    private final SkuSaleAttrValueMapper skuSaleAttrValueMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    /**
+     * 新增SKU
+     *
+     * @param sku SKU实体
+     * @return SKU ID
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public Long add(Sku sku) {
+        log.info("新增SKU: {}", sku.getSkuCode());
+
+        if (sku.getStatus() == null) {
+            sku.setStatus(1);
+        }
+        if (sku.getStock() == null) {
+            sku.setStock(0);
+        }
+        if (sku.getWarnStock() == null) {
+            sku.setWarnStock(10);
+        }
+
+        sku.setCreatedAt(LocalDateTime.now());
+        sku.setUpdatedAt(LocalDateTime.now());
+
+        skuMapper.insert(sku);
+        log.info("新增SKU成功, ID: {}", sku.getId());
+        return sku.getId();
+    }
+
+    /**
+     * 批量新增SKU
+     *
+     * @param skus SKU列表
+     * @return 是否成功
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean batchAdd(List<Sku> skus) {
+        log.info("批量新增SKU, 数量: {}", skus.size());
+
+        if (skus == null || skus.isEmpty()) {
+            log.warn("批量新增SKU为空");
+            return false;
+        }
+
+        LocalDateTime now = LocalDateTime.now();
+        for (Sku sku : skus) {
+            if (sku.getStatus() == null) {
+                sku.setStatus(1);
+            }
+            if (sku.getStock() == null) {
+                sku.setStock(0);
+            }
+            if (sku.getWarnStock() == null) {
+                sku.setWarnStock(10);
+            }
+            sku.setCreatedAt(now);
+            sku.setUpdatedAt(now);
+        }
+
+        // 使用循环插入实现批量新增
+        for (Sku sku : skus) {
+            skuMapper.insert(sku);
+        }
+
+        log.info("批量新增SKU成功");
+        return true;
+    }
+
+    /**
+     * 删除SKU（逻辑删除）
+     *
+     * @param id SKU ID
+     * @return 是否删除成功
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean delete(Long id) {
+        log.info("删除SKU: {}", id);
+
+        Sku sku = skuMapper.selectById(id);
+        if (sku == null) {
+            log.warn("SKU不存在: {}", id);
+            return false;
+        }
+
+        // 逻辑删除：调用deleteById让MyBatis-Plus自动转换为UPDATE语句
+        skuMapper.deleteById(id);
+
+        log.info("删除SKU成功: {}", id);
+        return true;
+    }
+
+    /**
+     * 根据SPU ID删除所有SKU（逻辑删除）
+     *
+     * @param spuId SPU ID
+     * @return 是否删除成功
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean deleteBySpuId(Long spuId) {
+        log.info("删除SPU下所有SKU, SPU ID: {}", spuId);
+
+        LambdaQueryWrapper<Sku> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Sku::getSpuId, spuId);
+        skuMapper.delete(wrapper);
+
+        log.info("删除SPU下SKU完成");
+        return true;
+    }
+
+    /**
+     * 更新SKU信息
+     *
+     * @param sku SKU实体
+     * @return 是否更新成功
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean update(Sku sku) {
+        log.info("更新SKU: {}", sku.getId());
+
+        sku.setUpdatedAt(LocalDateTime.now());
+        int rows = skuMapper.updateById(sku);
+
+        boolean success = rows > 0;
+        if (success) {
+            log.info("更新SKU成功: {}", sku.getId());
+        } else {
+            log.warn("更新SKU失败: {}", sku.getId());
+        }
+
+        return success;
+    }
+
+    /**
+     * 更新库存
+     *
+     * @param id    SKU ID
+     * @param stock 库存数量
+     * @return 是否更新成功
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean updateStock(Long id, Integer stock) {
+        log.info("更新SKU库存, ID: {}, 库存: {}", id, stock);
+
+        Sku sku = skuMapper.selectById(id);
+        if (sku == null) {
+            log.warn("SKU不存在: {}", id);
+            return false;
+        }
+
+        sku.setStock(stock);
+        sku.setUpdatedAt(LocalDateTime.now());
+        int rows = skuMapper.updateById(sku);
+
+        return rows > 0;
+    }
+
+    /**
+     * 扣减库存
+     *
+     * @param id       SKU ID
+     * @param quantity 扣减数量
+     * @return 是否扣减成功
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean decreaseStock(Long id, Integer quantity) {
+        log.info("扣减SKU库存, ID: {}, 数量: {}", id, quantity);
+
+        Sku sku = skuMapper.selectById(id);
+        if (sku == null) {
+            log.warn("SKU不存在: {}", id);
+            return false;
+        }
+
+        if (sku.getStock() < quantity) {
+            log.warn("库存不足, SKU: {}, 库存: {}, 需要: {}", id, sku.getStock(), quantity);
+            return false;
+        }
+
+        sku.setStock(sku.getStock() - quantity);
+        sku.setUpdatedAt(LocalDateTime.now());
+        skuMapper.updateById(sku);
+
+        log.info("扣减库存成功, SKU: {}, 剩余库存: {}", id, sku.getStock());
+        return true;
+    }
+
+    /**
+     * 根据ID获取SKU详情
+     *
+     * @param id SKU ID
+     * @return SKU实体
+     */
+    @Override
+    public Sku getById(Long id) {
+        return skuMapper.selectById(id);
+    }
+
+    /**
+     * 根据SPU ID获取SKU列表
+     *
+     * @param spuId SPU ID
+     * @return SKU列表
+     */
+    @Override
+    public List<Sku> getBySpuId(Long spuId) {
+        LambdaQueryWrapper<Sku> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Sku::getSpuId, spuId);
+        wrapper.orderByAsc(Sku::getId);
+        return skuMapper.selectList(wrapper);
+    }
+
+    /**
+     * 根据SKU编码获取SKU
+     *
+     * @param skuCode SKU编码
+     * @return SKU实体
+     */
+    @Override
+    public Sku getBySkuCode(String skuCode) {
+        LambdaQueryWrapper<Sku> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Sku::getSkuCode, skuCode);
+        return skuMapper.selectOne(wrapper);
+    }
+
+    /**
+     * 获取所有SKU列表
+     *
+     * @return SKU列表
+     */
+    @Override
+    public List<Sku> getAll() {
+        LambdaQueryWrapper<Sku> wrapper = new LambdaQueryWrapper<>();
+        wrapper.orderByAsc(Sku::getId);
+        return skuMapper.selectList(wrapper);
+    }
+
+    /**
+     * 获取SKU列表（分页）
+     *
+     * @param spuId    SPU ID（可选）
+     * @param status   状态（可选）
+     * @param page     页码
+     * @param pageSize 每页条数
+     * @return SKU列表
+     */
+    @Override
+    public List<Sku> getPage(Long spuId, Integer status, Integer page, Integer pageSize) {
+        LambdaQueryWrapper<Sku> wrapper = buildWrapper(spuId, status);
+        wrapper.orderByAsc(Sku::getId);
+
+        // 分页计算
+        int offset = (page - 1) * pageSize;
+        long totalLong = skuMapper.selectCount(wrapper);
+        int total = (int) totalLong;
+
+        List<Sku> allList = skuMapper.selectList(wrapper);
+        int fromIndex = Math.min(offset, total);
+        int toIndex = Math.min(offset + pageSize, total);
+
+        return allList.subList(fromIndex, toIndex);
+    }
+
+    /**
+     * 获取SKU总数
+     *
+     * @param spuId  SPU ID（可选）
+     * @param status 状态（可选）
+     * @return 总数
+     */
+    @Override
+    public int count(Long spuId, Integer status) {
+        LambdaQueryWrapper<Sku> wrapper = buildWrapper(spuId, status);
+        long totalLong = skuMapper.selectCount(wrapper);
+        return (int) totalLong;
+    }
+
+    /**
+     * 获取SPU的最低价格
+     *
+     * @param spuId SPU ID
+     * @return 最低价格
+     */
+    @Override
+    public BigDecimal getMinPrice(Long spuId) {
+        LambdaQueryWrapper<Sku> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Sku::getSpuId, spuId);
+        wrapper.eq(Sku::getStatus, 1);
+        wrapper.orderByAsc(Sku::getPrice);
+        wrapper.last("LIMIT 1");
+
+        Sku sku = skuMapper.selectOne(wrapper);
+        return sku != null ? sku.getPrice() : BigDecimal.ZERO;
+    }
+
+    /**
+     * 获取SPU的库存总量
+     *
+     * @param spuId SPU ID
+     * @return 库存总量
+     */
+    @Override
+    public Integer getTotalStock(Long spuId) {
+        LambdaQueryWrapper<Sku> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Sku::getSpuId, spuId);
+        wrapper.eq(Sku::getStatus, 1);
+
+        List<Sku> skus = skuMapper.selectList(wrapper);
+        return skus.stream()
+                .map(Sku::getStock)
+                .filter(Objects::nonNull)
+                .mapToInt(Integer::intValue)
+                .sum();
+    }
+
+    /**
+     * 根据SPU ID获取SKU列表（包含销售属性）
+     *
+     * @param spuId SPU ID
+     * @return SKU列表（包含销售属性）
+     */
+    @Override
+    public List<SkuVo> getBySpuIdWithAttributes(Long spuId) {
+        log.info("获取SPU的SKU列表（包含销售属性）, spuId: {}", spuId);
+
+        List<Sku> skus = getBySpuId(spuId);
+        if (skus == null || skus.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        return skus.stream()
+                .map(this::convertToVo)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 根据ID获取SKU详情（包含销售属性）
+     *
+     * @param id SKU ID
+     * @return SKU详情（包含销售属性）
+     */
+    @Override
+    public SkuVo getByIdWithAttributes(Long id) {
+        log.info("获取SKU详情（包含销售属性）, id: {}", id);
+
+        Sku sku = getById(id);
+        if (sku == null) {
+            return null;
+        }
+
+        return convertToVo(sku);
+    }
+
+    /**
+     * 将SKU实体转换为VO（包含销售属性）
+     */
+    private SkuVo convertToVo(Sku sku) {
+        SkuVo vo = SkuVo.builder()
+                .id(sku.getId())
+                .spuId(sku.getSpuId())
+                .skuCode(sku.getSkuCode())
+                .price(sku.getPrice())
+                .marketPrice(sku.getMarketPrice())
+                .costPrice(sku.getCostPrice())
+                .stock(sku.getStock())
+                .warnStock(sku.getWarnStock())
+                .image(sku.getImage())
+                .weight(sku.getWeight())
+                .status(sku.getStatus())
+                .createdAt(sku.getCreatedAt())
+                .updatedAt(sku.getUpdatedAt())
+                .build();
+
+        // 获取销售属性
+        List<Map<String, Object>> attributes = getSkuSaleAttributes(sku.getId());
+        vo.setSaleAttributes(attributes);
+
+        return vo;
+    }
+
+    /**
+     * 获取SKU的销售属性列表
+     */
+    private List<Map<String, Object>> getSkuSaleAttributes(Long skuId) {
+        // 1. 获取SKU关联的属性值关系
+        List<SkuSaleAttrValue> skuAttrValues = skuSaleAttrValueMapper.getBySkuId(skuId);
+        if (skuAttrValues == null || skuAttrValues.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        // 2. 批量获取所有属性值ID并查询属性值信息
+        List<Long> attrValueIds = skuAttrValues.stream()
+                .map(SkuSaleAttrValue::getAttrValueId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        List<AttributeValue> attrValues = attributeValueMapper.selectBatchIds(attrValueIds);
+        Map<Long, AttributeValue> attrValueMap = attrValues.stream()
+                .collect(Collectors.toMap(AttributeValue::getId, v -> v));
+
+        // 3. 批量获取所有属性ID并查询属性信息
+        List<Long> attrIds = attrValues.stream()
+                .map(AttributeValue::getAttrId)
+                .distinct()
+                .collect(Collectors.toList());
+
+        List<Attribute> attributes = attributeMapper.selectBatchIds(attrIds);
+        Map<Long, Attribute> attrMap = attributes.stream()
+                .collect(Collectors.toMap(Attribute::getId, a -> a));
+
+        // 4. 构建结果
+        return skuAttrValues.stream()
+                .map(skuAttrValue -> {
+                    AttributeValue attrValue = attrValueMap.get(skuAttrValue.getAttrValueId());
+                    if (attrValue == null) return null;
+
+                    Attribute attr = attrMap.get(attrValue.getAttrId());
+                    if (attr == null) return null;
+
+                    Map<String, Object> map = new HashMap<>();
+                    map.put("attrId", attr.getId());
+                    map.put("attrName", attr.getName());
+                    map.put("valueId", attrValue.getId());
+                    map.put("value", attrValue.getValue());
+                    map.put("imageUrl", attrValue.getImageUrl());
+                    return map;
+                })
+                .filter(Objects::nonNull)
+                .collect(Collectors.toList());
+        //List<SkuSaleAttrValue> skuAttrValues = skuSaleAttrValueMapper.getBySkuId(id);
+        //if (skuAttrValues == null || skuAttrValues.isEmpty()) {
+        //    return new ArrayList<>();
+        //}
+        //
+        //
+        //// 获取所有属性ID
+        //List<Long> attrIds = skuAttrValues.stream()
+        //        .map(skuAttrValue->attributeValueMapper.selectById(skuAttrValue.getAttrValueId()).getAttrId())
+        //        .distinct()
+        //        .collect(Collectors.toList());
+        //
+        //// 获取属性信息
+        //List<Attribute> attributes = attributeMapper.selectBatchIds(attrIds);
+        //Map<Long, Attribute> attrMap = attributes.stream()
+        //        .collect(Collectors.toMap(Attribute::getId, a -> a));
+        //
+        //// 获取所有属性值ID
+        //List<Long> attrValueIds = skuAttrValues.stream()
+        //        .map(SkuSaleAttrValue::getAttrValueId)
+        //        .distinct()
+        //        .collect(Collectors.toList());
+        //
+        //// 获取属性值信息
+        //Map<Long, AttributeValue> attrValueMap = new HashMap<>();
+        //if (!attrValueIds.isEmpty()) {
+        //    List<AttributeValue> attrValues = attributeValueMapper.selectBatchIds(attrValueIds);
+        //    attrValueMap = attrValues.stream()
+        //            .collect(Collectors.toMap(AttributeValue::getId, v -> v));
+        //}
+        //
+        //// 构建结果
+        //List<Map<String, Object>> result = new ArrayList<>();
+        //for (SkuSaleAttrValue skuAttrValue : skuAttrValues) {
+        //    //Attribute attr = attrMap.get(skuAttrValue.getAttrValueId());
+        //    Attribute attr = attrMap.get(attributeValueMapper.selectById(skuAttrValue.getAttrValueId()).getAttrId());
+        //    if (attr == null) {
+        //        continue;
+        //    }
+        //
+        //    AttributeValue attrValue = attrValueMap.get(skuAttrValue.getAttrValueId());
+        //    if (attrValue == null) {
+        //        continue;
+        //    }
+        //
+        //    Map<String, Object> map = new HashMap<>();
+        //    map.put("attrId", attr.getId());
+        //    map.put("attrName", attr.getName());
+        //    map.put("valueId", attrValue.getId());
+        //    map.put("value", attrValue.getValue());
+        //    map.put("imageUrl", attrValue.getImageUrl());
+        //
+        //    result.add(map);
+        //}
+        //
+        //return result;
+    }
+
+    /**
+     * 构建查询条件
+     */
+    private LambdaQueryWrapper<Sku> buildWrapper(Long spuId, Integer status) {
+        LambdaQueryWrapper<Sku> wrapper = new LambdaQueryWrapper<>();
+        if (spuId != null) {
+            wrapper.eq(Sku::getSpuId, spuId);
+        }
+        if (status != null) {
+            wrapper.eq(Sku::getStatus, status);
+        }
+        return wrapper;
+    }
+}
