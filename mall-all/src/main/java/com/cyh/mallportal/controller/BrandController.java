@@ -10,6 +10,7 @@ import com.cyh.mallportal.service.FileService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -50,6 +51,7 @@ public class BrandController {
      * @return 新增结果
      */
     @PostMapping("/add")
+    @PreAuthorize("hasAuthority('product:add') or hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
     public Result<Map<String, Object>> add(@RequestPart(value = "brandDto") String brandDtoString,
                                            @RequestPart(value = "logoFile", required = false) MultipartFile logoFile) {
         // 解析品牌DTO
@@ -96,6 +98,7 @@ public class BrandController {
      * @return 删除结果
      */
     @DeleteMapping("/delete/{id}")
+    @PreAuthorize("hasAuthority('product:delete') or hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
     public Result<Void> delete(@PathVariable Long id) {
         // 参数校验
         if (id == null) {
@@ -118,6 +121,7 @@ public class BrandController {
      * @return 更新结果
      */
     @PutMapping("/update")
+    @PreAuthorize("hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
     public Result<Map<String, Object>> update(@RequestPart(value = "brandDto") String brandDtoString,
                                                @RequestPart(value = "logoFile", required = false) MultipartFile logoFile) {
         // 解析品牌DTO
@@ -285,27 +289,19 @@ public class BrandController {
 
     /**
      * 上传品牌Logo（使用公共FileService）
-     *
-     * @param file Logo文件
-     * @return 上传结果，包含Logo路径
      */
     private Map<String, String> uploadLogo(MultipartFile file) {
-        Map<String, String> result = fileService.uploadImage(file, "logos");
+        Map<String, String> result = fileService.uploadImage(file, "brands");
         if (result != null) {
             Map<String, String> response = new HashMap<>();
             response.put("logo", result.get("relativePath"));
-            response.put("logoUrl", "/uploads/logos/" + result.get("relativePath"));
+            response.put("logoUrl", "/uploads/images/brands/" + result.get("relativePath"));
             return response;
         }
         return null;
     }
 
-    /**
-     * 删除品牌Logo文件（使用公共FileService）
-     *
-     * @param logo Logo路径（相对路径）
-     */
     private void deleteLogoFile(String logo) {
-        fileService.deleteFile(logo, "logos");
+        fileService.deleteFile(logo, "brands");
     }
 }

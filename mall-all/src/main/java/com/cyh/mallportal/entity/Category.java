@@ -56,11 +56,16 @@ public class Category implements Serializable {
 
     /**
      * 状态（1-启用 0-禁用）
-     * 逻辑删除字段
      */
-    @TableLogic
     @TableField(value = "status")
     private Integer status;
+
+    /**
+     * 逻辑删除（0-未删除 1-已删除）
+     */
+    @TableField(value = "is_deleted")
+    @TableLogic(value = "0", delval = "1")
+    private Boolean isDeleted;
 
     /**
      * 创建时间

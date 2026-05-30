@@ -25,21 +25,27 @@ spring:
       time-to-live: 180000
   data:
     redis:
-      host: 192.168.31.137
+      host: 192.168.31.140
       port: 6379
 
 file:
   upload:
-    path: ./uploads
+    base-path: ./uploads
     images-path: ./uploads/images
+    spu-path: ./uploads/images/spu
+    sku-path: ./uploads/images/sku
+    brands-path: ./uploads/images/brands
+    stores-path: ./uploads/images/stores
+    avatars-path: ./uploads/images/avatars
+    banners-path: ./uploads/images/banners
 mybatis-plus:
   mapper-locations: classpath:/mapper/**/*.xml
   global-config:
     db-config:
       id-type: auto #配置主键自增
       #逻辑删除配置
-      logic-delete-value: 0 # 逻辑删除值(默认为 1) 现在0删除
-      logic-not-delete-value: 1 # 逻辑未删除值(默认为 0)  现在1存在
+      logic-delete-value: 1 # 逻辑删除值(默认为 1)
+      logic-not-delete-value: 0 # 逻辑未删除值(默认为 0)
   configuration:
     #在映射实体或者属性时，将数据库中表名和字段名中的下划线去掉，按照驼峰命名法映射
     map-underscore-to-camel-case: true

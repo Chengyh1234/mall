@@ -1,0 +1,9 @@
+MyBatis-Plus 为了保持统一性，插入和修改操作遵循 FieldStrategy（字段策略）机制，默认情况下都会悄悄帮你把 null 字段过滤掉。
+这既是出于安全考虑（避免用 null 意外覆盖数据库的默认值，如 0、'默认文本' 等），也是为了提升批量操作的性能。
+
+如修改可以使用下面来设置为null
+LambdaUpdateWrapper<User> wrapper = new LambdaUpdateWrapper<>();
+wrapper.set(User::getEmail, null)  // 将 email 字段显式设置为 null
+       .eq(User::getId, 1L);       // 指定更新条件：id = 1
+// 第一个参数传入 null，因为更新内容已在 wrapper 中指定
+userMapper.update(null, wrapper);或为userMapper.updateById(wrapper);

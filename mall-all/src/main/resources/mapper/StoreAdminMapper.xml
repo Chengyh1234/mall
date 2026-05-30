@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cyh.mallportal.mapper.StoreAdminMapper">
+
+    <resultMap id="BaseResultMap" type="com.cyh.mallportal.entity.StoreAdmin">
+        <id column="id" property="id" />
+        <result column="store_id" property="storeId" />
+        <result column="user_id" property="userId" />
+        <result column="role" property="role" />
+        <result column="status" property="status" />
+        <result column="created_at" property="createdAt" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, store_id, user_id, role, status, created_at
+    </sql>
+
+    <select id="selectByStoreId" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List" />
+        FROM store_admins
+        WHERE store_id = #{storeId}
+        ORDER BY role ASC, created_at ASC
+    </select>
+
+    <select id="selectByUserId" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List" />
+        FROM store_admins
+        WHERE user_id = #{userId}
+    </select>
+
+    <select id="selectByStoreIdAndUserId" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List" />
+        FROM store_admins
+        WHERE store_id = #{storeId} AND user_id = #{userId}
+    </select>
+
+    <delete id="deleteByStoreId">
+        DELETE FROM store_admins WHERE store_id = #{storeId}
+    </delete>
+
+</mapper>

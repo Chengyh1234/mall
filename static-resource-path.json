@@ -1,0 +1,39 @@
+{
+  "description": "前端访问静态资源路径配置",
+  "baseUrl": "/api",
+  "uploadPath": "/uploads/images",
+  "resources": {
+    "spu": {
+      "path": "/uploads/images/spu",
+      "description": "spu图",
+      "example": "/api/uploads/images/spu/2026/05/18/uuid_filename.jpg"
+    },
+    "sku": {
+      "path": "/uploads/images/sku",
+      "description": "SKU规格图",
+      "example": "/api/uploads/images/sku/2026/05/18/uuid_filename.jpg"
+    },
+    "brands": {
+      "path": "/uploads/images/brands",
+      "description": "品牌图片",
+      "example": "/api/uploads/images/brands/2026/05/18/uuid_filename.jpg"
+    },
+    "stores": {
+      "path": "/uploads/images/stores",
+      "description": "店铺图片（含Logo）",
+      "example": "/api/uploads/images/stores/2026/05/18/uuid_filename.jpg"
+    },
+    "avatars": {
+      "path": "/uploads/images/avatars",
+      "description": "用户头像",
+      "example": "/api/uploads/images/avatars/2026/05/18/uuid_filename.jpg"
+    },
+    "banners": {
+      "path": "/uploads/images/banners",
+      "description": "横幅广告",
+      "example": "/api/uploads/images/banners/2026/05/18/uuid_filename.jpg"
+    }
+  },
+  "dbPathFormat": "{yyyy}/{MM}/{dd}/{uuid}_{filename}",
+  "note": "数据库中存储的是 dbPathFormat 格式的路径，前端访问时需要拼接完整URL"
+}

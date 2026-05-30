@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cyh.mallportal.mapper.AddressMapper">
+
+    <resultMap id="BaseResultMap" type="com.cyh.mallportal.entity.Address">
+        <id column="id" property="id"/>
+        <result column="user_id" property="userId"/>
+        <result column="receiver_name" property="receiverName"/>
+        <result column="receiver_phone" property="receiverPhone"/>
+        <result column="province" property="province"/>
+        <result column="city" property="city"/>
+        <result column="district" property="district"/>
+        <result column="detail_address" property="detailAddress"/>
+        <result column="zip_code" property="zipCode"/>
+        <result column="is_default" property="isDefault"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <select id="selectByUserId" resultMap="BaseResultMap">
+        SELECT * FROM addresses WHERE user_id = #{userId} ORDER BY is_default DESC, created_at DESC
+    </select>
+
+    <select id="selectDefaultByUserId" resultMap="BaseResultMap">
+        SELECT * FROM addresses WHERE user_id = #{userId} AND is_default = 1
+    </select>
+
+    <select id="countByUserId" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM addresses WHERE user_id = #{userId}
+    </select>
+
+    <update id="cancelDefaultByUserId">
+        UPDATE addresses SET is_default = 0 WHERE user_id = #{userId} AND is_default = 1
+    </update>
+
+</mapper>

@@ -7,6 +7,7 @@ import com.cyh.mallportal.entity.Category;
 import com.cyh.mallportal.service.CategoryService;
 import com.cyh.mallportal.service.FileService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -37,6 +38,7 @@ public class CategoryController {
      * @return 新增结果
      */
     @PostMapping("/add")
+    @PreAuthorize("hasAuthority('product:category') or hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
     public Result<Map<String, Object>> add(@RequestPart(value = "categoryDto") String categoryDtoString,
                                            @RequestPart(value = "iconFile", required = false) MultipartFile iconFile) {
         // 解析分类DTO
@@ -84,6 +86,7 @@ public class CategoryController {
      * @return 删除结果
      */
     @DeleteMapping("/delete/{id}")
+    @PreAuthorize("hasAuthority('product:category') or hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
     public Result<Void> delete(@PathVariable Long id) {
         // 获取分类信息（包含图标）
         Category category = categoryService.getById(id);
@@ -108,6 +111,7 @@ public class CategoryController {
      * @return 更新结果
      */
     @PutMapping("/update")
+    @PreAuthorize("hasAuthority('product:category') or hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
     public Result<Map<String, Object>> update(@RequestPart(value = "categoryDto") String categoryDtoString,
                                               @RequestPart(value = "iconFile", required = false) MultipartFile iconFile) {
         // 解析分类DTO

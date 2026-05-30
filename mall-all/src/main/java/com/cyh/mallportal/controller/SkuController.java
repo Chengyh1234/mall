@@ -8,6 +8,7 @@ import com.cyh.mallportal.service.FileService;
 import com.cyh.mallportal.service.SkuService;
 import com.cyh.mallportal.vo.SkuVo;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -40,6 +41,7 @@ public class SkuController {
      * @return 新增结果
      */
     @PostMapping("/add")
+    @PreAuthorize("hasAuthority('product:add') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Map<String, Object>> add(@RequestPart(value = "skuDto") String skuDtoString,
                                            @RequestPart(value = "imageFile", required = false) MultipartFile imageFile) {
         // 解析SKU DTO
@@ -56,7 +58,6 @@ public class SkuController {
         // 创建SKU实体
         Sku sku = new Sku();
         sku.setSpuId(skuDto.getSpuId());
-        sku.setSkuCode(skuDto.getSkuCode());
         sku.setPrice(skuDto.getPrice());
         sku.setMarketPrice(skuDto.getMarketPrice());
         sku.setCostPrice(skuDto.getCostPrice());
@@ -83,7 +84,6 @@ public class SkuController {
         if (id != null) {
             Map<String, Object> data = new HashMap<>();
             data.put("id", id);
-            data.put("skuCode", sku.getSkuCode());
             data.put("image", sku.getImage());
             return Result.success("添加成功", data);
         }
@@ -98,6 +98,7 @@ public class SkuController {
      * @return 新增结果
      */
     @PostMapping("/batch-add")
+    @PreAuthorize("hasAuthority('product:add') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Void> batchAdd(@RequestParam Long spuId,
                                  @RequestParam String skus) {
         List<SkuDto> skuDtoList = JSON.parseArray(skus, SkuDto.class);
@@ -106,7 +107,6 @@ public class SkuController {
                 .map(dto -> {
                     Sku sku = new Sku();
                     sku.setSpuId(spuId);
-                    sku.setSkuCode(dto.getSkuCode());
                     sku.setPrice(dto.getPrice());
                     sku.setMarketPrice(dto.getMarketPrice());
                     sku.setCostPrice(dto.getCostPrice());
@@ -134,6 +134,7 @@ public class SkuController {
      * @return 删除结果
      */
     @DeleteMapping("/delete/{id}")
+    @PreAuthorize("hasAuthority('product:delete') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Void> delete(@PathVariable Long id) {
         // 获取SKU信息（包含图片）
         Sku sku = skuService.getById(id);
@@ -156,6 +157,7 @@ public class SkuController {
      * @return 删除结果
      */
     @DeleteMapping("/delete-by-spu/{spuId}")
+    @PreAuthorize("hasAuthority('product:delete') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Void> deleteBySpuId(@PathVariable Long spuId) {
         // 获取所有SKU并删除图片
         List<Sku> skus = skuService.getBySpuId(spuId);
@@ -173,13 +175,41 @@ public class SkuController {
     }
 
     /**
-     * 更新SKU信息（支持图片上传）
+     * 批量删除SKU
+     *
+     * @param ids SKU ID列表（JSON数组）
+     * @return 删除结果
+     */
+    @DeleteMapping("/batch-delete")
+    @PreAuthorize("hasAuthority('product:delete') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    public Result<Map<String, Object>> batchDelete(@RequestBody List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return Result.error("SKU ID列表不能为空");
+        }
+
+        // 删除图片文件
+        for (Long id : ids) {
+            Sku sku = skuService.getById(id);
+            if (sku != null && StringUtils.hasText(sku.getImage())) {
+                deleteImageFile(sku.getImage());
+            }
+        }
+
+        int count = skuService.batchDelete(ids);
+        Map<String, Object> data = new HashMap<>();
+        data.put("deletedCount", count);
+        return Result.success("批量删除成功", data);
+    }
+
+    /**
+     * 更新SKU信息（支持图片上传） =============似乎不需要
      *
      * @param skuDtoString SKU信息的JSON字符串
      * @param imageFile    上传的SKU图片（非必填）
      * @return 更新结果
      */
     @PutMapping("/update")
+    @PreAuthorize("hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Map<String, Object>> update(@RequestPart(value = "skuDto") String skuDtoString,
                                               @RequestPart(value = "imageFile", required = false) MultipartFile imageFile) {
         // 解析SKU DTO
@@ -200,9 +230,6 @@ public class SkuController {
         Sku sku = new Sku();
         sku.setId(skuDto.getId());
 
-        if (skuDto.getSkuCode() != null) {
-            sku.setSkuCode(skuDto.getSkuCode());
-        }
         if (skuDto.getPrice() != null) {
             sku.setPrice(skuDto.getPrice());
         }
@@ -264,6 +291,38 @@ public class SkuController {
     }
 
     /**
+     * 启用SKU
+     *
+     * @param id SKU ID
+     * @return 启用结果
+     */
+    @PutMapping("/enable/{id}")
+    @PreAuthorize("hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    public Result<Void> enable(@PathVariable Long id) {
+        boolean success = skuService.enable(id);
+        if (success) {
+            return Result.success("启用成功", null);
+        }
+        return Result.error("启用失败");
+    }
+
+    /**
+     * 禁用SKU
+     *
+     * @param id SKU ID
+     * @return 禁用结果
+     */
+    @PutMapping("/disable/{id}")
+    @PreAuthorize("hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    public Result<Void> disable(@PathVariable Long id) {
+        boolean success = skuService.disable(id);
+        if (success) {
+            return Result.success("禁用成功", null);
+        }
+        return Result.error("禁用失败");
+    }
+
+    /**
      * 更新库存
      *
      * @param id    SKU ID
@@ -271,6 +330,7 @@ public class SkuController {
      * @return 更新结果
      */
     @PutMapping("/update-stock")
+    @PreAuthorize("hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Void> updateStock(@RequestParam Long id,
                                     @RequestParam Integer stock) {
         boolean success = skuService.updateStock(id, stock);
@@ -288,6 +348,7 @@ public class SkuController {
      * @return 扣减结果
      */
     @PutMapping("/decrease-stock")
+    @PreAuthorize("hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Void> decreaseStock(@RequestParam Long id,
                                       @RequestParam Integer quantity) {
         boolean success = skuService.decreaseStock(id, quantity);
@@ -325,22 +386,7 @@ public class SkuController {
     }
 
     /**
-     * 根据SKU编码获取SKU
-     *
-     * @param skuCode SKU编码
-     * @return SKU信息
-     */
-    @GetMapping("/by-code/{skuCode}")
-    public Result<Sku> getBySkuCode(@PathVariable String skuCode) {
-        Sku sku = skuService.getBySkuCode(skuCode);
-        if (sku != null) {
-            return Result.success(sku);
-        }
-        return Result.error("SKU不存在");
-    }
-
-    /**
-     * 分页获取SKU列表
+     * 分页获取SKU列表==========暂时没有使用到
      *
      * @param spuId    SPU ID（可选）
      * @param status   状态（可选）
@@ -366,7 +412,7 @@ public class SkuController {
     }
 
     /**
-     * 获取SPU的最低价格
+     * 获取SPU的最低价格==========暂时没有使用到
      *
      * @param spuId SPU ID
      * @return 最低价格
@@ -416,29 +462,18 @@ public class SkuController {
         return Result.error("SKU不存在");
     }
 
-    /**
-     * 上传SKU图片（使用公共FileService）
-     *
-     * @param file 图片文件
-     * @return 上传结果，包含图片路径
-     */
     private Map<String, String> uploadImage(MultipartFile file) {
-        Map<String, String> result = fileService.uploadImage(file, "skus");
+        Map<String, String> result = fileService.uploadImage(file, "sku");
         if (result != null) {
             Map<String, String> response = new HashMap<>();
             response.put("relativePath", result.get("relativePath"));
-            response.put("imageUrl", "/uploads/skus/" + result.get("relativePath"));
+            response.put("imageUrl", "/uploads/images/sku/" + result.get("relativePath"));
             return response;
         }
         return null;
     }
 
-    /**
-     * 删除SKU图片文件（使用公共FileService）
-     *
-     * @param image 图片路径（相对路径）
-     */
     private void deleteImageFile(String image) {
-        fileService.deleteFile(image, "skus");
+        fileService.deleteFile(image, "sku");
     }
 }

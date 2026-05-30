@@ -45,6 +45,14 @@ public interface SkuService {
     boolean deleteBySpuId(Long spuId);
 
     /**
+     * 批量删除SKU（逻辑删除，同时删除SKU的销售属性绑定）
+     *
+     * @param ids SKU ID列表
+     * @return 删除成功数量
+     */
+    int batchDelete(List<Long> ids);
+
+    /**
      * 更新SKU信息
      *
      * @param sku SKU实体
@@ -87,14 +95,6 @@ public interface SkuService {
     List<Sku> getBySpuId(Long spuId);
 
     /**
-     * 根据SKU编码获取SKU
-     *
-     * @param skuCode SKU编码
-     * @return SKU实体
-     */
-    Sku getBySkuCode(String skuCode);
-
-    /**
      * 获取所有SKU列表
      *
      * @return SKU列表
@@ -120,6 +120,22 @@ public interface SkuService {
      * @return 总数
      */
     int count(Long spuId, Integer status);
+
+    /**
+     * 启用SKU（设置 status=1）
+     *
+     * @param id SKU ID
+     * @return 是否启用成功
+     */
+    boolean enable(Long id);
+
+    /**
+     * 禁用SKU（设置 status=0）
+     *
+     * @param id SKU ID
+     * @return 是否禁用成功
+     */
+    boolean disable(Long id);
 
     /**
      * 获取SPU的最低价格

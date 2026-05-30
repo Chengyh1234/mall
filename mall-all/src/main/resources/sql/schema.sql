@@ -11,7 +11,7 @@
  Target Server Version : 80040 (8.0.40)
  File Encoding         : 65001
 
- Date: 12/05/2026 14:13:25
+ Date: 17/05/2026 22:37:16
 */
 
 SET NAMES utf8mb4;
@@ -37,11 +37,14 @@ CREATE TABLE `addresses`  (
                               PRIMARY KEY (`id`) USING BTREE,
                               INDEX `user_id`(`user_id` ASC) USING BTREE,
                               CONSTRAINT `addresses_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '收货地址表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '收货地址表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of addresses
 -- ----------------------------
+INSERT INTO `addresses` VALUES (1, 2, '程', '15738971365', '北京市', '北京市', '西城区', '淮滨', NULL, 0, '2026-05-16 23:00:53', '2026-05-16 23:10:44');
+INSERT INTO `addresses` VALUES (2, 2, '程', '15738971365', '北京市', '北京市', '朝阳区', '防胡', NULL, 1, '2026-05-16 23:10:45', '2026-05-16 23:10:45');
+INSERT INTO `addresses` VALUES (3, 4, '程', '15738971365', '北京市', '北京市', '朝阳区', '淮滨', NULL, 1, '2026-05-17 20:09:41', '2026-05-17 20:09:41');
 
 -- ----------------------------
 -- Table structure for attribute_values
@@ -169,6 +172,12 @@ CREATE TABLE `cart_items`  (
                                `sku_id` bigint NOT NULL,
                                `quantity` int NOT NULL DEFAULT 1 COMMENT '数量',
                                `selected` tinyint NULL DEFAULT 1 COMMENT '是否选中: 1-选中 0-未选',
+                               `product_name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '商品名称快照',
+                               `product_image` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '商品图片快照',
+                               `sku_specs` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT 'SKU规格快照',
+                               `price` decimal(10, 2) NULL DEFAULT NULL COMMENT '单价快照（加购物车时的价格）',
+                               `expire_time` datetime NULL DEFAULT NULL COMMENT '失效时间',
+                               `notes` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '备注',
                                `created_at` datetime NULL DEFAULT CURRENT_TIMESTAMP,
                                `updated_at` datetime NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                                PRIMARY KEY (`id`) USING BTREE,
@@ -177,11 +186,12 @@ CREATE TABLE `cart_items`  (
                                INDEX `idx_cart_items_user`(`user_id` ASC) USING BTREE,
                                CONSTRAINT `cart_items_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
                                CONSTRAINT `cart_items_ibfk_2` FOREIGN KEY (`sku_id`) REFERENCES `sku` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '购物车表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 3 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '购物车表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of cart_items
 -- ----------------------------
+INSERT INTO `cart_items` VALUES (1, 2, 23, 1, 1, '小米14 Pro', NULL, NULL, 4299.00, NULL, NULL, '2026-05-16 21:10:08', '2026-05-16 23:08:06');
 
 -- ----------------------------
 -- Table structure for categories
@@ -312,11 +322,42 @@ CREATE TABLE `favorites`  (
                               INDEX `spu_id`(`spu_id` ASC) USING BTREE,
                               CONSTRAINT `favorites_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
                               CONSTRAINT `favorites_ibfk_2` FOREIGN KEY (`spu_id`) REFERENCES `spu` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用户收藏表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '用户收藏表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of favorites
 -- ----------------------------
+
+-- ----------------------------
+-- Table structure for logistics_companies
+-- ----------------------------
+DROP TABLE IF EXISTS `logistics_companies`;
+CREATE TABLE `logistics_companies`  (
+                                        `id` bigint NOT NULL AUTO_INCREMENT COMMENT '物流公司ID',
+                                        `name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '物流公司名称（如：顺丰速运）',
+                                        `code` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '物流公司代码（如：SF）',
+                                        `logo` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '物流公司Logo',
+                                        `website` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '物流公司官网',
+                                        `phone` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '物流公司客服电话',
+                                        `sort` int NULL DEFAULT 0 COMMENT '排序（越小越靠前）',
+                                        `status` tinyint NULL DEFAULT 1 COMMENT '状态：1-启用 0-禁用',
+                                        `created_at` datetime NULL DEFAULT CURRENT_TIMESTAMP,
+                                        `updated_at` datetime NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                                        PRIMARY KEY (`id`) USING BTREE,
+                                        UNIQUE INDEX `uk_code`(`code` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 9 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '物流公司表' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of logistics_companies
+-- ----------------------------
+INSERT INTO `logistics_companies` VALUES (1, '顺丰速运', 'SF', NULL, NULL, NULL, 1, 1, '2026-05-16 15:11:12', '2026-05-16 15:11:12');
+INSERT INTO `logistics_companies` VALUES (2, '中通快递', 'ZTO', NULL, NULL, NULL, 2, 1, '2026-05-16 15:11:12', '2026-05-16 15:11:12');
+INSERT INTO `logistics_companies` VALUES (3, '圆通速递', 'YTO', NULL, NULL, NULL, 3, 1, '2026-05-16 15:11:12', '2026-05-16 15:11:12');
+INSERT INTO `logistics_companies` VALUES (4, '韵达快递', 'YD', NULL, NULL, NULL, 4, 1, '2026-05-16 15:11:12', '2026-05-16 15:11:12');
+INSERT INTO `logistics_companies` VALUES (5, '极兔速递', 'JT', NULL, NULL, NULL, 5, 1, '2026-05-16 15:11:12', '2026-05-16 15:11:12');
+INSERT INTO `logistics_companies` VALUES (6, '京东物流', 'JD', NULL, NULL, NULL, 6, 1, '2026-05-16 15:11:12', '2026-05-16 15:11:12');
+INSERT INTO `logistics_companies` VALUES (7, '德邦快递', 'DB', NULL, NULL, NULL, 7, 1, '2026-05-16 15:11:12', '2026-05-16 15:11:12');
+INSERT INTO `logistics_companies` VALUES (8, '邮政EMS', 'EMS', NULL, NULL, NULL, 8, 1, '2026-05-16 15:11:12', '2026-05-16 15:11:12');
 
 -- ----------------------------
 -- Table structure for operation_logs
@@ -348,6 +389,41 @@ CREATE TABLE `operation_logs`  (
 -- ----------------------------
 
 -- ----------------------------
+-- Table structure for order_delivery
+-- ----------------------------
+DROP TABLE IF EXISTS `order_delivery`;
+CREATE TABLE `order_delivery`  (
+                                   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '发货记录ID',
+                                   `order_id` bigint NOT NULL COMMENT '订单ID（关联订单表）',
+                                   `delivery_company` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '物流公司（如：顺丰、中通）',
+                                   `delivery_no` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '物流单号',
+                                   `delivery_status` tinyint NULL DEFAULT 1 COMMENT '发货状态：1-已发货 2-已签收 3-物流异常',
+                                   `sender` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '发货人（操作员）',
+                                   `sender_id` bigint NULL DEFAULT NULL COMMENT '发货人ID（关联用户表）',
+                                   `delivery_time` datetime NOT NULL COMMENT '实际发货时间',
+                                   `package_count` int NULL DEFAULT 1 COMMENT '包裹数量',
+                                   `weight` decimal(10, 2) NULL DEFAULT NULL COMMENT '包裹重量(kg)',
+                                   `receiver_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '收货人姓名',
+                                   `receiver_phone` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '收货人电话',
+                                   `sign_time` datetime NULL DEFAULT NULL COMMENT '签收时间',
+                                   `signer` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '签收人',
+                                   `exception_reason` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '异常原因',
+                                   `remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '备注',
+                                   `created_at` datetime NULL DEFAULT CURRENT_TIMESTAMP COMMENT '记录创建时间',
+                                   `updated_at` datetime NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '最后更新时间',
+                                   PRIMARY KEY (`id`) USING BTREE,
+                                   INDEX `idx_order_id`(`order_id` ASC) USING BTREE,
+                                   INDEX `idx_delivery_no`(`delivery_no` ASC) USING BTREE,
+                                   INDEX `idx_delivery_status`(`delivery_status` ASC) USING BTREE,
+                                   INDEX `idx_delivery_time`(`delivery_time` ASC) USING BTREE,
+                                   CONSTRAINT `fk_delivery_order` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '订单发货记录表（支持一个订单多次发货）' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of order_delivery
+-- ----------------------------
+
+-- ----------------------------
 -- Table structure for order_items
 -- ----------------------------
 DROP TABLE IF EXISTS `order_items`;
@@ -364,6 +440,7 @@ CREATE TABLE `order_items`  (
                                 `quantity` int NOT NULL COMMENT '数量',
                                 `total_amount` decimal(10, 2) NOT NULL COMMENT '小计',
                                 `created_at` datetime NULL DEFAULT CURRENT_TIMESTAMP,
+                                `gift_flag` tinyint NULL DEFAULT 0 COMMENT '是否赠品',
                                 PRIMARY KEY (`id`) USING BTREE,
                                 INDEX `sku_id`(`sku_id` ASC) USING BTREE,
                                 INDEX `spu_id`(`spu_id` ASC) USING BTREE,
@@ -371,11 +448,12 @@ CREATE TABLE `order_items`  (
                                 CONSTRAINT `order_items_ibfk_1` FOREIGN KEY (`order_id`) REFERENCES `orders` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT,
                                 CONSTRAINT `order_items_ibfk_2` FOREIGN KEY (`sku_id`) REFERENCES `sku` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
                                 CONSTRAINT `order_items_ibfk_3` FOREIGN KEY (`spu_id`) REFERENCES `spu` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '订单明细表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '订单明细表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of order_items
 -- ----------------------------
+INSERT INTO `order_items` VALUES (1, 1, '17790211020988E3A40C0', 25, 3, '小米14 Pro', NULL, NULL, 5999.00, 4, 23996.00, '2026-05-17 20:31:42', 0);
 
 -- ----------------------------
 -- Table structure for orders
@@ -404,6 +482,8 @@ CREATE TABLE `orders`  (
                            `remark` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '备注',
                            `created_at` datetime NULL DEFAULT CURRENT_TIMESTAMP,
                            `updated_at` datetime NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                           `cancel_reason` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '取消原因',
+                           `version` int NULL DEFAULT 1 COMMENT '乐观锁版本号',
                            PRIMARY KEY (`id`) USING BTREE,
                            UNIQUE INDEX `order_no`(`order_no` ASC) USING BTREE,
                            INDEX `idx_orders_user`(`user_id` ASC) USING BTREE,
@@ -411,11 +491,12 @@ CREATE TABLE `orders`  (
                            INDEX `idx_orders_status`(`status` ASC) USING BTREE,
                            INDEX `idx_orders_created`(`created_at` ASC) USING BTREE,
                            CONSTRAINT `orders_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '订单表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 2 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '订单表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of orders
 -- ----------------------------
+INSERT INTO `orders` VALUES (1, '17790211020988E3A40C0', 4, 23996.00, 23996.00, 0.00, 0.00, 2, 1, '2026-05-17 20:57:41', 'alipay', NULL, NULL, NULL, NULL, NULL, '程', '15738971365', '北京市北京市朝阳区淮滨', '', '2026-05-17 20:31:42', '2026-05-17 20:57:41', NULL, 2);
 
 -- ----------------------------
 -- Table structure for payment_records
@@ -430,10 +511,13 @@ CREATE TABLE `payment_records`  (
                                     `status` tinyint NULL DEFAULT 0 COMMENT '支付状态: 0-待支付 1-成功 2-失败',
                                     `pay_time` datetime NULL DEFAULT NULL COMMENT '支付时间',
                                     `created_at` datetime NULL DEFAULT CURRENT_TIMESTAMP,
+                                    `user_id` bigint NULL DEFAULT NULL COMMENT '支付用户',
                                     PRIMARY KEY (`id`) USING BTREE,
                                     INDEX `order_no`(`order_no` ASC) USING BTREE,
-                                    CONSTRAINT `payment_records_ibfk_1` FOREIGN KEY (`order_no`) REFERENCES `orders` (`order_no`) ON DELETE RESTRICT ON UPDATE RESTRICT
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '支付记录表' ROW_FORMAT = Dynamic;
+                                    INDEX `user_id`(`user_id` ASC) USING BTREE,
+                                    CONSTRAINT `payment_records_ibfk_1` FOREIGN KEY (`order_no`) REFERENCES `orders` (`order_no`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+                                    CONSTRAINT `payment_records_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '支付记录表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of payment_records
@@ -458,48 +542,105 @@ CREATE TABLE `permissions`  (
                                 `updated_at` datetime NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                                 PRIMARY KEY (`id`) USING BTREE,
                                 UNIQUE INDEX `code`(`code` ASC) USING BTREE
-) ENGINE = InnoDB AUTO_INCREMENT = 38 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '权限表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 95 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '权限表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of permissions
 -- ----------------------------
-INSERT INTO `permissions` VALUES (1, '首页', 'dashboard', 'menu', 0, '/dashboard', 'Layout/Dashboard', 'dashboard', 1, 1, '2026-04-30 22:35:35', '2026-04-30 22:35:35');
-INSERT INTO `permissions` VALUES (2, '系统管理', 'system', 'menu', 0, '/system', 'Layout/System', 'system', 2, 1, '2026-04-30 22:35:35', '2026-04-30 22:35:35');
-INSERT INTO `permissions` VALUES (3, '用户管理', 'user', 'menu', 0, '/user', 'Layout/User', 'user', 3, 1, '2026-04-30 22:35:35', '2026-04-30 22:35:35');
-INSERT INTO `permissions` VALUES (4, '商品管理', 'product', 'menu', 0, '/product', 'Layout/Product', 'product', 4, 1, '2026-04-30 22:35:35', '2026-04-30 22:35:35');
-INSERT INTO `permissions` VALUES (5, '订单管理', 'order', 'menu', 0, '/order', 'Layout/Order', 'order', 5, 1, '2026-04-30 22:35:35', '2026-04-30 22:35:35');
-INSERT INTO `permissions` VALUES (6, '营销管理', 'marketing', 'menu', 0, '/marketing', 'Layout/Marketing', 'marketing', 6, 1, '2026-04-30 22:35:35', '2026-04-30 22:35:35');
-INSERT INTO `permissions` VALUES (7, '数据统计', 'report', 'menu', 0, '/report', 'Layout/Report', 'chart', 7, 1, '2026-04-30 22:35:35', '2026-04-30 22:35:35');
-INSERT INTO `permissions` VALUES (8, '角色管理', 'system:role:list', 'menu', 2, 'role', 'System/Role', 'role', 1, 1, '2026-04-30 22:35:36', '2026-04-30 22:35:36');
-INSERT INTO `permissions` VALUES (9, '权限管理', 'system:permission:list', 'menu', 2, 'permission', 'System/Permission', 'permission', 2, 1, '2026-04-30 22:35:36', '2026-04-30 22:35:36');
-INSERT INTO `permissions` VALUES (10, '菜单管理', 'system:menu:list', 'menu', 2, 'menu', 'System/Menu', 'menu', 3, 1, '2026-04-30 22:35:36', '2026-04-30 22:35:36');
-INSERT INTO `permissions` VALUES (11, '操作日志', 'system:log:list', 'menu', 2, 'log', 'System/Log', 'log', 4, 1, '2026-04-30 22:35:36', '2026-04-30 22:35:36');
-INSERT INTO `permissions` VALUES (12, '用户列表', 'user:list', 'menu', 3, 'list', 'User/List', 'user-list', 1, 1, '2026-04-30 22:35:36', '2026-04-30 22:35:36');
-INSERT INTO `permissions` VALUES (13, '用户统计', 'user:stats', 'menu', 3, 'stats', 'User/Stats', 'stats', 2, 1, '2026-04-30 22:35:36', '2026-04-30 22:35:36');
-INSERT INTO `permissions` VALUES (14, '商品列表', 'product:list', 'menu', 4, 'list', 'Product/List', 'product-list', 1, 1, '2026-04-30 22:35:36', '2026-04-30 22:35:36');
-INSERT INTO `permissions` VALUES (15, '分类管理', 'product:category', 'menu', 4, 'category', 'Product/Category', 'category', 2, 1, '2026-04-30 22:35:36', '2026-04-30 22:35:36');
-INSERT INTO `permissions` VALUES (16, '品牌管理', 'product:brand', 'menu', 4, 'brand', 'Product/Brand', 'brand', 3, 1, '2026-04-30 22:35:36', '2026-04-30 22:35:36');
-INSERT INTO `permissions` VALUES (17, '规格管理', 'product:spec', 'menu', 4, 'spec', 'Product/Spec', 'spec', 4, 1, '2026-04-30 22:35:36', '2026-04-30 22:35:36');
-INSERT INTO `permissions` VALUES (18, '订单列表', 'order:list', 'menu', 5, 'list', 'Order/List', 'order-list', 1, 1, '2026-04-30 22:35:36', '2026-04-30 22:35:36');
-INSERT INTO `permissions` VALUES (19, '退款管理', 'order:refund', 'menu', 5, 'refund', 'Order/Refund', 'refund', 2, 1, '2026-04-30 22:35:36', '2026-04-30 22:35:36');
-INSERT INTO `permissions` VALUES (20, '优惠券管理', 'marketing:coupon', 'menu', 6, 'coupon', 'Marketing/Coupon', 'coupon', 1, 1, '2026-04-30 22:35:36', '2026-04-30 22:35:36');
-INSERT INTO `permissions` VALUES (21, '活动管理', 'marketing:activity', 'menu', 6, 'activity', 'Marketing/Activity', 'activity', 2, 1, '2026-04-30 22:35:36', '2026-04-30 22:35:36');
-INSERT INTO `permissions` VALUES (22, '销售统计', 'report:sales', 'menu', 7, 'sales', 'Report/Sales', 'sales', 1, 1, '2026-04-30 22:35:36', '2026-04-30 22:35:36');
-INSERT INTO `permissions` VALUES (23, '用户分析', 'report:user', 'menu', 7, 'user-analysis', 'Report/UserAnalysis', 'analysis', 2, 1, '2026-04-30 22:35:36', '2026-04-30 22:35:36');
-INSERT INTO `permissions` VALUES (24, '添加角色', 'system:role:add', 'button', 2, NULL, NULL, NULL, 1, 1, '2026-04-30 22:35:36', '2026-04-30 22:35:36');
-INSERT INTO `permissions` VALUES (25, '编辑角色', 'system:role:edit', 'button', 2, NULL, NULL, NULL, 2, 1, '2026-04-30 22:35:36', '2026-04-30 22:35:36');
-INSERT INTO `permissions` VALUES (26, '删除角色', 'system:role:delete', 'button', 2, NULL, NULL, NULL, 3, 1, '2026-04-30 22:35:36', '2026-04-30 22:35:36');
-INSERT INTO `permissions` VALUES (27, '添加用户', 'user:add', 'button', 3, NULL, NULL, NULL, 1, 1, '2026-04-30 22:35:36', '2026-04-30 22:35:36');
-INSERT INTO `permissions` VALUES (28, '编辑用户', 'user:edit', 'button', 3, NULL, NULL, NULL, 2, 1, '2026-04-30 22:35:36', '2026-04-30 22:35:36');
-INSERT INTO `permissions` VALUES (29, '删除用户', 'user:delete', 'button', 3, NULL, NULL, NULL, 3, 1, '2026-04-30 22:35:36', '2026-04-30 22:35:36');
-INSERT INTO `permissions` VALUES (30, '添加商品', 'product:add', 'button', 4, NULL, NULL, NULL, 1, 1, '2026-04-30 22:35:36', '2026-04-30 22:35:36');
-INSERT INTO `permissions` VALUES (31, '编辑商品', 'product:edit', 'button', 4, NULL, NULL, NULL, 2, 1, '2026-04-30 22:35:36', '2026-04-30 22:35:36');
-INSERT INTO `permissions` VALUES (32, '删除商品', 'product:delete', 'button', 4, NULL, NULL, NULL, 3, 1, '2026-04-30 22:35:36', '2026-04-30 22:35:36');
-INSERT INTO `permissions` VALUES (33, '上架商品', 'product:shelve', 'button', 4, NULL, NULL, NULL, 4, 1, '2026-04-30 22:35:36', '2026-04-30 22:35:36');
-INSERT INTO `permissions` VALUES (34, '下架商品', 'product:unshelve', 'button', 4, NULL, NULL, NULL, 5, 1, '2026-04-30 22:35:36', '2026-04-30 22:35:36');
-INSERT INTO `permissions` VALUES (35, '发货', 'order:deliver', 'button', 5, NULL, NULL, NULL, 1, 1, '2026-04-30 22:35:36', '2026-04-30 22:35:36');
-INSERT INTO `permissions` VALUES (36, '取消订单', 'order:cancel', 'button', 5, NULL, NULL, NULL, 2, 1, '2026-04-30 22:35:36', '2026-04-30 22:35:36');
-INSERT INTO `permissions` VALUES (37, '处理退款', 'order:refund:handle', 'button', 5, NULL, NULL, NULL, 3, 1, '2026-04-30 22:35:36', '2026-04-30 22:35:36');
+INSERT INTO `permissions` VALUES (1, '系统管理', 'system', 'menu', 0, '/system', 'Layout', 'Setting', 100, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (2, '用户管理', 'system:user', 'menu', 1, '/system/user', 'system/User', 'User', 1, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (3, '角色管理', 'system:role', 'menu', 1, '/system/role', 'system/Role', 'Role', 2, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (4, '权限管理', 'system:permission', 'menu', 1, '/system/permission', 'system/Permission', 'Lock', 3, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (5, '菜单管理', 'system:menu', 'menu', 1, '/system/menu', 'system/Menu', 'Menu', 4, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (6, '新增用户', 'system:user:add', 'button', 2, NULL, NULL, NULL, 1, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (7, '编辑用户', 'system:user:edit', 'button', 2, NULL, NULL, NULL, 2, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (8, '删除用户', 'system:user:delete', 'button', 2, NULL, NULL, NULL, 3, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (9, '分配角色', 'system:user:assign', 'button', 2, NULL, NULL, NULL, 4, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (10, '新增角色', 'system:role:add', 'button', 3, NULL, NULL, NULL, 1, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (11, '编辑角色', 'system:role:edit', 'button', 3, NULL, NULL, NULL, 2, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (12, '删除角色', 'system:role:delete', 'button', 3, NULL, NULL, NULL, 3, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (13, '分配权限', 'system:role:assign', 'button', 3, NULL, NULL, NULL, 4, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (14, '新增权限', 'system:permission:add', 'button', 4, NULL, NULL, NULL, 1, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (15, '编辑权限', 'system:permission:edit', 'button', 4, NULL, NULL, NULL, 2, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (16, '商品管理', 'product', 'menu', 0, '/product', 'Layout', 'Goods', 90, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (17, '商品列表', 'product:list', 'menu', 16, '/product/list', 'product/ProductList', 'List', 1, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (18, '商品分类', 'product:category', 'menu', 16, '/product/category', 'product/Category', 'Category', 2, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (19, '商品品牌', 'product:brand', 'menu', 16, '/product/brand', 'product/Brand', 'Brand', 3, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (20, '商品评价', 'product:review', 'menu', 16, '/product/review', 'product/Review', 'Comment', 4, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (21, '新增商品', 'product:add', 'button', 17, NULL, NULL, NULL, 1, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (22, '编辑商品', 'product:edit', 'button', 17, NULL, NULL, NULL, 2, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (23, '删除商品', 'product:delete', 'button', 17, NULL, NULL, NULL, 3, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (24, '上架商品', 'product:onShelf', 'button', 17, NULL, NULL, NULL, 4, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (25, '下架商品', 'product:offShelf', 'button', 17, NULL, NULL, NULL, 5, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (26, '新增分类', 'product:category:add', 'button', 18, NULL, NULL, NULL, 1, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (27, '编辑分类', 'product:category:edit', 'button', 18, NULL, NULL, NULL, 2, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (28, '删除分类', 'product:category:delete', 'button', 18, NULL, NULL, NULL, 3, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (29, '新增品牌', 'product:brand:add', 'button', 19, NULL, NULL, NULL, 1, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (30, '编辑品牌', 'product:brand:edit', 'button', 19, NULL, NULL, NULL, 2, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (31, '删除品牌', 'product:brand:delete', 'button', 19, NULL, NULL, NULL, 3, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (32, '回复评价', 'product:review:reply', 'button', 20, NULL, NULL, NULL, 1, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (33, '删除评价', 'product:review:delete', 'button', 20, NULL, NULL, NULL, 2, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (34, 'SPU管理', 'spu', 'menu', 16, '/product/spu', 'product/SPU', 'Document', 5, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (35, '新增SPU', 'spu:add', 'button', 34, NULL, NULL, NULL, 1, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (36, '编辑SPU', 'spu:edit', 'button', 34, NULL, NULL, NULL, 2, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (37, '删除SPU', 'spu:delete', 'button', 34, NULL, NULL, NULL, 3, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (38, 'SKU管理', 'sku', 'menu', 16, '/product/sku', 'product/SKU', 'Tickets', 6, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (39, '新增SKU', 'sku:add', 'button', 38, NULL, NULL, NULL, 1, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (40, '编辑SKU', 'sku:edit', 'button', 38, NULL, NULL, NULL, 2, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (41, '订单管理', 'order', 'menu', 0, '/order', 'Layout', 'Order', 80, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (42, '订单列表', 'order:list', 'menu', 41, '/order/list', 'order/OrderList', 'List', 1, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (43, '待处理订单', 'order:pending', 'menu', 41, '/order/pending', 'order/Pending', 'Clock', 2, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (44, '售后管理', 'order:afterSale', 'menu', 41, '/order/afterSale', 'order/AfterSale', 'Service', 3, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (45, '查看订单', 'order:view', 'button', 42, NULL, NULL, NULL, 1, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (46, '发货', 'order:ship', 'button', 42, NULL, NULL, NULL, 2, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (47, '修改订单', 'order:edit', 'button', 42, NULL, NULL, NULL, 3, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (48, '取消订单', 'order:cancel', 'button', 42, NULL, NULL, NULL, 4, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (49, '退款', 'order:refund', 'button', 43, NULL, NULL, NULL, 1, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (50, '同意售后', 'order:afterSale:agree', 'button', 44, NULL, NULL, NULL, 1, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (51, '拒绝售后', 'order:afterSale:reject', 'button', 44, NULL, NULL, NULL, 2, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (52, '会员管理', 'member', 'menu', 0, '/member', 'Layout', 'User', 70, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (53, '会员列表', 'member:list', 'menu', 52, '/member/list', 'member/MemberList', 'List', 1, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (54, '会员等级', 'member:level', 'menu', 52, '/member/level', 'member/Level', 'Medal', 2, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (55, '会员地址', 'member:address', 'menu', 52, '/member/address', 'member/Address', 'Location', 3, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (56, '查看会员', 'member:view', 'button', 53, NULL, NULL, NULL, 1, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (57, '编辑会员', 'member:edit', 'button', 53, NULL, NULL, NULL, 2, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (58, '禁用会员', 'member:disable', 'button', 53, NULL, NULL, NULL, 3, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (59, '新增等级', 'member:level:add', 'button', 54, NULL, NULL, NULL, 1, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (60, '编辑等级', 'member:level:edit', 'button', 54, NULL, NULL, NULL, 2, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (61, '数据统计', 'statistics', 'menu', 0, '/statistics', 'Layout', 'DataAnalysis', 60, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (62, '销售统计', 'statistics:sales', 'menu', 61, '/statistics/sales', 'statistics/Sales', 'TrendCharts', 1, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (63, '商品统计', 'statistics:product', 'menu', 61, '/statistics/product', 'statistics/Product', 'Goods', 2, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (64, '用户统计', 'statistics:user', 'menu', 61, '/statistics/user', 'statistics/User', 'User', 3, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (65, '导出数据', 'statistics:export', 'button', 61, NULL, NULL, NULL, 1, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (66, '内容管理', 'content', 'menu', 0, '/content', 'Layout', 'Document', 50, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (67, '轮播图管理', 'content:banner', 'menu', 66, '/content/banner', 'content/Banner', 'Picture', 1, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (68, '公告管理', 'content:notice', 'menu', 66, '/content/notice', 'content/Notice', 'Bell', 2, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (69, '帮助中心', 'content:help', 'menu', 66, '/content/help', 'content/Help', 'QuestionFilled', 3, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (70, '新增轮播图', 'content:banner:add', 'button', 67, NULL, NULL, NULL, 1, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (71, '编辑轮播图', 'content:banner:edit', 'button', 67, NULL, NULL, NULL, 2, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (72, '删除轮播图', 'content:banner:delete', 'button', 67, NULL, NULL, NULL, 3, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (73, '新增公告', 'content:notice:add', 'button', 68, NULL, NULL, NULL, 1, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (74, '编辑公告', 'content:notice:edit', 'button', 68, NULL, NULL, NULL, 2, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (75, '删除公告', 'content:notice:delete', 'button', 68, NULL, NULL, NULL, 3, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (76, '客服管理', 'service', 'menu', 0, '/service', 'Layout', 'Service', 40, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (77, '会话管理', 'service:chat', 'menu', 76, '/service/chat', 'service/Chat', 'ChatDotRound', 1, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (78, '评价管理', 'service:evaluate', 'menu', 76, '/service/evaluate', 'service/Evaluate', 'Star', 2, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (79, '查看会话', 'service:chat:view', 'button', 77, NULL, NULL, NULL, 1, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (80, '结束会话', 'service:chat:close', 'button', 77, NULL, NULL, NULL, 2, 1, '2026-05-13 15:19:19', '2026-05-13 15:19:19');
+INSERT INTO `permissions` VALUES (81, '订单发货', 'order:deliver', 'api', 41, NULL, NULL, NULL, 10, 1, '2026-05-16 19:58:05', '2026-05-16 19:58:05');
+INSERT INTO `permissions` VALUES (82, '新增发货记录', 'order:delivery:add', 'api', 41, NULL, NULL, NULL, 11, 1, '2026-05-16 19:58:05', '2026-05-16 19:58:05');
+INSERT INTO `permissions` VALUES (83, '编辑发货记录', 'order:delivery:edit', 'api', 41, NULL, NULL, NULL, 12, 1, '2026-05-16 19:58:05', '2026-05-16 19:58:05');
+INSERT INTO `permissions` VALUES (84, '查询发货记录', 'order:delivery:query', 'api', 41, NULL, NULL, NULL, 13, 1, '2026-05-16 19:58:05', '2026-05-16 19:58:05');
+INSERT INTO `permissions` VALUES (85, '物流公司管理', 'system:logistics', 'menu', 1, NULL, NULL, NULL, 5, 1, '2026-05-16 19:58:05', '2026-05-16 19:58:05');
+INSERT INTO `permissions` VALUES (86, '新增物流公司', 'system:logistics:add', 'api', 81, NULL, NULL, NULL, 1, 1, '2026-05-16 19:58:05', '2026-05-16 19:58:05');
+INSERT INTO `permissions` VALUES (87, '编辑物流公司', 'system:logistics:edit', 'api', 81, NULL, NULL, NULL, 2, 1, '2026-05-16 19:58:05', '2026-05-16 19:58:05');
+INSERT INTO `permissions` VALUES (88, '删除物流公司', 'system:logistics:delete', 'api', 81, NULL, NULL, NULL, 3, 1, '2026-05-16 19:58:05', '2026-05-16 19:58:05');
+INSERT INTO `permissions` VALUES (89, '查询物流公司', 'system:logistics:query', 'api', 81, NULL, NULL, NULL, 4, 1, '2026-05-16 19:58:05', '2026-05-16 19:58:05');
+INSERT INTO `permissions` VALUES (90, '店铺管理', 'store:manage', NULL, 0, NULL, NULL, NULL, 0, 1, '2026-05-17 22:21:35', '2026-05-17 22:21:35');
+INSERT INTO `permissions` VALUES (91, '商品管理', 'store:product', NULL, 0, NULL, NULL, NULL, 0, 1, '2026-05-17 22:21:35', '2026-05-17 22:21:35');
+INSERT INTO `permissions` VALUES (92, '订单管理', 'store:order', NULL, 0, NULL, NULL, NULL, 0, 1, '2026-05-17 22:21:35', '2026-05-17 22:21:35');
+INSERT INTO `permissions` VALUES (93, '客服管理', 'store:customer', NULL, 0, NULL, NULL, NULL, 0, 1, '2026-05-17 22:21:35', '2026-05-17 22:21:35');
+INSERT INTO `permissions` VALUES (94, '财务管理', 'store:finance', NULL, 0, NULL, NULL, NULL, 0, 1, '2026-05-17 22:21:35', '2026-05-17 22:21:35');
 
 -- ----------------------------
 -- Table structure for refund_records
@@ -518,7 +659,7 @@ CREATE TABLE `refund_records`  (
                                    PRIMARY KEY (`id`) USING BTREE,
                                    INDEX `order_no`(`order_no` ASC) USING BTREE,
                                    CONSTRAINT `refund_records_ibfk_1` FOREIGN KEY (`order_no`) REFERENCES `orders` (`order_no`) ON DELETE RESTRICT ON UPDATE RESTRICT
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '退款记录表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '退款记录表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of refund_records
@@ -547,7 +688,7 @@ CREATE TABLE `reviews`  (
                             INDEX `spu_id`(`spu_id` ASC) USING BTREE,
                             CONSTRAINT `reviews_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
                             CONSTRAINT `reviews_ibfk_2` FOREIGN KEY (`spu_id`) REFERENCES `spu` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '商品评价表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '商品评价表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of reviews
@@ -567,83 +708,207 @@ CREATE TABLE `role_permissions`  (
                                      INDEX `permission_id`(`permission_id` ASC) USING BTREE,
                                      CONSTRAINT `role_permissions_ibfk_1` FOREIGN KEY (`role_id`) REFERENCES `roles` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT,
                                      CONSTRAINT `role_permissions_ibfk_2` FOREIGN KEY (`permission_id`) REFERENCES `permissions` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
-) ENGINE = InnoDB AUTO_INCREMENT = 111 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '角色权限关联表' ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 213 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '角色权限关联表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of role_permissions
 -- ----------------------------
-INSERT INTO `role_permissions` VALUES (1, 1, 1, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (2, 1, 6, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (3, 1, 21, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (4, 1, 20, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (5, 1, 5, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (6, 1, 36, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (7, 1, 35, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (8, 1, 18, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (9, 1, 19, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (10, 1, 37, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (11, 1, 4, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (12, 1, 30, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (13, 1, 16, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (14, 1, 15, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (15, 1, 32, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (16, 1, 31, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (17, 1, 14, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (18, 1, 33, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (19, 1, 17, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (20, 1, 34, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (21, 1, 7, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (22, 1, 22, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (23, 1, 23, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (24, 1, 2, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (25, 1, 11, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (26, 1, 10, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (27, 1, 9, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (28, 1, 24, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (29, 1, 26, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (30, 1, 25, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (31, 1, 8, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (32, 1, 3, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (33, 1, 27, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (34, 1, 29, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (35, 1, 28, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (36, 1, 12, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (37, 1, 13, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (64, 2, 1, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (65, 2, 6, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (66, 2, 20, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (67, 2, 5, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (68, 2, 36, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (69, 2, 35, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (70, 2, 18, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (71, 2, 19, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (72, 2, 37, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (73, 2, 4, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (74, 2, 30, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (75, 2, 15, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (76, 2, 14, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (77, 2, 33, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (78, 2, 34, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (79, 2, 7, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (80, 2, 22, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (81, 2, 2, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (82, 2, 11, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (83, 2, 8, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (84, 2, 3, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (85, 2, 27, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (86, 2, 28, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (87, 2, 12, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (95, 3, 1, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (96, 3, 5, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (97, 3, 35, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (98, 3, 18, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (99, 3, 4, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (100, 3, 30, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (101, 3, 31, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (102, 3, 14, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (103, 3, 33, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (104, 3, 34, '2026-04-30 22:35:36');
-INSERT INTO `role_permissions` VALUES (110, 4, 1, '2026-04-30 22:35:36');
+INSERT INTO `role_permissions` VALUES (1, 1, 1, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (2, 1, 2, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (3, 1, 3, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (4, 1, 4, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (5, 1, 5, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (6, 1, 6, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (7, 1, 7, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (8, 1, 8, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (9, 1, 9, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (10, 1, 10, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (11, 1, 11, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (12, 1, 12, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (13, 1, 13, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (14, 1, 14, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (15, 1, 15, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (16, 1, 16, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (17, 1, 17, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (18, 1, 18, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (19, 1, 19, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (20, 1, 20, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (21, 1, 21, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (22, 1, 22, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (23, 1, 23, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (24, 1, 24, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (25, 1, 25, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (26, 1, 26, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (27, 1, 27, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (28, 1, 28, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (29, 1, 29, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (30, 1, 30, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (31, 1, 31, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (32, 1, 32, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (33, 1, 33, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (34, 1, 34, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (35, 1, 35, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (36, 1, 36, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (37, 1, 37, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (38, 1, 38, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (39, 1, 39, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (40, 1, 40, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (41, 1, 41, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (42, 1, 42, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (43, 1, 43, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (44, 1, 44, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (45, 1, 45, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (46, 1, 46, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (47, 1, 47, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (48, 1, 48, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (49, 1, 49, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (50, 1, 50, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (51, 1, 51, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (52, 1, 52, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (53, 1, 53, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (54, 1, 54, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (55, 1, 55, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (56, 1, 56, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (57, 1, 57, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (58, 1, 58, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (59, 1, 59, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (60, 1, 60, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (61, 1, 61, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (62, 1, 62, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (63, 1, 63, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (64, 1, 64, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (65, 1, 65, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (66, 1, 66, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (67, 1, 67, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (68, 1, 68, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (69, 1, 69, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (70, 1, 70, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (71, 1, 71, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (72, 1, 72, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (73, 1, 73, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (74, 1, 74, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (75, 1, 75, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (76, 1, 76, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (77, 1, 77, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (78, 1, 78, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (79, 1, 79, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (80, 1, 80, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (81, 2, 16, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (82, 2, 17, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (83, 2, 18, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (84, 2, 19, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (85, 2, 20, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (86, 2, 21, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (87, 2, 22, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (88, 2, 23, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (89, 2, 24, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (90, 2, 25, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (91, 2, 26, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (92, 2, 27, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (93, 2, 28, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (94, 2, 29, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (95, 2, 30, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (96, 2, 31, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (97, 2, 32, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (98, 2, 33, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (99, 2, 34, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (100, 2, 35, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (101, 2, 36, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (102, 2, 37, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (103, 2, 38, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (104, 2, 39, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (105, 2, 40, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (106, 2, 41, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (107, 2, 42, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (108, 2, 43, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (109, 2, 44, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (110, 2, 45, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (111, 2, 46, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (112, 2, 47, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (113, 2, 48, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (114, 2, 49, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (115, 2, 50, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (116, 2, 51, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (117, 2, 52, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (118, 2, 53, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (119, 2, 54, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (120, 2, 55, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (121, 2, 56, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (122, 2, 57, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (123, 2, 58, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (124, 2, 59, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (125, 2, 60, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (126, 2, 61, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (127, 2, 62, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (128, 2, 63, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (129, 2, 64, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (130, 2, 65, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (131, 2, 66, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (132, 2, 67, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (133, 2, 68, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (134, 2, 69, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (135, 2, 70, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (136, 2, 71, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (137, 2, 72, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (138, 2, 73, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (139, 2, 74, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (140, 2, 75, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (141, 3, 16, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (142, 3, 17, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (143, 3, 21, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (144, 3, 22, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (145, 3, 23, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (146, 3, 24, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (147, 3, 25, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (148, 3, 34, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (149, 3, 35, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (150, 3, 36, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (151, 3, 37, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (152, 3, 38, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (153, 3, 39, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (154, 3, 40, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (155, 4, 41, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (156, 4, 42, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (157, 4, 45, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (158, 4, 46, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (159, 4, 47, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (160, 4, 48, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (161, 5, 41, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (162, 5, 42, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (163, 5, 43, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (164, 5, 44, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (165, 5, 45, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (166, 5, 49, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (167, 5, 50, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (168, 5, 51, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (169, 5, 76, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (170, 5, 77, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (171, 5, 78, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (172, 5, 79, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (173, 5, 80, '2026-05-13 15:20:54');
+INSERT INTO `role_permissions` VALUES (174, 1, 81, '2026-05-16 19:58:21');
+INSERT INTO `role_permissions` VALUES (175, 1, 82, '2026-05-16 19:58:21');
+INSERT INTO `role_permissions` VALUES (176, 1, 83, '2026-05-16 19:58:21');
+INSERT INTO `role_permissions` VALUES (177, 1, 84, '2026-05-16 19:58:21');
+INSERT INTO `role_permissions` VALUES (178, 1, 86, '2026-05-16 19:58:21');
+INSERT INTO `role_permissions` VALUES (179, 1, 88, '2026-05-16 19:58:21');
+INSERT INTO `role_permissions` VALUES (180, 1, 87, '2026-05-16 19:58:21');
+INSERT INTO `role_permissions` VALUES (181, 1, 89, '2026-05-16 19:58:21');
+INSERT INTO `role_permissions` VALUES (189, 2, 81, '2026-05-16 19:58:21');
+INSERT INTO `role_permissions` VALUES (190, 2, 82, '2026-05-16 19:58:21');
+INSERT INTO `role_permissions` VALUES (191, 2, 83, '2026-05-16 19:58:21');
+INSERT INTO `role_permissions` VALUES (192, 2, 84, '2026-05-16 19:58:21');
+INSERT INTO `role_permissions` VALUES (193, 2, 86, '2026-05-16 19:58:21');
+INSERT INTO `role_permissions` VALUES (194, 2, 88, '2026-05-16 19:58:21');
+INSERT INTO `role_permissions` VALUES (195, 2, 87, '2026-05-16 19:58:21');
+INSERT INTO `role_permissions` VALUES (196, 2, 89, '2026-05-16 19:58:21');
+INSERT INTO `role_permissions` VALUES (204, 3, 81, '2026-05-16 19:58:21');
+INSERT INTO `role_permissions` VALUES (205, 5, 84, '2026-05-16 19:58:21');
+INSERT INTO `role_permissions` VALUES (206, 3, 93, '2026-05-17 22:21:53');
+INSERT INTO `role_permissions` VALUES (207, 3, 94, '2026-05-17 22:21:53');
+INSERT INTO `role_permissions` VALUES (208, 3, 90, '2026-05-17 22:21:53');
+INSERT INTO `role_permissions` VALUES (209, 3, 92, '2026-05-17 22:21:53');
+INSERT INTO `role_permissions` VALUES (210, 3, 91, '2026-05-17 22:21:53');
 
 -- ----------------------------
 -- Table structure for roles
@@ -701,7 +966,7 @@ CREATE TABLE `sku`  (
 -- ----------------------------
 INSERT INTO `sku` VALUES (23, 3, 'XIAOMI14PRO-BK-12-256', 4299.00, 4999.00, 3800.00, 100, 10, NULL, 0.193, 1, '2026-05-08 16:57:08', '2026-05-08 16:57:08');
 INSERT INTO `sku` VALUES (24, 3, 'XIAOMI14PRO-BK-16-512', 4999.00, 5999.00, 4400.00, 80, 10, NULL, 0.193, 1, '2026-05-08 16:57:08', '2026-05-08 16:57:08');
-INSERT INTO `sku` VALUES (25, 3, 'XIAOMI14PRO-BK-16-1TB', 5999.00, 6999.00, 5300.00, 50, 10, NULL, 0.193, 1, '2026-05-08 16:57:08', '2026-05-08 16:57:08');
+INSERT INTO `sku` VALUES (25, 3, 'XIAOMI14PRO-BK-16-1TB', 5999.00, 6999.00, 5300.00, 46, 10, NULL, 0.193, 1, '2026-05-08 16:57:08', '2026-05-08 16:57:08');
 INSERT INTO `sku` VALUES (26, 3, 'XIAOMI14PRO-WH-12-256', 4299.00, 4999.00, 3800.00, 90, 10, NULL, 0.193, 1, '2026-05-08 16:57:08', '2026-05-08 16:57:08');
 INSERT INTO `sku` VALUES (27, 3, 'XIAOMI14PRO-WH-16-512', 4999.00, 5999.00, 4400.00, 70, 10, NULL, 0.193, 1, '2026-05-08 16:57:08', '2026-05-08 16:57:08');
 INSERT INTO `sku` VALUES (28, 3, 'XIAOMI14PRO-WH-16-1TB', 5999.00, 6999.00, 5300.00, 40, 10, NULL, 0.193, 1, '2026-05-08 16:57:08', '2026-05-08 16:57:08');
@@ -779,6 +1044,8 @@ CREATE TABLE `spu`  (
                         `name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '商品名称',
                         `category_id` bigint NOT NULL COMMENT '分类ID',
                         `brand_id` bigint NULL DEFAULT NULL COMMENT '品牌ID',
+                        `seller_id` bigint NOT NULL DEFAULT 0 COMMENT '商家ID',
+                        `store_id` bigint NULL DEFAULT NULL COMMENT '店铺ID',
                         `description` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL COMMENT '商品描述',
                         `main_image` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '主图',
                         `images` text CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL COMMENT '商品图片集(JSON格式)',
@@ -792,38 +1059,41 @@ CREATE TABLE `spu`  (
                         INDEX `idx_spu_category`(`category_id` ASC) USING BTREE,
                         INDEX `idx_spu_brand`(`brand_id` ASC) USING BTREE,
                         INDEX `idx_spu_status`(`status` ASC) USING BTREE,
+                        INDEX `idx_seller_id`(`seller_id` ASC) USING BTREE,
+                        INDEX `idx_store_id`(`store_id` ASC) USING BTREE,
                         CONSTRAINT `spu_ibfk_1` FOREIGN KEY (`category_id`) REFERENCES `categories` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
-                        CONSTRAINT `spu_ibfk_2` FOREIGN KEY (`brand_id`) REFERENCES `brands` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT
+                        CONSTRAINT `spu_ibfk_2` FOREIGN KEY (`brand_id`) REFERENCES `brands` (`id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+                        CONSTRAINT `spus_ibfk_store` FOREIGN KEY (`store_id`) REFERENCES `stores` (`id`) ON DELETE SET NULL ON UPDATE RESTRICT
 ) ENGINE = InnoDB AUTO_INCREMENT = 44 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '商品SPU表' ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of spu
 -- ----------------------------
-INSERT INTO `spu` VALUES (3, '小米14 Pro', 27, 3, '小米旗舰手机', '2026/05/08/451cf586-ee5e-4c6d-9072-f92dc46b16a0_小米14主图_.webp', '[\"2026/05/08/451cf586-ee5e-4c6d-9072-f92dc46b16a0_小米14主图_.webp\",\"2026/05/08/a4699d83-3f33-41bb-9872-31fd72199f33_小米14_.webp\",\"2026/05/08/2772e4d9-a6df-40cc-817e-03266ee5283a_小米14类型2_.webp\",\"2026/05/08/fb59cd73-4e9e-4768-8f43-f110b8ccbe91_小米14类型3.webp\"]', '台', '小米,14,手机', 0, 1, '2026-05-08 16:51:43', '2026-05-08 17:46:05');
-INSERT INTO `spu` VALUES (20, '华为 Mate 60 Pro', 27, 1, '华为旗舰手机，搭载麒麟9000S芯片，支持卫星通信', NULL, NULL, '台', '华为,Mate60,手机,5G', 1523, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
-INSERT INTO `spu` VALUES (21, 'iPhone 15 Pro Max', 27, 2, '苹果旗舰手机，A17 Pro芯片，钛金属边框', NULL, NULL, '台', '苹果,iPhone15,手机', 2841, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
-INSERT INTO `spu` VALUES (22, '小米14 Ultra', 27, 3, '小米影像旗舰，徕卡四摄，骁龙8Gen3', NULL, NULL, '台', '小米14,Ultra,手机,徕卡', 892, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
-INSERT INTO `spu` VALUES (23, '三星 S24 Ultra', 27, 4, '三星旗舰手机，AI智能，SPen触控笔', NULL, NULL, '台', '三星,S24,手机,AI', 645, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
-INSERT INTO `spu` VALUES (24, 'OPPO Find X7 Ultra', 27, 7, 'OPPO影像旗舰，双潜望四主摄', NULL, NULL, '台', 'OPPO,FindX7,手机', 456, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
-INSERT INTO `spu` VALUES (25, 'vivo X100 Pro', 27, 8, 'vivo旗舰手机，蔡司影像，天玑9300', NULL, NULL, '台', 'vivo,X100,手机,蔡司', 378, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
-INSERT INTO `spu` VALUES (26, '荣耀 Magic6 Pro', 27, 9, '荣耀旗舰手机，鸿燕通信，巨犀玻璃', NULL, NULL, '台', '荣耀,Magic6,手机', 567, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
-INSERT INTO `spu` VALUES (27, '联想 小新Pro16', 31, 10, '联想轻薄本，13代i7，2.5K高刷屏', NULL, NULL, '台', '联想,小新,笔记本,轻薄本', 234, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
-INSERT INTO `spu` VALUES (28, '戴尔 XPS 15', 31, 11, '戴尔高端创作本，3.5K OLED触控屏', NULL, NULL, '台', '戴尔,XPS,笔记本,创作本', 123, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
-INSERT INTO `spu` VALUES (29, '华为 MateBook X Pro', 31, 1, '华为旗舰轻薄本，3.1K原色屏，超级终端', NULL, NULL, '台', '华为,MateBook,笔记本', 345, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
-INSERT INTO `spu` VALUES (30, 'Apple Watch Series 9', 12, 2, '苹果智能手表，S9芯片，全天候显示', NULL, NULL, '只', '苹果,手表,AppleWatch', 789, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
-INSERT INTO `spu` VALUES (31, '华为 Watch 4 Pro', 12, 1, '华为智能手表，支持血糖研究，钛金属表壳', NULL, NULL, '只', '华为,手表,Watch4', 456, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
-INSERT INTO `spu` VALUES (32, '小米手表 S3', 12, 3, '小米智能手表，eSIM独立通话，百变表圈', NULL, NULL, '只', '小米,手表,小米手表', 234, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
-INSERT INTO `spu` VALUES (33, '耐克 Air Jordan 1', 46, 5, '耐克经典篮球鞋，复古高帮设计', NULL, NULL, '双', '耐克,AJ1,篮球鞋,乔丹', 567, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
-INSERT INTO `spu` VALUES (34, '阿迪达斯 Yeezy 350', 46, 6, '阿迪达斯椰子鞋，Boost中底', NULL, NULL, '双', '阿迪达斯,Yeezy,椰子鞋', 345, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
-INSERT INTO `spu` VALUES (35, '安踏 海沃德4代', 46, 13, '安踏篮球鞋，氮科技中底', NULL, NULL, '双', '安踏,海沃德,篮球鞋', 123, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
-INSERT INTO `spu` VALUES (36, '李宁 驭帅15', 46, 14, '李宁篮球鞋，䨻科技缓震', NULL, NULL, '双', '李宁,驭帅,篮球鞋', 234, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
-INSERT INTO `spu` VALUES (37, '小米电视 S Pro 65寸', 35, 3, '小米MiniLED电视，4K 144Hz高刷', NULL, NULL, '台', '小米,电视,4K,智能电视', 567, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
-INSERT INTO `spu` VALUES (38, '海尔 65寸智能电视', 35, 12, '海尔4K超高清电视，智能语音控制', NULL, NULL, '台', '海尔,电视,智能电视', 234, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
-INSERT INTO `spu` VALUES (39, '格力 云锦三代 1.5匹', 38, 14, '格力变频空调，新一级能效，自清洁', NULL, NULL, '台', '格力,空调,变频,节能', 789, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
-INSERT INTO `spu` VALUES (40, '美的 酷省电 1.5匹', 38, 13, '美的变频空调，新一级能效，ECO节能', NULL, NULL, '台', '美的,空调,节能,变频', 456, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
-INSERT INTO `spu` VALUES (41, '三只松鼠 每日坚果', 59, NULL, '混合坚果礼盒，营养均衡', NULL, NULL, '盒', '坚果,每日坚果,零食', 2345, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
-INSERT INTO `spu` VALUES (42, '茅台 飞天茅台', 62, NULL, '酱香型白酒，53度500ml', NULL, NULL, '瓶', '茅台,飞天,白酒,酱香', 89, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
-INSERT INTO `spu` VALUES (43, '五粮液 第八代普五', 62, NULL, '浓香型白酒，52度500ml', NULL, NULL, '瓶', '五粮液,白酒,浓香', 156, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
+INSERT INTO `spu` VALUES (3, '小米14 Pro', 27, 3, 2, NULL, '小米旗舰手机', '2026/05/08/451cf586-ee5e-4c6d-9072-f92dc46b16a0_小米14主图_.webp', '[\"2026/05/08/451cf586-ee5e-4c6d-9072-f92dc46b16a0_小米14主图_.webp\",\"2026/05/08/a4699d83-3f33-41bb-9872-31fd72199f33_小米14_.webp\",\"2026/05/08/2772e4d9-a6df-40cc-817e-03266ee5283a_小米14类型2_.webp\",\"2026/05/08/fb59cd73-4e9e-4768-8f43-f110b8ccbe91_小米14类型3.webp\"]', '台', '小米,14,手机', 0, 1, '2026-05-08 16:51:43', '2026-05-17 22:34:50');
+INSERT INTO `spu` VALUES (20, '华为 Mate 60 Pro', 27, 1, 0, NULL, '华为旗舰手机，搭载麒麟9000S芯片，支持卫星通信', NULL, NULL, '台', '华为,Mate60,手机,5G', 1523, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
+INSERT INTO `spu` VALUES (21, 'iPhone 15 Pro Max', 27, 2, 0, NULL, '苹果旗舰手机，A17 Pro芯片，钛金属边框', NULL, NULL, '台', '苹果,iPhone15,手机', 2841, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
+INSERT INTO `spu` VALUES (22, '小米14 Ultra', 27, 3, 0, NULL, '小米影像旗舰，徕卡四摄，骁龙8Gen3', NULL, NULL, '台', '小米14,Ultra,手机,徕卡', 892, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
+INSERT INTO `spu` VALUES (23, '三星 S24 Ultra', 27, 4, 0, NULL, '三星旗舰手机，AI智能，SPen触控笔', NULL, NULL, '台', '三星,S24,手机,AI', 645, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
+INSERT INTO `spu` VALUES (24, 'OPPO Find X7 Ultra', 27, 7, 0, NULL, 'OPPO影像旗舰，双潜望四主摄', NULL, NULL, '台', 'OPPO,FindX7,手机', 456, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
+INSERT INTO `spu` VALUES (25, 'vivo X100 Pro', 27, 8, 0, NULL, 'vivo旗舰手机，蔡司影像，天玑9300', NULL, NULL, '台', 'vivo,X100,手机,蔡司', 378, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
+INSERT INTO `spu` VALUES (26, '荣耀 Magic6 Pro', 27, 9, 0, NULL, '荣耀旗舰手机，鸿燕通信，巨犀玻璃', NULL, NULL, '台', '荣耀,Magic6,手机', 567, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
+INSERT INTO `spu` VALUES (27, '联想 小新Pro16', 31, 10, 0, NULL, '联想轻薄本，13代i7，2.5K高刷屏', NULL, NULL, '台', '联想,小新,笔记本,轻薄本', 234, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
+INSERT INTO `spu` VALUES (28, '戴尔 XPS 15', 31, 11, 0, NULL, '戴尔高端创作本，3.5K OLED触控屏', NULL, NULL, '台', '戴尔,XPS,笔记本,创作本', 123, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
+INSERT INTO `spu` VALUES (29, '华为 MateBook X Pro', 31, 1, 0, NULL, '华为旗舰轻薄本，3.1K原色屏，超级终端', NULL, NULL, '台', '华为,MateBook,笔记本', 345, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
+INSERT INTO `spu` VALUES (30, 'Apple Watch Series 9', 12, 2, 0, NULL, '苹果智能手表，S9芯片，全天候显示', NULL, NULL, '只', '苹果,手表,AppleWatch', 789, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
+INSERT INTO `spu` VALUES (31, '华为 Watch 4 Pro', 12, 1, 0, NULL, '华为智能手表，支持血糖研究，钛金属表壳', NULL, NULL, '只', '华为,手表,Watch4', 456, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
+INSERT INTO `spu` VALUES (32, '小米手表 S3', 12, 3, 0, NULL, '小米智能手表，eSIM独立通话，百变表圈', NULL, NULL, '只', '小米,手表,小米手表', 234, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
+INSERT INTO `spu` VALUES (33, '耐克 Air Jordan 1', 46, 5, 0, NULL, '耐克经典篮球鞋，复古高帮设计', NULL, NULL, '双', '耐克,AJ1,篮球鞋,乔丹', 567, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
+INSERT INTO `spu` VALUES (34, '阿迪达斯 Yeezy 350', 46, 6, 0, NULL, '阿迪达斯椰子鞋，Boost中底', NULL, NULL, '双', '阿迪达斯,Yeezy,椰子鞋', 345, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
+INSERT INTO `spu` VALUES (35, '安踏 海沃德4代', 46, 13, 0, NULL, '安踏篮球鞋，氮科技中底', NULL, NULL, '双', '安踏,海沃德,篮球鞋', 123, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
+INSERT INTO `spu` VALUES (36, '李宁 驭帅15', 46, 14, 0, NULL, '李宁篮球鞋，䨻科技缓震', NULL, NULL, '双', '李宁,驭帅,篮球鞋', 234, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
+INSERT INTO `spu` VALUES (37, '小米电视 S Pro 65寸', 35, 3, 0, NULL, '小米MiniLED电视，4K 144Hz高刷', NULL, NULL, '台', '小米,电视,4K,智能电视', 567, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
+INSERT INTO `spu` VALUES (38, '海尔 65寸智能电视', 35, 12, 0, NULL, '海尔4K超高清电视，智能语音控制', NULL, NULL, '台', '海尔,电视,智能电视', 234, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
+INSERT INTO `spu` VALUES (39, '格力 云锦三代 1.5匹', 38, 14, 0, NULL, '格力变频空调，新一级能效，自清洁', NULL, NULL, '台', '格力,空调,变频,节能', 789, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
+INSERT INTO `spu` VALUES (40, '美的 酷省电 1.5匹', 38, 13, 0, NULL, '美的变频空调，新一级能效，ECO节能', NULL, NULL, '台', '美的,空调,节能,变频', 456, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
+INSERT INTO `spu` VALUES (41, '三只松鼠 每日坚果', 59, NULL, 0, NULL, '混合坚果礼盒，营养均衡', NULL, NULL, '盒', '坚果,每日坚果,零食', 2345, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
+INSERT INTO `spu` VALUES (42, '茅台 飞天茅台', 62, NULL, 0, NULL, '酱香型白酒，53度500ml', NULL, NULL, '瓶', '茅台,飞天,白酒,酱香', 89, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
+INSERT INTO `spu` VALUES (43, '五粮液 第八代普五', 62, NULL, 0, NULL, '浓香型白酒，52度500ml', NULL, NULL, '瓶', '五粮液,白酒,浓香', 156, 1, '2026-05-08 17:09:57', '2026-05-08 17:09:57');
 
 -- ----------------------------
 -- Table structure for spu_basic_attr_values
@@ -882,6 +1152,60 @@ INSERT INTO `spu_sale_attr_choice` VALUES (2, 3, 2, '[5, 6]', '2026-05-12 14:07:
 INSERT INTO `spu_sale_attr_choice` VALUES (3, 3, 3, '[7, 8, 9]', '2026-05-12 14:07:25', '2026-05-12 14:07:25');
 
 -- ----------------------------
+-- Table structure for store_admins
+-- ----------------------------
+DROP TABLE IF EXISTS `store_admins`;
+CREATE TABLE `store_admins`  (
+                                 `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
+                                 `store_id` bigint NOT NULL COMMENT '店铺ID',
+                                 `user_id` bigint NOT NULL COMMENT '管理员用户ID',
+                                 `role` tinyint NULL DEFAULT 1 COMMENT '角色: 1-店长 2-管理员 3-客服',
+                                 `status` tinyint NULL DEFAULT 1 COMMENT '状态: 1-启用 0-禁用',
+                                 `created_at` datetime NULL DEFAULT CURRENT_TIMESTAMP,
+                                 PRIMARY KEY (`id`) USING BTREE,
+                                 UNIQUE INDEX `uk_store_user`(`store_id` ASC, `user_id` ASC) USING BTREE,
+                                 INDEX `idx_user_id`(`user_id` ASC) USING BTREE,
+                                 CONSTRAINT `store_admins_ibfk_1` FOREIGN KEY (`store_id`) REFERENCES `stores` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT,
+                                 CONSTRAINT `store_admins_ibfk_2` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
+) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '店铺管理员表' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of store_admins
+-- ----------------------------
+INSERT INTO `store_admins` VALUES (1, 1, 2, 1, 1, '2026-05-17 22:21:47');
+INSERT INTO `store_admins` VALUES (2, 2, 3, 1, 1, '2026-05-17 22:21:47');
+
+-- ----------------------------
+-- Table structure for stores
+-- ----------------------------
+DROP TABLE IF EXISTS `stores`;
+CREATE TABLE `stores`  (
+                           `id` bigint NOT NULL AUTO_INCREMENT COMMENT '店铺ID',
+                           `name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '店铺名称',
+                           `seller_id` bigint NOT NULL COMMENT '商家用户ID',
+                           `logo` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '店铺Logo',
+                           `banner` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '店铺横幅',
+                           `description` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '店铺描述',
+                           `phone` varchar(20) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '联系电话',
+                           `address` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '店铺地址',
+                           `business_license` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '营业执照',
+                           `status` tinyint NULL DEFAULT 1 COMMENT '状态: 1-正常 0-禁用 2-审核中 3-审核失败',
+                           `sort` int NULL DEFAULT 0 COMMENT '排序',
+                           `created_at` datetime NULL DEFAULT CURRENT_TIMESTAMP,
+                           `updated_at` datetime NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                           PRIMARY KEY (`id`) USING BTREE,
+                           UNIQUE INDEX `uk_seller_id`(`seller_id` ASC) USING BTREE,
+                           INDEX `idx_status`(`status` ASC) USING BTREE,
+                           CONSTRAINT `stores_ibfk_1` FOREIGN KEY (`seller_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE RESTRICT
+) ENGINE = InnoDB AUTO_INCREMENT = 4 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci COMMENT = '店铺表' ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of stores
+-- ----------------------------
+INSERT INTO `stores` VALUES (1, '卖家张三的店铺', 2, NULL, NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-05-17 22:21:44', '2026-05-17 22:21:44');
+INSERT INTO `stores` VALUES (2, '卖家李四的店铺', 3, NULL, NULL, NULL, NULL, NULL, NULL, 1, 0, '2026-05-17 22:21:44', '2026-05-17 22:21:44');
+
+-- ----------------------------
 -- Table structure for user_roles
 -- ----------------------------
 DROP TABLE IF EXISTS `user_roles`;
@@ -935,10 +1259,10 @@ CREATE TABLE `users`  (
 -- ----------------------------
 -- Records of users
 -- ----------------------------
-INSERT INTO `users` VALUES (1, 'admin', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5Eh', 'admin@test.com', '13800138000', NULL, '系统管理员', 1, NULL, NULL, '2026-04-30 22:35:35', '2026-04-30 22:35:35', NULL);
-INSERT INTO `users` VALUES (2, 'seller1', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5Eh', 'seller1@test.com', '13800138001', NULL, '卖家张三', 1, NULL, NULL, '2026-04-30 22:35:35', '2026-04-30 22:35:35', NULL);
-INSERT INTO `users` VALUES (3, 'seller2', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5Eh', 'seller2@test.com', '13800138002', NULL, '卖家李四', 1, NULL, NULL, '2026-04-30 22:35:35', '2026-04-30 22:35:35', NULL);
-INSERT INTO `users` VALUES (4, 'user1', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5Eh', 'user1@test.com', '13800138003', NULL, '用户王五', 1, NULL, NULL, '2026-04-30 22:35:35', '2026-04-30 22:35:35', NULL);
-INSERT INTO `users` VALUES (5, 'user2', '$2a$10$N.zmdr9k7uOCQb376NoUnuTJ8iAt6Z5EHsM8lE9lBOsl7iAt6Z5Eh', 'user2@test.com', '13800138004', NULL, '用户赵六', 1, NULL, NULL, '2026-04-30 22:35:35', '2026-04-30 22:35:35', NULL);
+INSERT INTO `users` VALUES (1, 'admin', '$2b$10$n.9FfRTizHBnifhyf414GeJdyZythG2rrzeNp8ShgalotpcsRzwXK', 'admin@test.com', '13800138000', NULL, '系统管理员', 1, NULL, NULL, '2026-04-30 22:35:35', '2026-05-13 15:05:06', NULL);
+INSERT INTO `users` VALUES (2, 'seller1', '$2b$10$n.9FfRTizHBnifhyf414GeJdyZythG2rrzeNp8ShgalotpcsRzwXK', 'seller1@test.com', '13800138001', NULL, '卖家张三', 1, '2026-05-17 21:37:23', NULL, '2026-04-30 22:35:35', '2026-05-13 15:06:50', NULL);
+INSERT INTO `users` VALUES (3, 'seller2', '$2b$10$n.9FfRTizHBnifhyf414GeJdyZythG2rrzeNp8ShgalotpcsRzwXK', 'seller2@test.com', '13800138002', NULL, '卖家李四', 1, NULL, NULL, '2026-04-30 22:35:35', '2026-05-13 15:06:50', NULL);
+INSERT INTO `users` VALUES (4, 'user1', '$2b$10$n.9FfRTizHBnifhyf414GeJdyZythG2rrzeNp8ShgalotpcsRzwXK', 'user1@test.com', '13800138003', NULL, '用户王五', 1, '2026-05-17 19:59:38', NULL, '2026-04-30 22:35:35', '2026-05-13 15:06:50', NULL);
+INSERT INTO `users` VALUES (5, 'user2', '$2b$10$n.9FfRTizHBnifhyf414GeJdyZythG2rrzeNp8ShgalotpcsRzwXK', 'user2@test.com', '13800138004', NULL, '用户赵六', 1, NULL, NULL, '2026-04-30 22:35:35', '2026-05-13 15:06:50', NULL);
 
 SET FOREIGN_KEY_CHECKS = 1;

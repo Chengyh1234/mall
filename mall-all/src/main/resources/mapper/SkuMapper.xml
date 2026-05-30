@@ -8,6 +8,7 @@
         FROM sku
         WHERE spu_id = #{spuId}
         AND status = 1
+        AND is_deleted = 0
         ORDER BY id ASC
     </select>
 
@@ -17,6 +18,7 @@
         FROM sku
         WHERE sku_code = #{skuCode}
         AND status = 1
+        AND is_deleted = 0
     </select>
 
     <!-- 获取SPU的最低价格 -->
@@ -25,6 +27,7 @@
         FROM sku
         WHERE spu_id = #{spuId}
         AND status = 1
+        AND is_deleted = 0
     </select>
 
     <!-- 获取SPU的库存总量 -->
@@ -33,6 +36,7 @@
         FROM sku
         WHERE spu_id = #{spuId}
         AND status = 1
+        AND is_deleted = 0
     </select>
 
 </mapper>

@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cyh.mallportal.mapper.OrderMapper">
+
+    <resultMap id="BaseResultMap" type="com.cyh.mallportal.entity.Order">
+        <id column="id" property="id"/>
+        <result column="order_no" property="orderNo"/>
+        <result column="user_id" property="userId"/>
+        <result column="total_amount" property="totalAmount"/>
+        <result column="pay_amount" property="payAmount"/>
+        <result column="discount_amount" property="discountAmount"/>
+        <result column="freight_amount" property="freightAmount"/>
+        <result column="status" property="status"/>
+        <result column="pay_status" property="payStatus"/>
+        <result column="pay_time" property="payTime"/>
+        <result column="pay_type" property="payType"/>
+        <result column="delivery_type" property="deliveryType"/>
+        <result column="delivery_company" property="deliveryCompany"/>
+        <result column="delivery_no" property="deliveryNo"/>
+        <result column="delivery_time" property="deliveryTime"/>
+        <result column="receive_time" property="receiveTime"/>
+        <result column="receiver_name" property="receiverName"/>
+        <result column="receiver_phone" property="receiverPhone"/>
+        <result column="receiver_address" property="receiverAddress"/>
+        <result column="remark" property="remark"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+        <result column="cancel_reason" property="cancelReason"/>
+        <result column="version" property="version"/>
+    </resultMap>
+
+    <select id="selectByUserId" resultMap="BaseResultMap">
+        SELECT * FROM orders WHERE user_id = #{userId} ORDER BY created_at DESC
+    </select>
+
+    <select id="selectByOrderNo" resultMap="BaseResultMap">
+        SELECT * FROM orders WHERE order_no = #{orderNo}
+    </select>
+
+    <select id="selectByUserIdAndStatus" resultMap="BaseResultMap">
+        SELECT * FROM orders WHERE user_id = #{userId} AND status = #{status} ORDER BY created_at DESC
+    </select>
+
+    <select id="countByUserId" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM orders WHERE user_id = #{userId}
+    </select>
+
+    <select id="countByStatus" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM orders WHERE status = #{status}
+    </select>
+
+    <!-- ==================== 商家销售仪表盘相关查询 ==================== -->
+
+    <!-- 统计指定时间范围内已完成订单的销售总额：子查询去重，避免同订单重复求和 -->
+    <select id="sumCompletedSalesByTimeRange" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(od.pay_amount), 0)
+        FROM (
+            SELECT DISTINCT o.id, o.pay_amount
+            FROM orders o
+            INNER JOIN order_items oi ON o.id = oi.order_id
+            INNER JOIN spu s ON oi.spu_id = s.id
+            WHERE s.seller_id = #{sellerId}
+              AND o.status = 4
+              AND o.created_at >= #{startTime}
+        ) od
+    </select>
+
+    <!-- 查询商家近7天每日销售额：按日期分组，用于折线图 -->
+    <select id="selectDailySalesBySellerId" resultType="java.util.Map">
+        SELECT DATE_FORMAT(od.created_at, '%Y-%m-%d') AS date, SUM(od.pay_amount) AS amount
+        FROM (
+            SELECT DISTINCT o.id, o.pay_amount, o.created_at
+            FROM orders o
+            INNER JOIN order_items oi ON o.id = oi.order_id
+            INNER JOIN spu s ON oi.spu_id = s.id
+            WHERE s.seller_id = #{sellerId}
+              AND o.status = 4
+              AND o.created_at >= #{startTime}
+        ) od
+        GROUP BY date
+        ORDER BY date
+    </select>
+
+    <!-- ==================== 商家订单查询 ==================== -->
+
+    <!-- 根据商家用户ID查询店铺订单列表：通过 order_items → spu 关联，DISTINCT 去重 -->
+    <select id="selectBySellerId" resultMap="BaseResultMap">
+        SELECT DISTINCT o.*
+        FROM orders o
+        INNER JOIN order_items oi ON o.id = oi.order_id
+        INNER JOIN spu s ON oi.spu_id = s.id
+        WHERE s.seller_id = #{sellerId}
+        ORDER BY o.created_at DESC
+    </select>
+
+    <!-- 根据商家用户ID和订单状态查询店铺订单列表 -->
+    <select id="selectBySellerIdAndStatus" resultMap="BaseResultMap">
+        SELECT DISTINCT o.*
+        FROM orders o
+        INNER JOIN order_items oi ON o.id = oi.order_id
+        INNER JOIN spu s ON oi.spu_id = s.id
+        WHERE s.seller_id = #{sellerId}
+          AND o.status = #{status}
+        ORDER BY o.created_at DESC
+    </select>
+
+    <!-- 统计商家店铺订单总数 -->
+    <select id="countBySellerId" resultType="int">
+        SELECT COUNT(DISTINCT o.id)
+        FROM orders o
+        INNER JOIN order_items oi ON o.id = oi.order_id
+        INNER JOIN spu s ON oi.spu_id = s.id
+        WHERE s.seller_id = #{sellerId}
+    </select>
+
+    <!-- 统计商家店铺指定状态订单总数 -->
+    <select id="countBySellerIdAndStatus" resultType="int">
+        SELECT COUNT(DISTINCT o.id)
+        FROM orders o
+        INNER JOIN order_items oi ON o.id = oi.order_id
+        INNER JOIN spu s ON oi.spu_id = s.id
+        WHERE s.seller_id = #{sellerId}
+          AND o.status = #{status}
+    </select>
+
+    <!-- 根据订单号和商家用户ID查询订单：校验订单是否属于该商家 -->
+    <select id="selectByOrderNoAndSellerId" resultMap="BaseResultMap">
+        SELECT DISTINCT o.*
+        FROM orders o
+        INNER JOIN order_items oi ON o.id = oi.order_id
+        INNER JOIN spu s ON oi.spu_id = s.id
+        WHERE o.order_no = #{orderNo}
+          AND s.seller_id = #{sellerId}
+    </select>
+
+</mapper>

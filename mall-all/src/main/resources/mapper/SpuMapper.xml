@@ -7,6 +7,8 @@
         <result column="name" property="name" />
         <result column="category_id" property="categoryId" />
         <result column="brand_id" property="brandId" />
+        <result column="seller_id" property="sellerId" />
+        <result column="store_id" property="storeId" />
         <result column="description" property="description" />
         <result column="unit" property="unit" />
         <result column="keywords" property="keywords" />
@@ -19,7 +21,7 @@
     </resultMap>
 
     <sql id="Base_Column_List">
-        id, name, category_id, brand_id, description, unit, keywords, sales, status, main_image, images, created_at, updated_at
+        id, name, category_id, brand_id, seller_id, store_id, description, unit, keywords, sales, status, main_image, images, created_at, updated_at
     </sql>
 
     <select id="selectByCategoryId" resultMap="BaseResultMap">
@@ -28,6 +30,7 @@
         FROM spu
         WHERE category_id = #{categoryId}
           AND status = 1
+          AND is_deleted = 0
         ORDER BY created_at DESC
     </select>
 
@@ -36,6 +39,7 @@
         FROM spu
         WHERE category_id = #{categoryId}
           AND status = 1
+          AND is_deleted = 0
     </select>
 
     <select id="selectAllByCategoryId" resultMap="BaseResultMap">
@@ -43,6 +47,7 @@
         <include refid="Base_Column_List" />
         FROM spu
         WHERE category_id = #{categoryId}
+          AND is_deleted = 0
         ORDER BY created_at DESC
     </select>
 
@@ -52,6 +57,7 @@
         FROM spu
         WHERE brand_id = #{brandId}
           AND status = 1
+          AND is_deleted = 0
         ORDER BY created_at DESC
     </select>
 
@@ -60,6 +66,7 @@
         <include refid="Base_Column_List" />
         FROM spu
         WHERE status = #{status}
+          AND is_deleted = 0
         ORDER BY created_at DESC
     </select>
 
@@ -69,6 +76,7 @@
         FROM spu
         WHERE name LIKE CONCAT('%', #{name}, '%')
           AND status = 1
+          AND is_deleted = 0
         ORDER BY created_at DESC
     </select>
 
@@ -78,6 +86,7 @@
         LEFT JOIN categories c ON s.category_id = c.id
         LEFT JOIN brands b ON s.brand_id = b.id
         WHERE 1=1
+        AND s.is_deleted = 0
         <if test="categoryIds != null and categoryIds.size() > 0">
             AND s.category_id IN
             <foreach collection="categoryIds" item="categoryId" open="(" separator="," close=")">
@@ -104,6 +113,7 @@
         LEFT JOIN categories c ON s.category_id = c.id
         LEFT JOIN brands b ON s.brand_id = b.id
         WHERE 1=1
+        AND s.is_deleted = 0
         <if test="categoryIds != null and categoryIds.size() > 0">
             AND s.category_id IN
             <foreach collection="categoryIds" item="categoryId" open="(" separator="," close=")">

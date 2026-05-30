@@ -61,7 +61,7 @@ public class BrandServiceImpl implements BrandService {
     }
 
     /**
-     * 根据ID删除品牌（软删除）
+     * 根据ID删除品牌（逻辑删除）
      *
      * @param id 品牌ID
      * @return 删除成功返回true，失败返回false
@@ -69,7 +69,7 @@ public class BrandServiceImpl implements BrandService {
     @Override
     public boolean delete(Long id) {
         try {
-            // 使用deleteById方法，MyBatis-Plus会自动将逻辑删除字段status设置为0
+            // 使用deleteById方法，MyBatis-Plus会自动将逻辑删除字段is_deleted设置为1
             int result = brandMapper.deleteById(id);
             if (result > 0) {
                 log.info("删除品牌成功，品牌ID: {}", id);

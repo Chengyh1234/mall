@@ -15,14 +15,15 @@ import java.util.List;
  *   2. mainImage：已有主图路径，如 "2026/05/05/uuid_main.jpg"
  * - 图片集（2种方式）：
  *   1. imageFiles：新上传的图片文件列表
- *   2. images：已有图片路径JSON数组，如 ["2026/05/05/a.jpg","2026/05/05/b.jpg"]
- * - keepOldImages：是否保留旧图片，默认false（删除旧图片）
+ *   2. images：已有图片路径JSON数组，如 ["2026/05/05/a.jpg","2026/05/05/b.jpg"]。为图片列表，主图不包含在内
+ * - keepOldImages：是否保留全部旧图片，默认false（删除旧图片）
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class SpuDto {
     private Long id;
+    private Long storeId;
     private String name;
     private Long categoryId;
     private Long brandId;

@@ -23,6 +23,7 @@
         <include refid="Base_Column_List" />
         FROM brands
         WHERE status = #{status}
+          AND is_deleted = 0
         ORDER BY sort ASC, created_at DESC
     </select>
 
@@ -32,6 +33,7 @@
         FROM brands
         WHERE name LIKE CONCAT('%', #{name}, '%')
           AND status = 1
+          AND is_deleted = 0
         ORDER BY sort ASC, created_at DESC
     </select>
 
@@ -40,6 +42,7 @@
         <include refid="Base_Column_List" />
         FROM brands
         WHERE status = 1
+          AND is_deleted = 0
         ORDER BY sort ASC
     </select>
 

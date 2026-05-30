@@ -1,6 +1,7 @@
 package com.cyh.mallportal.service;
 
 import com.cyh.mallportal.entity.Spu;
+import com.cyh.mallportal.vo.SpuDetailVo;
 
 import java.util.List;
 
@@ -86,4 +87,57 @@ public interface SpuService {
      * @return 商品数量
      */
     int countSearchByKeyword(List<Long> categoryIds, String keyword, Long brandId);
+
+    /**
+     * 根据商家ID获取商品列表（不分页）
+     * 用于商家管理自己的商品
+     * @param sellerId 商家ID
+     * @return 商品列表
+     */
+    List<Spu> getListBySellerId(Long sellerId);
+
+    /**
+     * 根据商家ID分页获取商品列表
+     * 用于商家管理自己的商品
+     * @param sellerId 商家ID
+     * @param status 状态（可选，1-上架 0-下架）
+     * @param keyword 关键字（可选，按商品名称模糊搜索）
+     * @param page 页码
+     * @param pageSize 每页数量
+     * @return 商品列表
+     */
+    List<Spu> getPageBySellerId(Long sellerId, Integer status, String keyword, Integer page, Integer pageSize);
+
+    /**
+     * 统计商家商品数量
+     * @param sellerId 商家ID
+     * @param status 状态（可选）
+     * @param keyword 关键字（可选）
+     * @return 商品数量
+     */
+    int countBySellerId(Long sellerId, Integer status, String keyword);
+
+    /**
+     * 根据商家ID获取商品详情
+     * 用于商家查看自己商品的详情
+     * @param id 商品ID
+     * @param sellerId 商家ID（用于权限校验）
+     * @return 商品信息，不存在返回null
+     */
+    Spu getByIdAndSellerId(Long id, Long sellerId);
+
+    /**
+     * 获取商品详情（包含商家信息）
+     * 用于前端展示商品详情页
+     * @param id 商品ID
+     * @return 商品详情VO，包含商品信息和商家信息
+     */
+    SpuDetailVo getSpuDetailById(Long id);
+
+    /**
+     * 恢复被逻辑删除的商品（设置 is_deleted=0）
+     * @param id 商品ID
+     * @return 恢复成功返回true，失败返回false
+     */
+    boolean restore(Long id);
 }

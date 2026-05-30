@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cyh.mallportal.mapper.StoreMapper">
+
+    <resultMap id="BaseResultMap" type="com.cyh.mallportal.entity.Store">
+        <id column="id" property="id" />
+        <result column="name" property="name" />
+        <result column="seller_id" property="sellerId" />
+        <result column="logo" property="logo" />
+        <result column="banner" property="banner" />
+        <result column="description" property="description" />
+        <result column="phone" property="phone" />
+        <result column="address" property="address" />
+        <result column="business_license" property="businessLicense" />
+        <result column="status" property="status" />
+        <result column="sort" property="sort" />
+        <result column="created_at" property="createdAt" />
+        <result column="updated_at" property="updatedAt" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, name, seller_id, logo, banner, description, phone, address, business_license, status, sort, created_at, updated_at
+    </sql>
+
+    <select id="selectBySellerId" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List" />
+        FROM stores
+        WHERE seller_id = #{sellerId}
+    </select>
+
+    <select id="selectByStatus" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List" />
+        FROM stores
+        WHERE status = #{status}
+        ORDER BY sort ASC, created_at DESC
+    </select>
+
+    <select id="selectPage" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List" />
+        FROM stores
+        WHERE 1=1
+        <if test="keyword != null and keyword != ''">
+            AND name LIKE CONCAT('%', #{keyword}, '%')
+        </if>
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+        ORDER BY sort ASC, created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <select id="countPage" resultType="int">
+        SELECT COUNT(*)
+        FROM stores
+        WHERE 1=1
+        <if test="keyword != null and keyword != ''">
+            AND name LIKE CONCAT('%', #{keyword}, '%')
+        </if>
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+    </select>
+
+</mapper>

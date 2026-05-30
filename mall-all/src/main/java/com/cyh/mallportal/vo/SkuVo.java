@@ -32,7 +32,7 @@ public class SkuVo {
     /**
      * SKU编码
      */
-    private String skuCode;
+    //private String skuCode;
 
     /**
      * 销售价格

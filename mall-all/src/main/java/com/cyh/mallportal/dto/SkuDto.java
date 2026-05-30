@@ -12,7 +12,7 @@ import java.math.BigDecimal;
  * 参数说明：
  * - 基本信息：id（修改时必填）, spuId, skuCode, price, marketPrice, costPrice
  * - 库存相关：stock, warnStock
- * - 商品信息：specs(JSON格式), weight
+ * - 商品信息：weight
  * - 图片：imageFile(上传文件) 或 image(已有路径)
  * - 状态：status
  */
@@ -25,8 +25,6 @@ public class SkuDto {
 
     private Long spuId;
 
-    private String skuCode;
-
     private BigDecimal price;
 
     private BigDecimal marketPrice;
@@ -38,8 +36,6 @@ public class SkuDto {
     private Integer warnStock;
 
     private String image;
-
-    private String specs;
 
     private BigDecimal weight;
 

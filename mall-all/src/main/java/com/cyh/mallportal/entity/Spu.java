@@ -44,6 +44,20 @@ public class Spu implements Serializable {
     private Long brandId;
 
     /**
+     * 商家ID（商品所属商家）
+     * SPU-SKU层级关系：SKU通过SPU间接获取商家ID
+     */
+    @TableField(value = "seller_id")
+    private Long sellerId;
+
+    /**
+     * 店铺ID（商品所属店铺）
+     * 用于店铺商品管理
+     */
+    @TableField(value = "store_id")
+    private Long storeId;
+
+    /**
      * 商品描述
      */
     @TableField(value = "description")
@@ -81,11 +95,16 @@ public class Spu implements Serializable {
 
     /**
      * 状态（1-上架 0-下架）
-     * 逻辑删除字段
      */
     @TableField(value = "status")
-    @TableLogic
     private Integer status;
+
+    /**
+     * 逻辑删除（0-未删除 1-已删除）
+     */
+    @TableField(value = "is_deleted")
+    @TableLogic(value = "0", delval = "1")
+    private Boolean isDeleted;
 
     /**
      * 创建时间
@@ -98,4 +117,16 @@ public class Spu implements Serializable {
      */
     @TableField(value = "updated_at", fill = FieldFill.INSERT_UPDATE)
     private LocalDateTime updatedAt;
+
+    /**
+     * 分类名称（非数据库字段，仅用于接口返回）
+     */
+    @TableField(exist = false)
+    private String categoryName;
+
+    /**
+     * 品牌名称（非数据库字段，仅用于接口返回）
+     */
+    @TableField(exist = false)
+    private String brandName;
 }

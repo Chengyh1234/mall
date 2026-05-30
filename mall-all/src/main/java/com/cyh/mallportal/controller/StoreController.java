@@ -1,0 +1,278 @@
+package com.cyh.mallportal.controller;
+
+import cn.hutool.core.io.FileUtil;
+import com.alibaba.druid.util.StringUtils;
+import com.alibaba.fastjson2.JSON;
+import com.cyh.mallcommon.utils.Result;
+import com.cyh.mallportal.dto.StoreDto;
+import com.cyh.mallportal.entity.Store;
+import com.cyh.mallportal.entity.User;
+import com.cyh.mallportal.service.FileService;
+import com.cyh.mallportal.service.StoreService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.File;
+import java.io.IOException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+
+/**
+ * 店铺管理控制器
+ */
+@RestController
+@RequestMapping("/store")
+public class StoreController {
+
+    @Autowired
+    private StoreService storeService;
+
+    @Autowired
+    private FileService fileService;
+
+    /**
+     * 新增店铺
+     */
+    @PostMapping("/add")
+    @PreAuthorize("hasAuthority('store:manage') or hasRole('SUPER_ADMIN')")
+    public Result<Map<String, Object>> add(@RequestPart(value = "storeDto") String storeDtoString,
+                                           @RequestPart(value = "logoFile", required = false) MultipartFile logoFile,
+                                           @RequestPart(value = "bannerFile", required = false) MultipartFile bannerFile) {
+        StoreDto storeDto = JSON.parseObject(storeDtoString, StoreDto.class);
+
+        Store store = new Store();
+        store.setName(storeDto.getName());
+        store.setDescription(storeDto.getDescription());
+        store.setPhone(storeDto.getPhone());
+        store.setAddress(storeDto.getAddress());
+        store.setBusinessLicense(storeDto.getBusinessLicense());
+        store.setStatus(storeDto.getStatus());
+        store.setSort(storeDto.getSort());
+
+        Long currentUserId = getCurrentUserId();
+        if (currentUserId == null) {
+            return Result.error("用户未登录");
+        }
+        store.setSellerId(currentUserId);
+
+        String date = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd"));
+
+        if (logoFile != null && !logoFile.isEmpty()) {
+            Map<String, String> logoInfo = uploadLogo(logoFile);
+            if (logoInfo != null) {
+                store.setLogo(date + "/" + logoInfo.get("fileName"));
+            }
+        }
+
+        if (bannerFile != null && !bannerFile.isEmpty()) {
+            Map<String, String> bannerInfo = uploadBanner(bannerFile);
+            if (bannerInfo != null) {
+                store.setBanner(date + "/" + bannerInfo.get("fileName"));
+            }
+        }
+
+        Long id = storeService.add(store);
+        if (id != null) {
+            Map<String, Object> data = new HashMap<>();
+            data.put("id", id);
+            data.put("logo", store.getLogo());
+            data.put("banner", store.getBanner());
+            return Result.success("添加成功", data);
+        }
+        return Result.error("添加失败");
+    }
+
+    /**
+     * 更新店铺信息
+     */
+    @PutMapping("/update")
+    @PreAuthorize("hasAuthority('store:manage') or hasRole('SUPER_ADMIN')")
+    public Result<Map<String, Object>> update(@RequestPart(value = "storeDto") String storeDtoString,
+                                               @RequestPart(value = "logoFile", required = false) MultipartFile logoFile,
+                                               @RequestPart(value = "bannerFile", required = false) MultipartFile bannerFile) {
+        StoreDto storeDto = JSON.parseObject(storeDtoString, StoreDto.class);
+
+        if (storeDto.getId() == null) {
+            return Result.error("店铺ID不能为空");
+        }
+
+        Store oldStore = storeService.getById(storeDto.getId());
+        if (oldStore == null) {
+            return Result.error("店铺不存在");
+        }
+
+        Long currentUserId = getCurrentUserId();
+        if (currentUserId == null) {
+            return Result.error("用户未登录");
+        }
+
+        if (!storeService.isStoreOwner(storeDto.getId(), currentUserId)) {
+            return Result.error("无权修改此店铺");
+        }
+
+        Store store = new Store();
+        store.setId(storeDto.getId());
+        store.setName(storeDto.getName() != null ? storeDto.getName() : oldStore.getName());
+        store.setDescription(storeDto.getDescription() != null ? storeDto.getDescription() : oldStore.getDescription());
+        store.setPhone(storeDto.getPhone() != null ? storeDto.getPhone() : oldStore.getPhone());
+        store.setAddress(storeDto.getAddress() != null ? storeDto.getAddress() : oldStore.getAddress());
+        store.setBusinessLicense(storeDto.getBusinessLicense() != null ? storeDto.getBusinessLicense() : oldStore.getBusinessLicense());
+        store.setSort(storeDto.getSort() != null ? storeDto.getSort() : oldStore.getSort());
+        store.setSellerId(oldStore.getSellerId());
+
+        String date = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd"));
+
+        if (logoFile != null && !logoFile.isEmpty()) {
+            if (oldStore.getLogo() != null) {
+                deleteLogoFile(oldStore.getLogo());
+            }
+            Map<String, String> logoInfo = uploadLogo(logoFile);
+            if (logoInfo != null) {
+                store.setLogo(date + "/" + logoInfo.get("fileName"));
+            }
+        } else {
+            store.setLogo(oldStore.getLogo());
+        }
+
+        if (bannerFile != null && !bannerFile.isEmpty()) {
+            if (oldStore.getBanner() != null) {
+                deleteBannerFile(oldStore.getBanner());
+            }
+            Map<String, String> bannerInfo = uploadBanner(bannerFile);
+            if (bannerInfo != null) {
+                store.setBanner(date + "/" + bannerInfo.get("fileName"));
+            }
+        } else {
+            store.setBanner(oldStore.getBanner());
+        }
+
+        boolean success = storeService.update(store);
+        if (success) {
+            Map<String, Object> data = new HashMap<>();
+            data.put("id", store.getId());
+            data.put("logo", store.getLogo());
+            data.put("banner", store.getBanner());
+            return Result.success("更新成功", data);
+        }
+        return Result.error("更新失败");
+    }
+
+    /**
+     * 获取店铺详情
+     */
+    @GetMapping("/detail/{id}")
+    public Result<Store> getById(@PathVariable Long id) {
+        Store store = storeService.getById(id);
+        if (store != null) {
+            return Result.success(store);
+        }
+        return Result.error("店铺不存在");
+    }
+
+    /**
+     * 获取当前用户的店铺
+     */
+    @GetMapping("/my-store")
+    @PreAuthorize("hasAuthority('store:manage') or hasRole('SUPER_ADMIN') or hasRole('SELLER')")
+    public Result<Store> getMyStore() {
+        Long currentUserId = getCurrentUserId();
+        if (currentUserId == null) {
+            return Result.error("用户未登录");
+        }
+        Store store = storeService.getBySellerId(currentUserId);
+        if (store != null) {
+            return Result.success(store);
+        }
+        return Result.error("您还没有店铺");
+    }
+
+    /**
+     * 获取店铺列表
+     */
+    @GetMapping("/list")
+    public Result<List<Store>> getList(Store store) {
+        List<Store> list = storeService.getList(store);
+        return Result.success(list);
+    }
+
+    /**
+     * 分页获取店铺列表
+     */
+    @GetMapping("/page")
+    public Result<Map<String, Object>> getPage(@RequestParam(required = false) String keyword,
+                                               @RequestParam(required = false) Integer status,
+                                               @RequestParam(defaultValue = "1") Integer page,
+                                               @RequestParam(defaultValue = "10") Integer pageSize) {
+        List<Store> list = storeService.getPage(keyword, status, page, pageSize);
+        int total = storeService.countPage(keyword, status);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("list", list);
+        data.put("page", page);
+        data.put("pageSize", pageSize);
+        data.put("total", total);
+        return Result.success(data);
+    }
+
+    /**
+     * 更新店铺状态
+     */
+    @PutMapping("/status/{id}")
+    @PreAuthorize("hasAuthority('store:manage') or hasRole('SUPER_ADMIN')")
+    public Result<Void> updateStatus(@PathVariable Long id, @RequestParam Integer status) {
+        boolean success = storeService.updateStatus(id, status);
+        if (success) {
+            return Result.success("更新成功", null);
+        }
+        return Result.error("更新失败");
+    }
+
+    /**
+     * 上传店铺Logo（上传到uploads/stores目录）
+     */
+    private Map<String, String> uploadLogo(MultipartFile file) {
+        return fileService.uploadFile(file, "stores");
+    }
+
+    /**
+     * 上传店铺横幅（上传到uploads/banners目录）
+     */
+    private Map<String, String> uploadBanner(MultipartFile file) {
+        return fileService.uploadFile(file, "banners");
+    }
+
+    private void deleteLogoFile(String logoPath) {
+        fileService.deleteFile(logoPath, "stores");
+    }
+
+    private void deleteBannerFile(String bannerPath) {
+        fileService.deleteFile(bannerPath, "banners");
+    }
+
+    private Map<String, String> uploadImage(MultipartFile file) {
+        return fileService.uploadFile(file, "stores");
+    }
+
+    private void deleteImageFile(String imagePath) {
+        fileService.deleteFile(imagePath, "stores");
+    }
+
+    /**
+     * 获取当前登录用户的ID
+     */
+    private Long getCurrentUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.isAuthenticated()) {
+            Object principal = authentication.getPrincipal();
+            if (principal instanceof User) {
+                return ((User) principal).getId();
+            }
+        }
+        return null;
+    }
+}

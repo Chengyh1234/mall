@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -31,7 +32,7 @@ public class SkuServiceImpl implements SkuService {
     private final AttributeMapper attributeMapper;
     private final AttributeValueMapper attributeValueMapper;
     private final SkuSaleAttrValueMapper skuSaleAttrValueMapper;
-    private final ObjectMapper objectMapper = new ObjectMapper();
+
 
     /**
      * 新增SKU
@@ -42,7 +43,6 @@ public class SkuServiceImpl implements SkuService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long add(Sku sku) {
-        log.info("新增SKU: {}", sku.getSkuCode());
 
         if (sku.getStatus() == null) {
             sku.setStatus(1);
@@ -137,12 +137,45 @@ public class SkuServiceImpl implements SkuService {
     public boolean deleteBySpuId(Long spuId) {
         log.info("删除SPU下所有SKU, SPU ID: {}", spuId);
 
+        // 先删除SKU的销售属性绑定
+        List<Sku> skus = skuMapper.selectList(
+                new LambdaQueryWrapper<Sku>().eq(Sku::getSpuId, spuId));
+        for (Sku sku : skus) {
+            skuSaleAttrValueMapper.delete(
+                    new LambdaQueryWrapper<SkuSaleAttrValue>().eq(SkuSaleAttrValue::getSkuId, sku.getId()));
+        }
+
+        // 逻辑删除SKU
         LambdaQueryWrapper<Sku> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Sku::getSpuId, spuId);
         skuMapper.delete(wrapper);
 
-        log.info("删除SPU下SKU完成");
+        log.info("删除SPU下SKU完成并已清理销售属性绑定");
         return true;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public int batchDelete(List<Long> ids) {
+        if (ids == null || ids.isEmpty()) {
+            return 0;
+        }
+
+        log.info("批量删除SKU, IDs: {}", ids);
+
+        // 先删除SKU的销售属性绑定
+        for (Long id : ids) {
+            skuSaleAttrValueMapper.delete(
+                    new LambdaQueryWrapper<SkuSaleAttrValue>().eq(SkuSaleAttrValue::getSkuId, id));
+        }
+
+        // 逻辑删除SKU
+        for (Long id : ids) {
+            skuMapper.deleteById(id);
+        }
+
+        log.info("批量删除SKU完成, 数量: {}", ids.size());
+        return ids.size();
     }
 
     /**
@@ -251,19 +284,6 @@ public class SkuServiceImpl implements SkuService {
     }
 
     /**
-     * 根据SKU编码获取SKU
-     *
-     * @param skuCode SKU编码
-     * @return SKU实体
-     */
-    @Override
-    public Sku getBySkuCode(String skuCode) {
-        LambdaQueryWrapper<Sku> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Sku::getSkuCode, skuCode);
-        return skuMapper.selectOne(wrapper);
-    }
-
-    /**
      * 获取所有SKU列表
      *
      * @return SKU列表
@@ -313,6 +333,42 @@ public class SkuServiceImpl implements SkuService {
         LambdaQueryWrapper<Sku> wrapper = buildWrapper(spuId, status);
         long totalLong = skuMapper.selectCount(wrapper);
         return (int) totalLong;
+    }
+
+    /**
+     * 启用SKU（设置 status=1）
+     *
+     * @param id SKU ID
+     * @return 是否启用成功
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean enable(Long id) {
+        Sku sku = skuMapper.selectById(id);
+        if (sku == null) {
+            return false;
+        }
+        sku.setStatus(1);
+        sku.setUpdatedAt(LocalDateTime.now());
+        return skuMapper.updateById(sku) > 0;
+    }
+
+    /**
+     * 禁用SKU（设置 status=0）
+     *
+     * @param id SKU ID
+     * @return 是否禁用成功
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean disable(Long id) {
+        Sku sku = skuMapper.selectById(id);
+        if (sku == null) {
+            return false;
+        }
+        sku.setStatus(0);
+        sku.setUpdatedAt(LocalDateTime.now());
+        return skuMapper.updateById(sku) > 0;
     }
 
     /**
@@ -398,7 +454,6 @@ public class SkuServiceImpl implements SkuService {
         SkuVo vo = SkuVo.builder()
                 .id(sku.getId())
                 .spuId(sku.getSpuId())
-                .skuCode(sku.getSkuCode())
                 .price(sku.getPrice())
                 .marketPrice(sku.getMarketPrice())
                 .costPrice(sku.getCostPrice())
@@ -467,62 +522,6 @@ public class SkuServiceImpl implements SkuService {
                 })
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList());
-        //List<SkuSaleAttrValue> skuAttrValues = skuSaleAttrValueMapper.getBySkuId(id);
-        //if (skuAttrValues == null || skuAttrValues.isEmpty()) {
-        //    return new ArrayList<>();
-        //}
-        //
-        //
-        //// 获取所有属性ID
-        //List<Long> attrIds = skuAttrValues.stream()
-        //        .map(skuAttrValue->attributeValueMapper.selectById(skuAttrValue.getAttrValueId()).getAttrId())
-        //        .distinct()
-        //        .collect(Collectors.toList());
-        //
-        //// 获取属性信息
-        //List<Attribute> attributes = attributeMapper.selectBatchIds(attrIds);
-        //Map<Long, Attribute> attrMap = attributes.stream()
-        //        .collect(Collectors.toMap(Attribute::getId, a -> a));
-        //
-        //// 获取所有属性值ID
-        //List<Long> attrValueIds = skuAttrValues.stream()
-        //        .map(SkuSaleAttrValue::getAttrValueId)
-        //        .distinct()
-        //        .collect(Collectors.toList());
-        //
-        //// 获取属性值信息
-        //Map<Long, AttributeValue> attrValueMap = new HashMap<>();
-        //if (!attrValueIds.isEmpty()) {
-        //    List<AttributeValue> attrValues = attributeValueMapper.selectBatchIds(attrValueIds);
-        //    attrValueMap = attrValues.stream()
-        //            .collect(Collectors.toMap(AttributeValue::getId, v -> v));
-        //}
-        //
-        //// 构建结果
-        //List<Map<String, Object>> result = new ArrayList<>();
-        //for (SkuSaleAttrValue skuAttrValue : skuAttrValues) {
-        //    //Attribute attr = attrMap.get(skuAttrValue.getAttrValueId());
-        //    Attribute attr = attrMap.get(attributeValueMapper.selectById(skuAttrValue.getAttrValueId()).getAttrId());
-        //    if (attr == null) {
-        //        continue;
-        //    }
-        //
-        //    AttributeValue attrValue = attrValueMap.get(skuAttrValue.getAttrValueId());
-        //    if (attrValue == null) {
-        //        continue;
-        //    }
-        //
-        //    Map<String, Object> map = new HashMap<>();
-        //    map.put("attrId", attr.getId());
-        //    map.put("attrName", attr.getName());
-        //    map.put("valueId", attrValue.getId());
-        //    map.put("value", attrValue.getValue());
-        //    map.put("imageUrl", attrValue.getImageUrl());
-        //
-        //    result.add(map);
-        //}
-        //
-        //return result;
     }
 
     /**

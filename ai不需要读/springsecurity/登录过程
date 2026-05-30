@@ -1,0 +1,7 @@
+1. 用户发起登录请求 （POST /auth/login ）
+2. 控制器接收请求 ，获取用户名和密码
+3. 调用 AuthenticationManager.authenticate() 进行认证
+4. DaoAuthenticationProvider 收到认证请求
+5. 调用 loadUserByUsername(username) 从数据库加载用户信息，在UserDetailsServiceImpl中
+6. 验证密码 ：使用 PasswordEncoder 比对密码
+7. 返回认证结果 ：成功则生成 Authentication 对象，失败则抛出异常

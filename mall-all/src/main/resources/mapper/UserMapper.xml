@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cyh.mallportal.mapper.UserMapper">
+
+    <resultMap id="BaseResultMap" type="com.cyh.mallportal.entity.User">
+        <id column="id" property="id" />
+        <result column="username" property="username" />
+        <result column="password" property="password" />
+        <result column="email" property="email" />
+        <result column="phone" property="phone" />
+        <result column="avatar" property="avatar" />
+        <result column="real_name" property="realName" />
+        <result column="status" property="status" />
+        <result column="last_login_time" property="lastLoginTime" />
+        <result column="last_login_ip" property="lastLoginIp" />
+        <result column="created_at" property="createdAt" />
+        <result column="updated_at" property="updatedAt" />
+        <result column="deleted_at" property="deletedAt" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, username, password, email, phone, avatar, real_name, status, 
+        last_login_time, last_login_ip, created_at, updated_at, deleted_at
+    </sql>
+
+    <select id="selectByUsername" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List" />
+        FROM users
+        WHERE username = #{username}
+          AND deleted_at IS NULL
+    </select>
+
+    <select id="selectRoleCodesByUserId" resultType="string">
+        SELECT r.code
+        FROM roles r
+        INNER JOIN user_roles ur ON r.id = ur.role_id
+        WHERE ur.user_id = #{userId}
+          AND r.status = 1
+    </select>
+
+    <select id="selectPermissionCodesByUserId" resultType="string">
+        SELECT DISTINCT p.code
+        FROM permissions p
+        INNER JOIN role_permissions rp ON p.id = rp.permission_id
+        INNER JOIN user_roles ur ON rp.role_id = ur.role_id
+        WHERE ur.user_id = #{userId}
+          AND p.status = 1
+    </select>
+
+</mapper>

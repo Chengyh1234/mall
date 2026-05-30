@@ -15,32 +15,33 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * 文件服务实现类
- * 实现文件的上传、下载、删除等公共功能
- */
 @Slf4j
 @Service
 public class FileServiceImpl implements FileService {
 
-    /**
-     * 文件上传根路径
-     */
     @Value("${file.upload.base-path:./uploads}")
     private String basePath;
 
-    /**
-     * 允许的图片类型
-     */
+    @Value("${file.upload.spu-path:./uploads/images/spu}")
+    private String spuPath;
+
+    @Value("${file.upload.sku-path:./uploads/images/sku}")
+    private String skuPath;
+
+    @Value("${file.upload.brands-path:./uploads/images/brands}")
+    private String brandsPath;
+
+    @Value("${file.upload.stores-path:./uploads/images/stores}")
+    private String storesPath;
+
+    @Value("${file.upload.avatars-path:./uploads/images/avatars}")
+    private String avatarsPath;
+
+    @Value("${file.upload.banners-path:./uploads/images/banners}")
+    private String bannersPath;
+
     private static final String[] ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"};
 
-    /**
-     * 上传文件
-     *
-     * @param file 上传的文件
-     * @param subDir 子目录路径（如 "images"、"logos"）
-     * @return 上传结果，包含日期和文件名，失败返回null
-     */
     @Override
     public Map<String, String> uploadFile(MultipartFile file, String subDir) {
         if (file == null || file.isEmpty()) {
@@ -55,37 +56,55 @@ public class FileServiceImpl implements FileService {
         }
 
         try {
-            // 生成日期目录
             LocalDate today = LocalDate.now();
             String dateStr = today.format(DateTimeFormatter.ofPattern("yyyy-MM-dd"));
             String dateDir = today.format(DateTimeFormatter.ofPattern("yyyy/MM/dd"));
 
-            // 生成新文件名：UUID_原文件名
             String newFileName = UUID.randomUUID().toString() + "_" + originalFilename;
 
-            // 创建上传目录
-            File uploadDir = new File(basePath, subDir + "/" + dateDir);
+            String targetPath = getPathBySubDir(subDir);
+            File uploadDir = new File(targetPath, dateDir);
             if (!uploadDir.exists()) {
                 uploadDir.mkdirs();
             }
 
-            // 保存文件
             File destFile = new File(uploadDir, newFileName).getCanonicalFile();
             file.transferTo(destFile);
 
-            // 构建返回结果
             Map<String, String> result = new HashMap<>();
             result.put("date", dateStr);
             result.put("dateDir", dateDir);
             result.put("fileName", newFileName);
             result.put("relativePath", dateDir + "/" + newFileName);
 
-            log.info("文件上传成功，原始文件名: {}, 新文件名: {}, 路径: {}", originalFilename, newFileName, subDir + "/" + dateDir);
+            log.info("文件上传成功，原始文件名: {}, 新文件名: {}, 路径: {}", originalFilename, newFileName, targetPath + "/" + dateDir);
 
             return result;
         } catch (IOException e) {
             log.error("文件上传失败，原始文件名: {}", originalFilename, e);
             return null;
+        }
+    }
+
+    private String getPathBySubDir(String subDir) {
+        if (subDir == null) {
+            return basePath;
+        }
+        switch (subDir.toLowerCase()) {
+            case "spu":
+                return spuPath;
+            case "sku":
+                return skuPath;
+            case "brands":
+                return brandsPath;
+            case "stores":
+                return storesPath;
+            case "avatars":
+                return avatarsPath;
+            case "banners":
+                return bannersPath;
+            default:
+                return basePath + "/" + subDir;
         }
     }
 
@@ -106,13 +125,6 @@ public class FileServiceImpl implements FileService {
         return uploadFile(file, subDir);
     }
 
-    /**
-     * 删除文件
-     *
-     * @param relativePath 文件相对路径（如 "2026/05/07/uuid_file.jpg"）
-     * @param subDir 子目录路径（如 "images"、"logos"）
-     * @return 删除成功返回true，失败返回false
-     */
     @Override
     public boolean deleteFile(String relativePath, String subDir) {
         if (!StringUtils.hasText(relativePath)) {
@@ -121,16 +133,14 @@ public class FileServiceImpl implements FileService {
         }
 
         try {
-            // 构建完整文件路径
-            File file = new File(basePath, subDir + "/" + relativePath);
+            String targetPath = getPathBySubDir(subDir);
+            File file = new File(targetPath, relativePath);
 
-            // 检查文件是否存在
             if (!file.exists()) {
                 log.warn("要删除的文件不存在: {}", file.getAbsolutePath());
                 return false;
             }
 
-            // 删除文件
             boolean deleted = file.delete();
             if (deleted) {
                 log.info("文件删除成功: {}", file.getAbsolutePath());
@@ -144,39 +154,26 @@ public class FileServiceImpl implements FileService {
         }
     }
 
-    /**
-     * 下载文件
-     *
-     * @param relativePath 文件相对路径
-     * @param subDir 子目录路径
-     * @return 文件对象，不存在返回null
-     */
     @Override
     public File getFile(String relativePath, String subDir) {
         if (!StringUtils.hasText(relativePath)) {
             return null;
         }
 
-        File file = new File(basePath, subDir + "/" + relativePath);
+        String targetPath = getPathBySubDir(subDir);
+        File file = new File(targetPath, relativePath);
         if (file.exists() && file.isFile()) {
             return file;
         }
         return null;
     }
 
-    /**
-     * 获取文件的访问URL
-     *
-     * @param relativePath 文件相对路径
-     * @param subDir 子目录路径
-     * @return 文件访问URL
-     */
     @Override
     public String getFileUrl(String relativePath, String subDir) {
         if (!StringUtils.hasText(relativePath)) {
             return null;
         }
-        return "/uploads/" + subDir + "/" + relativePath;
+        return "/uploads/images/" + subDir + "/" + relativePath;
     }
 
     /**
