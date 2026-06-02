@@ -56,6 +56,12 @@ public class Sku implements Serializable {
     private Integer stock;
 
     /**
+     * 冻结库存（预扣，待支付）
+     */
+    @TableField(value = "frozen_stock")
+    private Integer frozenStock;
+
+    /**
      * 预警库存
      */
     @TableField(value = "warn_stock")

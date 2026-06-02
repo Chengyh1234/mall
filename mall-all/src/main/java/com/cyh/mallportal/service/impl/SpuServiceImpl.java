@@ -11,6 +11,8 @@ import com.cyh.mallportal.service.SpuCacheService;
 import com.cyh.mallportal.service.SpuService;
 import com.cyh.mallportal.vo.SpuDetailVo;
 import lombok.extern.slf4j.Slf4j;
+
+import java.math.BigDecimal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -83,10 +85,8 @@ public class SpuServiceImpl implements SpuService {
         // 设置创建时间和更新时间
         spu.setCreatedAt(LocalDateTime.now());
         spu.setUpdatedAt(LocalDateTime.now());
-        // 默认上架状态为上架(1)
-        if (spu.getStatus() == null) {
-            spu.setStatus(1);
-        }
+        // 新增SPU强制下架(0)，待添加启用SKU后由SKU增删改操作自动设为上架
+        spu.setStatus(0);
         // 默认销量为0
         if (spu.getSales() == null) {
             spu.setSales(0);
@@ -340,6 +340,10 @@ public class SpuServiceImpl implements SpuService {
         if (StringUtils.hasText(spu.getName())) {
             queryWrapper.like(Spu::getName, spu.getName());
         }
+        // 按状态精确查询（1-上架 0-下架）
+        if (spu.getStatus() != null) {
+            queryWrapper.eq(Spu::getStatus, spu.getStatus());
+        }
         return queryWrapper;
     }
 
@@ -544,6 +548,77 @@ public class SpuServiceImpl implements SpuService {
         queryWrapper.eq(Spu::getId, id);
         queryWrapper.eq(Spu::getSellerId, sellerId);
         return spuMapper.selectOne(queryWrapper);
+    }
+
+    /**
+     * 更新SPU的最低SKU售价
+     * 从该SPU下所有启用状态的SKU中取最低价格，写入spu.min_price字段
+     *
+     * @param spuId SPU ID
+     */
+    @Override
+    public void updateMinPriceForSpu(Long spuId) {
+        LambdaQueryWrapper<Sku> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Sku::getSpuId, spuId);
+        wrapper.eq(Sku::getStatus, 1);
+        wrapper.orderByAsc(Sku::getPrice);
+        wrapper.last("LIMIT 1");
+        Sku sku = skuMapper.selectOne(wrapper);
+
+        BigDecimal minPrice = sku != null ? sku.getPrice() : BigDecimal.ZERO;
+
+        Spu spu = new Spu();
+        spu.setId(spuId);
+        spu.setMinPrice(minPrice);
+        spuMapper.updateById(spu);
+
+        log.info("更新SPU[{}]的最低售价: {}", spuId, minPrice);
+    }
+
+    /**
+     * 刷新SPU的上架/下架状态
+     * 查询该SPU下是否存在启用状态的SKU，自动同步SPU状态
+     *   - 存在启用SKU → 上架(status=1)
+     *   - 不存在启用SKU → 下架(status=0)
+     * SKU增删改时均应调用此方法
+     *
+     * @param spuId SPU ID
+     */
+    @Override
+    public void refreshSpuStatus(Long spuId) {
+        LambdaQueryWrapper<Sku> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Sku::getSpuId, spuId);
+        wrapper.eq(Sku::getStatus, 1);
+        wrapper.last("LIMIT 1");
+        Sku sku = skuMapper.selectOne(wrapper);
+
+        int status = sku != null ? 1 : 0;
+
+        Spu spu = new Spu();
+        spu.setId(spuId);
+        spu.setStatus(status);
+        spuMapper.updateById(spu);
+
+        // 清除缓存，确保下次查询拿到最新状态
+        spuCacheService.clearAllSpuCache();
+
+        log.info("刷新SPU[{}]的上架状态: {}", spuId, status);
+    }
+
+    /**
+     * 检查SPU下是否存在启用状态（status=1）的SKU
+     * 用于上架/修改SPU时前置校验：不允许在上架一个无启用SKU的SPU
+     *
+     * @param spuId SPU ID
+     * @return true=存在启用SKU，false=不存在
+     */
+    @Override
+    public boolean hasEnabledSku(Long spuId) {
+        LambdaQueryWrapper<Sku> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(Sku::getSpuId, spuId);
+        wrapper.eq(Sku::getStatus, 1);
+        wrapper.last("LIMIT 1");
+        return skuMapper.selectOne(wrapper) != null;
     }
 
     /**

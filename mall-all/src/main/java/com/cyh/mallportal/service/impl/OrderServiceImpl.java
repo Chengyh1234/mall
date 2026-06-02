@@ -18,18 +18,23 @@ import com.cyh.mallportal.mapper.OrderDeliveryMapper;
 import com.cyh.mallportal.mapper.OrderItemMapper;
 import com.cyh.mallportal.mapper.OrderMapper;
 import com.cyh.mallportal.mapper.SkuMapper;
+import com.cyh.mallportal.mapper.SpuMapper;
 import com.cyh.mallportal.service.CartItemService;
+import com.cyh.mallportal.service.InventoryRedisService;
 import com.cyh.mallportal.service.OrderDeliveryService;
 import com.cyh.mallportal.service.OrderService;
+import com.cyh.mallportal.service.StockLuaScript;
 import com.cyh.mallportal.vo.CartItemVo;
 import com.cyh.mallportal.vo.OrderVo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +43,7 @@ import java.util.UUID;
 /**
  * 订单服务实现类
  * 提供订单业务逻辑的具体实现
+ * 库存采用 Redis + Lua 脚本预扣模式：下单冻结 → 支付实扣 → 超时/取消释放
  */
 @Slf4j
 @Service
@@ -52,11 +58,21 @@ public class OrderServiceImpl implements OrderService {
     private final OrderDeliveryService orderDeliveryService;
     private final CartItemMapper cartItemMapper;
     private final CartItemService cartItemService;
+    private final StockLuaScript stockLuaScript;
+    private final InventoryRedisService inventoryRedisService;
+    private final SpuMapper spuMapper;
+
+    /**
+     * 支付超时时间（分钟），默认 30 分钟
+     */
+    @Value("${mall.order.pay-expire-minutes:30}")
+    private int payExpireMinutes;
 
     /**
      * 创建订单
+     * 使用 Redis Lua 脚本冻结库存，设置支付超时时间
      *
-     * @param userId      用户ID
+     * @param userId        用户ID
      * @param orderCreateDto 订单创建DTO
      * @return 订单VO
      */
@@ -74,7 +90,27 @@ public class OrderServiceImpl implements OrderService {
             address = addressMapper.selectById(orderCreateDto.getAddressId());
         }
 
-        // 3. 创建订单实体
+        // 3. 冻结库存（原子操作，任一 SKU 失败则回滚已冻结的）
+        List<Long> frozenSkuIds = new ArrayList<>();
+        try {
+            for (OrderItemDto itemDto : orderCreateDto.getItems()) {
+                Sku sku = skuMapper.selectById(itemDto.getSkuId());
+                if (sku == null) {
+                    rollbackFrozen(frozenSkuIds, orderCreateDto.getItems());
+                    throw new BusinessException("SKU不存在, SKU ID: " + itemDto.getSkuId());
+                }
+                boolean success = stockLuaScript.freezeStock(itemDto.getSkuId(), itemDto.getQuantity());
+                if (!success) {
+                    rollbackFrozen(frozenSkuIds, orderCreateDto.getItems());
+                    throw new BusinessException("库存不足, SKU: " + sku.getId());
+                }
+                frozenSkuIds.add(itemDto.getSkuId());
+            }
+        } catch (BusinessException e) {
+            throw e;
+        }
+
+        // 4. 创建订单实体
         Order order = new Order();
         order.setOrderNo(orderNo);
         order.setUserId(userId);
@@ -82,11 +118,11 @@ public class OrderServiceImpl implements OrderService {
         order.setDiscountAmount(orderCreateDto.getDiscountAmount() != null ? orderCreateDto.getDiscountAmount() : BigDecimal.ZERO);
         order.setFreightAmount(orderCreateDto.getFreightAmount() != null ? orderCreateDto.getFreightAmount() : BigDecimal.ZERO);
         order.setPayAmount(orderCreateDto.getPayAmount() != null ? orderCreateDto.getPayAmount() : BigDecimal.ZERO);
-        order.setStatus(1); // 1-待付款
-        order.setPayStatus(0); // 0-未支付
+        order.setStatus(1);
+        order.setPayStatus(0);
         order.setRemark(orderCreateDto.getRemark());
+        order.setExpireTime(LocalDateTime.now().plusMinutes(payExpireMinutes));
 
-        // 设置收货信息
         if (address != null) {
             order.setReceiverName(address.getReceiverName());
             order.setReceiverPhone(address.getReceiverPhone());
@@ -101,44 +137,31 @@ public class OrderServiceImpl implements OrderService {
         order.setUpdatedAt(LocalDateTime.now());
         order.setVersion(1);
 
-        // 4. 插入订单
         orderMapper.insert(order);
-        log.info("订单创建成功, 订单ID: {}, 订单号: {}", order.getId(), orderNo);
+        log.info("订单创建成功, 订单ID: {}, 订单号: {}, 支付截止: {}", order.getId(), orderNo, order.getExpireTime());
 
         // 5. 创建订单明细
-        if (orderCreateDto.getItems() != null && !orderCreateDto.getItems().isEmpty()) {
-            for (OrderItemDto itemDto : orderCreateDto.getItems()) {
-                // 查询SKU信息
-                Sku sku = skuMapper.selectById(itemDto.getSkuId());
-                if (sku == null) {
-                    log.warn("SKU不存在, SKU ID: {}", itemDto.getSkuId());
-                    continue;
-                }
+        for (OrderItemDto itemDto : orderCreateDto.getItems()) {
+            Sku sku = skuMapper.selectById(itemDto.getSkuId());
 
-                // 扣减库存
-                if (sku.getStock() < itemDto.getQuantity()) {
-                    throw new BusinessException("库存不足, SKU: " + sku.getId() + ", 库存: " + sku.getStock() + ", 需要: " + itemDto.getQuantity());
-                }
-                sku.setStock(sku.getStock() - itemDto.getQuantity());
-                skuMapper.updateById(sku);
+            OrderItem orderItem = new OrderItem();
+            orderItem.setOrderId(order.getId());
+            orderItem.setOrderNo(orderNo);
+            orderItem.setSkuId(itemDto.getSkuId());
+            orderItem.setSpuId(sku.getSpuId());
+            orderItem.setProductName(itemDto.getProductName() != null ? itemDto.getProductName() : "");
+            orderItem.setProductImage(itemDto.getProductImage() != null ? itemDto.getProductImage() : sku.getImage());
+            orderItem.setSkuSpecs(itemDto.getSkuSpecs());
+            orderItem.setPrice(itemDto.getPrice() != null ? itemDto.getPrice() : sku.getPrice());
+            orderItem.setQuantity(itemDto.getQuantity());
+            orderItem.setTotalAmount(orderItem.getPrice().multiply(BigDecimal.valueOf(orderItem.getQuantity())));
+            orderItem.setGiftFlag(itemDto.getGiftFlag() != null ? itemDto.getGiftFlag() : 0);
+            orderItem.setCreatedAt(LocalDateTime.now());
 
-                // 创建订单项
-                OrderItem orderItem = new OrderItem();
-                orderItem.setOrderId(order.getId());
-                orderItem.setOrderNo(orderNo);
-                orderItem.setSkuId(itemDto.getSkuId());
-                orderItem.setSpuId(sku.getSpuId());
-                orderItem.setProductName(itemDto.getProductName() != null ? itemDto.getProductName() : "");
-                orderItem.setProductImage(itemDto.getProductImage() != null ? itemDto.getProductImage() : sku.getImage());
-                orderItem.setSkuSpecs(itemDto.getSkuSpecs());
-                orderItem.setPrice(itemDto.getPrice() != null ? itemDto.getPrice() : sku.getPrice());
-                orderItem.setQuantity(itemDto.getQuantity());
-                orderItem.setTotalAmount(orderItem.getPrice().multiply(BigDecimal.valueOf(orderItem.getQuantity())));
-                orderItem.setGiftFlag(itemDto.getGiftFlag() != null ? itemDto.getGiftFlag() : 0);
-                orderItem.setCreatedAt(LocalDateTime.now());
+            orderItemMapper.insert(orderItem);
 
-                orderItemMapper.insert(orderItem);
-            }
+            // 同步 Redis 库存到 MySQL
+            inventoryRedisService.syncStockToDb(itemDto.getSkuId());
         }
 
         log.info("订单明细创建完成, 订单ID: {}", order.getId());
@@ -147,6 +170,7 @@ public class OrderServiceImpl implements OrderService {
 
     /**
      * 从购物车创建订单（结算）
+     * 使用 Redis Lua 脚本冻结库存，设置支付超时时间
      *
      * @param userId       用户ID
      * @param addressId    收货地址ID
@@ -173,14 +197,19 @@ public class OrderServiceImpl implements OrderService {
             return null;
         }
 
-        // 3. 验证库存
-        for (CartItemVo item : selectedItems) {
-            Sku sku = skuMapper.selectById(item.getSkuId());
-            if (sku == null || sku.getStock() < item.getQuantity()) {
-                log.warn("SKU库存不足或不存在: {}, 库存: {}, 需要: {}",
-                        item.getSkuId(), sku != null ? sku.getStock() : 0, item.getQuantity());
-                throw new BusinessException("商品[" + item.getProductName() + "]库存不足");
+        // 3. 冻结库存（原子操作，任一 SKU 失败则回滚已冻结的）
+        List<Long> frozenSkuIds = new ArrayList<>();
+        try {
+            for (CartItemVo item : selectedItems) {
+                boolean success = stockLuaScript.freezeStock(item.getSkuId(), item.getQuantity());
+                if (!success) {
+                    rollbackFrozenByCart(frozenSkuIds, selectedItems);
+                    throw new BusinessException("商品[" + item.getProductName() + "]库存不足");
+                }
+                frozenSkuIds.add(item.getSkuId());
             }
+        } catch (BusinessException e) {
+            throw e;
         }
 
         // 4. 计算订单金额
@@ -202,12 +231,12 @@ public class OrderServiceImpl implements OrderService {
         order.setDiscountAmount(BigDecimal.ZERO);
         order.setFreightAmount(BigDecimal.ZERO);
         order.setPayAmount(totalAmount);
-        order.setStatus(1); // 1-待付款
-        order.setPayStatus(0); // 0-未支付
+        order.setStatus(1);
+        order.setPayStatus(0);
         order.setPayType(payType);
         order.setRemark(buyerMessage);
+        order.setExpireTime(LocalDateTime.now().plusMinutes(payExpireMinutes));
 
-        // 设置收货信息
         order.setReceiverName(address.getReceiverName());
         order.setReceiverPhone(address.getReceiverPhone());
         order.setReceiverAddress(address.getProvince() + address.getCity() + address.getDistrict() + address.getDetailAddress());
@@ -216,19 +245,13 @@ public class OrderServiceImpl implements OrderService {
         order.setUpdatedAt(LocalDateTime.now());
         order.setVersion(1);
 
-        // 7. 插入订单
         orderMapper.insert(order);
-        log.info("订单创建成功, 订单ID: {}, 订单号: {}", order.getId(), orderNo);
+        log.info("订单创建成功, 订单ID: {}, 订单号: {}, 支付截止: {}", order.getId(), orderNo, order.getExpireTime());
 
-        // 8. 创建订单明细并扣减库存
+        // 7. 创建订单明细
         for (CartItemVo item : selectedItems) {
             Sku sku = skuMapper.selectById(item.getSkuId());
 
-            // 扣减库存
-            sku.setStock(sku.getStock() - item.getQuantity());
-            skuMapper.updateById(sku);
-
-            // 创建订单项（使用购物车快照数据）
             OrderItem orderItem = new OrderItem();
             orderItem.setOrderId(order.getId());
             orderItem.setOrderNo(orderNo);
@@ -244,14 +267,39 @@ public class OrderServiceImpl implements OrderService {
             orderItem.setCreatedAt(LocalDateTime.now());
 
             orderItemMapper.insert(orderItem);
+
+            // 同步 Redis 库存到 MySQL
+            inventoryRedisService.syncStockToDb(item.getSkuId());
         }
 
-        // 9. 清空已选中的购物车商品
+        // 8. 清空已选中的购物车商品
         cartItemService.clearSelected(userId);
         log.info("已选中购物车商品已清空, 用户ID: {}", userId);
 
         log.info("从购物车创建订单完成, 订单ID: {}", order.getId());
         return getOrderById(order.getId());
+    }
+
+    /**
+     * 回滚已冻结的库存（下单失败时）
+     */
+    private void rollbackFrozen(List<Long> frozenSkuIds, List<OrderItemDto> items) {
+        for (OrderItemDto itemDto : items) {
+            if (frozenSkuIds.contains(itemDto.getSkuId())) {
+                stockLuaScript.releaseStock(itemDto.getSkuId(), itemDto.getQuantity());
+            }
+        }
+    }
+
+    /**
+     * 回滚已冻结的库存（购物车下单失败时）
+     */
+    private void rollbackFrozenByCart(List<Long> frozenSkuIds, List<CartItemVo> items) {
+        for (CartItemVo item : items) {
+            if (frozenSkuIds.contains(item.getSkuId())) {
+                stockLuaScript.releaseStock(item.getSkuId(), item.getQuantity());
+            }
+        }
     }
 
     /**
@@ -328,6 +376,7 @@ public class OrderServiceImpl implements OrderService {
 
     /**
      * 取消订单
+     * 释放 Redis 中冻结的库存
      *
      * @param orderId      订单ID
      * @param cancelReason 取消原因
@@ -350,19 +399,17 @@ public class OrderServiceImpl implements OrderService {
             return false;
         }
 
-        order.setStatus(5); // 5-已取消
-        order.setCancelReason(cancelReason);
-        order.setUpdatedAt(LocalDateTime.now());
-
-        // 恢复库存
+        // 释放 Redis 冻结库存
         List<OrderItem> items = orderItemMapper.selectByOrderId(orderId);
         for (OrderItem item : items) {
-            Sku sku = skuMapper.selectById(item.getSkuId());
-            if (sku != null) {
-                sku.setStock(sku.getStock() + item.getQuantity());
-                skuMapper.updateById(sku);
-            }
+            stockLuaScript.releaseStock(item.getSkuId(), item.getQuantity());
+            // 同步释放后的库存到 MySQL
+            inventoryRedisService.syncStockToDb(item.getSkuId());
         }
+
+        order.setStatus(5);
+        order.setCancelReason(cancelReason);
+        order.setUpdatedAt(LocalDateTime.now());
 
         orderMapper.updateById(order);
         log.info("订单取消成功, 订单ID: {}", orderId);
@@ -371,6 +418,7 @@ public class OrderServiceImpl implements OrderService {
 
     /**
      * 支付订单
+     * 确认扣除 Redis 冻结库存（冻结 → 实扣）
      *
      * @param orderId 订单ID
      * @param payType 支付方式
@@ -393,10 +441,24 @@ public class OrderServiceImpl implements OrderService {
             return false;
         }
 
-        order.setPayStatus(1); // 1-已支付
+        // 检查是否已超时
+        if (order.getExpireTime() != null && order.getExpireTime().isBefore(LocalDateTime.now())) {
+            log.warn("订单已超时, 订单ID: {}", orderId);
+            return false;
+        }
+
+        // 确认扣除库存（冻结 → 实扣）
+        List<OrderItem> items = orderItemMapper.selectByOrderId(orderId);
+        for (OrderItem item : items) {
+            stockLuaScript.confirmStock(item.getSkuId(), item.getQuantity());
+            // 同步库存到 MySQL
+            inventoryRedisService.syncStockToDb(item.getSkuId());
+        }
+
+        order.setPayStatus(1);
         order.setPayType(payType);
         order.setPayTime(LocalDateTime.now());
-        order.setStatus(2); // 2-待发货
+        order.setStatus(2);
         order.setUpdatedAt(LocalDateTime.now());
 
         orderMapper.updateById(order);
@@ -429,7 +491,7 @@ public class OrderServiceImpl implements OrderService {
             return false;
         }
 
-        order.setStatus(3); // 3-待收货
+        order.setStatus(3);
         order.setDeliveryCompany(deliveryCompany);
         order.setDeliveryNo(deliveryNo);
         order.setDeliveryTime(LocalDateTime.now());
@@ -473,11 +535,20 @@ public class OrderServiceImpl implements OrderService {
             return false;
         }
 
-        order.setStatus(4); // 4-已完成
+        order.setStatus(4);
         order.setReceiveTime(LocalDateTime.now());
         order.setUpdatedAt(LocalDateTime.now());
 
         orderMapper.updateById(order);
+
+        // 更新 SPU 销量：确认收货后累加销量, 不用清除 SPU 缓存，销量给个大概就行。
+        List<OrderItem> orderItems = orderItemMapper.selectByOrderId(orderId);
+        if (orderItems != null) {
+            for (OrderItem item : orderItems) {
+                spuMapper.increaseSales(item.getSpuId(), item.getQuantity());
+            }
+        }
+
         log.info("订单确认收货成功, 订单ID: {}", orderId);
         return true;
     }

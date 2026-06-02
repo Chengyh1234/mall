@@ -52,16 +52,11 @@ public class SkuAttrController {
             return Result.error("用户未登录");
         }
 
-        try {
-            int count = skuAttrService.bindSaleAttr(dto, sellerId);
-            Map<String, Object> data = new HashMap<>();
-            data.put("bindCount", count);
-            data.put("message", "销售属性绑定成功");
-            return Result.success(data);
-        } catch (Exception e) {
-            log.error("绑定SKU销售属性失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
-        }
+        int count = skuAttrService.bindSaleAttr(dto, sellerId);
+        Map<String, Object> data = new HashMap<>();
+        data.put("bindCount", count);
+        data.put("message", "销售属性绑定成功");
+        return Result.success(data);
     }
 
     /**
@@ -78,16 +73,11 @@ public class SkuAttrController {
             return Result.error("用户未登录");
         }
 
-        try {
-            int count = skuAttrService.batchBindSaleAttr(dtoList, sellerId);
-            Map<String, Object> data = new HashMap<>();
-            data.put("totalBindCount", count);
-            data.put("skuCount", dtoList != null ? dtoList.size() : 0);
-            return Result.success("批量绑定完成", data);
-        } catch (Exception e) {
-            log.error("批量绑定SKU销售属性失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
-        }
+        int count = skuAttrService.batchBindSaleAttr(dtoList, sellerId);
+        Map<String, Object> data = new HashMap<>();
+        data.put("totalBindCount", count);
+        data.put("skuCount", dtoList != null ? dtoList.size() : 0);
+        return Result.success("批量绑定完成", data);
     }
 
     /**
@@ -105,15 +95,10 @@ public class SkuAttrController {
             return Result.error("用户未登录");
         }
 
-        try {
-            Long skuId = skuAttrService.createSkuWithAttrs(dto, sellerId);
-            Map<String, Object> data = new HashMap<>();
-            data.put("skuId", skuId);
-            return Result.success("创建并绑定成功", data);
-        } catch (Exception e) {
-            log.error("创建SKU并绑定销售属性失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
-        }
+        Long skuId = skuAttrService.createSkuWithAttrs(dto, sellerId);
+        Map<String, Object> data = new HashMap<>();
+        data.put("skuId", skuId);
+        return Result.success("创建并绑定成功", data);
     }
 
     /**
@@ -131,16 +116,11 @@ public class SkuAttrController {
             return Result.error("用户未登录");
         }
 
-        try {
-            Map<Long, Integer> resultMap = skuAttrService.batchCreateSkuWithAttrs(dtoList, sellerId);
-            Map<String, Object> data = new HashMap<>();
-            data.put("createdCount", resultMap.size());
-            data.put("details", resultMap);
-            return Result.success("批量创建并绑定成功", data);
-        } catch (Exception e) {
-            log.error("批量创建SKU并绑定销售属性失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
-        }
+        Map<Long, Integer> resultMap = skuAttrService.batchCreateSkuWithAttrs(dtoList, sellerId);
+        Map<String, Object> data = new HashMap<>();
+        data.put("createdCount", resultMap.size());
+        data.put("details", resultMap);
+        return Result.success("批量创建并绑定成功", data);
     }
 
     /**
@@ -157,13 +137,8 @@ public class SkuAttrController {
             return Result.error("用户未登录");
         }
 
-        try {
-            boolean success = skuAttrService.updateSkuWithAttrs(dto, sellerId);
-            return success ? Result.success("更新成功", null) : Result.error("更新失败");
-        } catch (Exception e) {
-            log.error("更新SKU信息及销售属性失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
-        }
+        boolean success = skuAttrService.updateSkuWithAttrs(dto, sellerId);
+        return success ? Result.success("更新成功", null) : Result.error("更新失败");
     }
 
     /**
@@ -180,16 +155,11 @@ public class SkuAttrController {
             return Result.error("用户未登录");
         }
 
-        try {
-            int successCount = skuAttrService.batchUpdateSkuWithAttrs(dtoList, sellerId);
-            Map<String, Object> data = new HashMap<>();
-            data.put("successCount", successCount);
-            data.put("totalCount", dtoList != null ? dtoList.size() : 0);
-            return Result.success("批量更新完成", data);
-        } catch (Exception e) {
-            log.error("批量更新SKU信息及销售属性失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
-        }
+        int successCount = skuAttrService.batchUpdateSkuWithAttrs(dtoList, sellerId);
+        Map<String, Object> data = new HashMap<>();
+        data.put("successCount", successCount);
+        data.put("totalCount", dtoList != null ? dtoList.size() : 0);
+        return Result.success("批量更新完成", data);
     }
 
     /**
@@ -210,13 +180,8 @@ public class SkuAttrController {
             return Result.error("用户未登录");
         }
 
-        try {
-            boolean success = skuAttrService.updateSaleAttr(skuId, attrValueIds, sellerId);
-            return success ? Result.success("更新成功", null) : Result.error("更新失败");
-        } catch (Exception e) {
-            log.error("更新SKU销售属性失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
-        }
+        boolean success = skuAttrService.updateSaleAttr(skuId, attrValueIds, sellerId);
+        return success ? Result.success("更新成功", null) : Result.error("更新失败");
     }
 
     /**
@@ -233,13 +198,8 @@ public class SkuAttrController {
             return Result.error("用户未登录");
         }
 
-        try {
-            boolean success = skuAttrService.deleteSaleAttr(id, sellerId);
-            return success ? Result.success("删除成功", null) : Result.error("删除失败");
-        } catch (Exception e) {
-            log.error("删除SKU销售属性失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
-        }
+        boolean success = skuAttrService.deleteSaleAttr(id, sellerId);
+        return success ? Result.success("删除成功", null) : Result.error("删除失败");
     }
 
     /**
@@ -256,15 +216,10 @@ public class SkuAttrController {
             return Result.error("用户未登录");
         }
 
-        try {
-            int count = skuAttrService.deleteAllSaleAttrsBySkuId(skuId, sellerId);
-            Map<String, Object> data = new HashMap<>();
-            data.put("deletedCount", count);
-            return Result.success("删除成功", data);
-        } catch (Exception e) {
-            log.error("删除SKU所有销售属性失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
-        }
+        int count = skuAttrService.deleteAllSaleAttrsBySkuId(skuId, sellerId);
+        Map<String, Object> data = new HashMap<>();
+        data.put("deletedCount", count);
+        return Result.success("删除成功", data);
     }
 
     // ==================== 查询接口 ====================
@@ -278,13 +233,8 @@ public class SkuAttrController {
     @GetMapping("/list/{skuId}")
     @PreAuthorize("hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<List<SkuSaleAttrValue>> getSaleAttrsBySkuId(@PathVariable Long skuId) {
-        try {
-            List<SkuSaleAttrValue> list = skuAttrService.getSaleAttrsBySkuId(skuId);
-            return Result.success(list);
-        } catch (Exception e) {
-            log.error("获取SKU销售属性列表失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
-        }
+        List<SkuSaleAttrValue> list = skuAttrService.getSaleAttrsBySkuId(skuId);
+        return Result.success(list);
     }
 
     /**
@@ -297,13 +247,8 @@ public class SkuAttrController {
     @GetMapping("/detail/{skuId}")
     @PreAuthorize("hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<SkuAttrVo> getSkuAttrDetail(@PathVariable Long skuId) {
-        try {
-            SkuAttrVo vo = skuAttrService.getSkuAttrDetail(skuId);
-            return Result.success(vo);
-        } catch (Exception e) {
-            log.error("获取SKU销售属性详情失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
-        }
+        SkuAttrVo vo = skuAttrService.getSkuAttrDetail(skuId);
+        return Result.success(vo);
     }
 
     // ==================== 校验接口 ====================
@@ -321,16 +266,11 @@ public class SkuAttrController {
     public Result<Map<String, Object>> validateAttrCombination(
             @PathVariable Long spuId,
             @RequestBody List<Long> attrValueIds) {
-        try {
-            boolean valid = skuAttrService.validateAttrCombination(spuId, attrValueIds);
-            Map<String, Object> data = new HashMap<>();
-            data.put("valid", valid);
-            data.put("message", valid ? "属性组合合法" : "属性组合不合法，请检查属性值是否属于该SPU的销售属性");
-            return Result.success(data);
-        } catch (Exception e) {
-            log.error("校验SKU属性组合失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
-        }
+        boolean valid = skuAttrService.validateAttrCombination(spuId, attrValueIds);
+        Map<String, Object> data = new HashMap<>();
+        data.put("valid", valid);
+        data.put("message", valid ? "属性组合合法" : "属性组合不合法，请检查属性值是否属于该SPU的销售属性");
+        return Result.success(data);
     }
 
     /**
@@ -357,12 +297,7 @@ public class SkuAttrController {
     @GetMapping("/available/{spuId}")
     @PreAuthorize("hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<SkuAvailableAttrVo> getAvailableAttrs(@PathVariable Long spuId) {
-        try {
-            SkuAvailableAttrVo vo = skuAttrService.getAvailableAttrsBySpuId(spuId);
-            return Result.success(vo);
-        } catch (Exception e) {
-            log.error("获取SKU可选择属性列表失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
-        }
+        SkuAvailableAttrVo vo = skuAttrService.getAvailableAttrsBySpuId(spuId);
+        return Result.success(vo);
     }
 }

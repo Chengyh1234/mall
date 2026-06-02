@@ -64,4 +64,13 @@ public interface SpuMapper extends BaseMapper<Spu> {
     int countSearchByKeyword(@Param("categoryIds") List<Long> categoryIds,
                              @Param("keyword") String keyword,
                              @Param("brandId") Long brandId);
+
+    /**
+     * 累加 SPU 销量（原子操作）
+     *
+     * @param spuId    商品SPU ID
+     * @param quantity 销量增量
+     * @return 影响行数
+     */
+    int increaseSales(@Param("spuId") Long spuId, @Param("quantity") Integer quantity);
 }

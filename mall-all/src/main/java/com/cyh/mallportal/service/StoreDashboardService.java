@@ -12,7 +12,7 @@ public interface StoreDashboardService {
 
     /**
      * 获取商家销售 KPI 总览
-     * 返回今日、近7天、本月、本年四个时间维度的销售总额
+     * 返回今日、近7天、本月、本年四个时间维度的销售额和利润
      *
      * @param sellerId 商家用户ID
      * @return KPI 总览数据

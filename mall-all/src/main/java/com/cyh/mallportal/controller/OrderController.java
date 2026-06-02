@@ -47,12 +47,8 @@ public class OrderController {
             return Result.error("收货信息不能为空");
         }
 
-        try {
-            OrderVo orderVo = orderService.createOrder(userId, orderCreateDto);
-            return Result.success("订单创建成功", orderVo);
-        } catch (Exception e) {
-            return Result.error(e.getMessage());
-        }
+        OrderVo orderVo = orderService.createOrder(userId, orderCreateDto);
+        return Result.success("订单创建成功", orderVo);
     }
 
     /**
@@ -75,15 +71,11 @@ public class OrderController {
             return Result.error("收货地址不能为空");
         }
 
-        try {
-            OrderVo orderVo = orderService.createOrderFromCart(userId, addressId, payType, buyerMessage);
-            if (orderVo != null) {
-                return Result.success("订单创建成功", orderVo);
-            }
-            return Result.error("购物车中没有选中的商品");
-        } catch (Exception e) {
-            return Result.error(e.getMessage());
+        OrderVo orderVo = orderService.createOrderFromCart(userId, addressId, payType, buyerMessage);
+        if (orderVo != null) {
+            return Result.success("订单创建成功", orderVo);
         }
+        return Result.error("购物车中没有选中的商品");
     }
 
     /**

@@ -52,16 +52,11 @@ public class SpuAttrController {
             return Result.error("用户未登录");
         }
 
-        try {
-            Long id = spuAttrService.bindBasicAttr(dto, sellerId);
-            Map<String, Object> data = new HashMap<>();
-            data.put("id", id);
-            data.put("message", "基本属性绑定成功");
-            return Result.success(data);
-        } catch (Exception e) {
-            log.error("绑定SPU基本属性失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
-        }
+        Long id = spuAttrService.bindBasicAttr(dto, sellerId);
+        Map<String, Object> data = new HashMap<>();
+        data.put("id", id);
+        data.put("message", "基本属性绑定成功");
+        return Result.success(data);
     }
 
     /**
@@ -81,16 +76,11 @@ public class SpuAttrController {
             return Result.error("用户未登录");
         }
 
-        try {
-            int count = spuAttrService.batchBindBasicAttr(dtoList, sellerId);
-            Map<String, Object> data = new HashMap<>();
-            data.put("successCount", count);
-            data.put("totalCount", dtoList != null ? dtoList.size() : 0);
-            return Result.success("批量绑定完成", data);
-        } catch (Exception e) {
-            log.error("批量绑定SPU基本属性失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
-        }
+        int count = spuAttrService.batchBindBasicAttr(dtoList, sellerId);
+        Map<String, Object> data = new HashMap<>();
+        data.put("successCount", count);
+        data.put("totalCount", dtoList != null ? dtoList.size() : 0);
+        return Result.success("批量绑定完成", data);
     }
 
     /**
@@ -108,13 +98,8 @@ public class SpuAttrController {
             return Result.error("用户未登录");
         }
 
-        try {
-            boolean success = spuAttrService.updateBasicAttr(id, dto, sellerId);
-            return success ? Result.success("更新成功", null) : Result.error("更新失败");
-        } catch (Exception e) {
-            log.error("更新SPU基本属性失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
-        }
+        boolean success = spuAttrService.updateBasicAttr(id, dto, sellerId);
+        return success ? Result.success("更新成功", null) : Result.error("更新失败");
     }
 
     /**
@@ -137,16 +122,11 @@ public class SpuAttrController {
             return Result.error("更新列表不能为空");
         }
 
-        try {
-            int count = spuAttrService.batchUpdateBasicAttr(dtoList, sellerId);
-            Map<String, Object> data = new HashMap<>();
-            data.put("successCount", count);
-            data.put("totalCount", dtoList.size());
-            return Result.success("批量更新完成", data);
-        } catch (Exception e) {
-            log.error("批量更新SPU基本属性失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
-        }
+        int count = spuAttrService.batchUpdateBasicAttr(dtoList, sellerId);
+        Map<String, Object> data = new HashMap<>();
+        data.put("successCount", count);
+        data.put("totalCount", dtoList.size());
+        return Result.success("批量更新完成", data);
     }
 
     /**
@@ -163,13 +143,8 @@ public class SpuAttrController {
             return Result.error("用户未登录");
         }
 
-        try {
-            boolean success = spuAttrService.deleteBasicAttr(id, sellerId);
-            return success ? Result.success("删除成功", null) : Result.error("删除失败");
-        } catch (Exception e) {
-            log.error("删除SPU基本属性失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
-        }
+        boolean success = spuAttrService.deleteBasicAttr(id, sellerId);
+        return success ? Result.success("删除成功", null) : Result.error("删除失败");
     }
 
     /**
@@ -181,13 +156,8 @@ public class SpuAttrController {
     @GetMapping("/basic/list/{spuId}")
     @PreAuthorize("hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<List<SpuBasicAttrValue>> getBasicAttrsBySpuId(@PathVariable Long spuId) {
-        try {
-            List<SpuBasicAttrValue> list = spuAttrService.getBasicAttrsBySpuId(spuId);
-            return Result.success(list);
-        } catch (Exception e) {
-            log.error("获取SPU基本属性列表失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
-        }
+        List<SpuBasicAttrValue> list = spuAttrService.getBasicAttrsBySpuId(spuId);
+        return Result.success(list);
     }
 
     // ==================== SPU销售属性管理 ====================
@@ -207,16 +177,11 @@ public class SpuAttrController {
             return Result.error("用户未登录");
         }
 
-        try {
-            Long id = spuAttrService.bindSaleAttr(dto, sellerId);
-            Map<String, Object> data = new HashMap<>();
-            data.put("id", id);
-            data.put("message", "销售属性绑定成功");
-            return Result.success(data);
-        } catch (Exception e) {
-            log.error("绑定SPU销售属性失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
-        }
+        Long id = spuAttrService.bindSaleAttr(dto, sellerId);
+        Map<String, Object> data = new HashMap<>();
+        data.put("id", id);
+        data.put("message", "销售属性绑定成功");
+        return Result.success(data);
     }
 
     /**
@@ -233,16 +198,11 @@ public class SpuAttrController {
             return Result.error("用户未登录");
         }
 
-        try {
-            int count = spuAttrService.batchBindSaleAttr(dtoList, sellerId);
-            Map<String, Object> data = new HashMap<>();
-            data.put("successCount", count);
-            data.put("totalCount", dtoList != null ? dtoList.size() : 0);
-            return Result.success("批量绑定完成", data);
-        } catch (Exception e) {
-            log.error("批量绑定SPU销售属性失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
-        }
+        int count = spuAttrService.batchBindSaleAttr(dtoList, sellerId);
+        Map<String, Object> data = new HashMap<>();
+        data.put("successCount", count);
+        data.put("totalCount", dtoList != null ? dtoList.size() : 0);
+        return Result.success("批量绑定完成", data);
     }
 
     /**
@@ -261,13 +221,8 @@ public class SpuAttrController {
             return Result.error("用户未登录");
         }
 
-        try {
-            boolean success = spuAttrService.updateSaleAttr(id, dto, sellerId);
-            return success ? Result.success("更新成功", null) : Result.error("更新失败");
-        } catch (Exception e) {
-            log.error("更新SPU销售属性失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
-        }
+        boolean success = spuAttrService.updateSaleAttr(id, dto, sellerId);
+        return success ? Result.success("更新成功", null) : Result.error("更新失败");
     }
 
     /**
@@ -290,16 +245,11 @@ public class SpuAttrController {
             return Result.error("更新列表不能为空");
         }
 
-        try {
-            int count = spuAttrService.batchUpdateSaleAttr(dtoList, sellerId);
-            Map<String, Object> data = new HashMap<>();
-            data.put("successCount", count);
-            data.put("totalCount", dtoList.size());
-            return Result.success("批量更新完成", data);
-        } catch (Exception e) {
-            log.error("批量更新SPU销售属性失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
-        }
+        int count = spuAttrService.batchUpdateSaleAttr(dtoList, sellerId);
+        Map<String, Object> data = new HashMap<>();
+        data.put("successCount", count);
+        data.put("totalCount", dtoList.size());
+        return Result.success("批量更新完成", data);
     }
 
     /**
@@ -316,13 +266,8 @@ public class SpuAttrController {
             return Result.error("用户未登录");
         }
 
-        try {
-            boolean success = spuAttrService.deleteSaleAttr(id, sellerId);
-            return success ? Result.success("删除成功", null) : Result.error("删除失败");
-        } catch (Exception e) {
-            log.error("删除SPU销售属性失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
-        }
+        boolean success = spuAttrService.deleteSaleAttr(id, sellerId);
+        return success ? Result.success("删除成功", null) : Result.error("删除失败");
     }
 
     /**
@@ -335,13 +280,8 @@ public class SpuAttrController {
     @GetMapping("/sale/list/{spuId}")
     @PreAuthorize("hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<List<SpuAttrVo.SpuSaleAttrDetailVo>> getSaleAttrsBySpuId(@PathVariable Long spuId) {
-        try {
-            List<SpuAttrVo.SpuSaleAttrDetailVo> list = spuAttrService.getSaleAttrsWithValuesBySpuId(spuId);
-            return Result.success(list);
-        } catch (Exception e) {
-            log.error("获取SPU销售属性列表失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
-        }
+        List<SpuAttrVo.SpuSaleAttrDetailVo> list = spuAttrService.getSaleAttrsWithValuesBySpuId(spuId);
+        return Result.success(list);
     }
 
     // ==================== 综合查询 ====================
@@ -356,13 +296,8 @@ public class SpuAttrController {
     @GetMapping("/all/{spuId}")
     @PreAuthorize("hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<SpuAttrVo> getAllAttrsBySpuId(@PathVariable Long spuId) {
-        try {
-            SpuAttrVo vo = spuAttrService.getAllAttrsBySpuId(spuId);
-            return Result.success(vo);
-        } catch (Exception e) {
-            log.error("获取SPU所有属性失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
-        }
+        SpuAttrVo vo = spuAttrService.getAllAttrsBySpuId(spuId);
+        return Result.success(vo);
     }
 
     /**
@@ -389,13 +324,8 @@ public class SpuAttrController {
     @GetMapping("/available/{spuId}")
     @PreAuthorize("hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<SpuAvailableAttrVo> getAvailableAttrs(@PathVariable Long spuId) {
-        try {
-            SpuAvailableAttrVo vo = spuAttrService.getAvailableAttrsBySpuId(spuId);
-            return Result.success(vo);
-        } catch (Exception e) {
-            log.error("获取SPU可绑定属性列表失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
-        }
+        SpuAvailableAttrVo vo = spuAttrService.getAvailableAttrsBySpuId(spuId);
+        return Result.success(vo);
     }
 
     /**
@@ -413,12 +343,7 @@ public class SpuAttrController {
             return Result.error("用户未登录");
         }
 
-        try {
-            Map<String, Object> result = spuAttrService.bindAllAttrs(dto, sellerId);
-            return Result.success("属性绑定完成", result);
-        } catch (Exception e) {
-            log.error("一次性绑定SPU所有属性失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
-        }
+        Map<String, Object> result = spuAttrService.bindAllAttrs(dto, sellerId);
+        return Result.success("属性绑定完成", result);
     }
 }

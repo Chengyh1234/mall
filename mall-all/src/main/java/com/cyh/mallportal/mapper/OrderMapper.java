@@ -72,6 +72,17 @@ public interface OrderMapper extends BaseMapper<Order> {
     BigDecimal sumCompletedSalesByTimeRange(@Param("sellerId") Long sellerId, @Param("startTime") LocalDateTime startTime);
 
     /**
+     * 统计商家指定时间范围内已完成订单的商品总成本
+     * 通过 order_items 关联 sku 表，计算 SUM(quantity * cost_price)
+     * 用于仪表盘利润计算：利润 = 销售额 - 成本
+     *
+     * @param sellerId  商家用户ID
+     * @param startTime 时间范围起点
+     * @return 商品总成本
+     */
+    BigDecimal sumCompletedCostByTimeRange(@Param("sellerId") Long sellerId, @Param("startTime") LocalDateTime startTime);
+
+    /**
      * 查询商家近7天每日销售额明细
      * 按 DATE(created_at) 分组后以日期为 key 返回 Map，用于折线图展示
      *
@@ -130,4 +141,12 @@ public interface OrderMapper extends BaseMapper<Order> {
      * @return 订单实体，不属于该商家时返回 null
      */
     Order selectByOrderNoAndSellerId(@Param("orderNo") String orderNo, @Param("sellerId") Long sellerId);
+
+    /**
+     * 查询过期未支付的订单列表（status=1 且 expire_time < 当前时间）
+     *
+     * @param now 当前时间
+     * @return 过期订单列表
+     */
+    List<Order> selectExpiredUnpaidOrders(@Param("now") LocalDateTime now);
 }

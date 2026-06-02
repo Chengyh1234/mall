@@ -55,7 +55,6 @@ public class SpuController {
     @PreAuthorize("hasAuthority('product:add') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Map<String, Object>> add(@RequestPart(value = "spuDto") String spuDtoString,
                                            @RequestPart(value = "imageFiles", required = false) List<MultipartFile> imageFiles) {
-
         SpuDto spuDto = JSON.parseObject(spuDtoString, SpuDto.class);
         // 1. 创建Spu实体并设置基本信息
         Spu spu = new Spu();
@@ -118,21 +117,16 @@ public class SpuController {
         }
 
         // 5. 调用service保存商品
-        try {
-            Long id = spuService.add(spu);
-            if (id != null) {
-                // 6. 返回成功结果（包含商品ID和图片路径，方便前端使用）
-                Map<String, Object> data = new HashMap<>();
-                data.put("id", id);
-                data.put("mainImage", spu.getMainImage());
-                data.put("images", spu.getImages());
-                return Result.success("添加成功", data);
-            }
-            return Result.error("添加失败");
-        } catch (Exception e) {
-            log.error("添加商品失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
+        Long id = spuService.add(spu);
+        if (id != null) {
+            // 6. 返回成功结果（包含商品ID和图片路径，方便前端使用）
+            Map<String, Object> data = new HashMap<>();
+            data.put("id", id);
+            data.put("mainImage", spu.getMainImage());
+            data.put("images", spu.getImages());
+            return Result.success("添加成功", data);
         }
+        return Result.error("添加失败");
     }
 
     /**
@@ -165,6 +159,7 @@ public class SpuController {
 
     /**
      * 上架商品（设置 status=1）
+     * 上架前校验：SPU下必须存在启用状态的SKU，否则不允许上架
      */
     @PutMapping("/on-shelf/{id}")
     @PreAuthorize("hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
@@ -180,6 +175,11 @@ public class SpuController {
         }
         if (!isAdminOrSeller() && !currentUserId.equals(spu.getSellerId())) {
             return Result.error("无权操作此商品");
+        }
+
+        // 上架前校验：SPU下必须存在启用状态的SKU
+        if (!spuService.hasEnabledSku(id)) {
+            return Result.error("该商品下没有启用状态的SKU，无法上架，请先添加并启用SKU");
         }
 
         spu.setStatus(1);
@@ -308,28 +308,24 @@ public class SpuController {
         // (2）旧图片列表(数据库图片列表）不在前端上传的旧图片列表中的图片，需要删除
         if (oldSpu.getImages() != null && !oldSpu.getImages().isEmpty() &&
                 spuDto.getImages() != null && !spuDto.getImages().isEmpty()) {
-            try {
-                // 完成(1）遍历前端上传的图片列表，判断是否在已有图片列表中，不在则抛出异常
-                if (existingImages != null) {
-                    for (String img : existingImages) {
-                        if (!oldSpu.getImages().contains(img)) {
-                            throw new IllegalArgumentException("已有图片列表中不存在的图片: " + img);
-                        } else {
-                            imageList.add(img);
-                        }
+            // 完成(1）遍历前端上传的图片列表，判断是否在已有图片列表中，不在则抛出异常
+            if (existingImages != null) {
+                for (String img : existingImages) {
+                    if (!oldSpu.getImages().contains(img)) {
+                        throw new IllegalArgumentException("已有图片列表中不存在的图片: " + img);
+                    } else {
+                        imageList.add(img);
                     }
                 }
-                // 完成(2）遍历已有图片列表，判断是否在前端上传的图片列表中，不在则删除旧图
-                if (oldImages != null) {
-                    for (String img : oldImages) {
-                        // 判断旧图是否在已有图片列表中，不在则删除旧图
-                        if (!spuDto.getImages().contains(img)) {
-                            deleteImageFile(img);
-                        }
+            }
+            // 完成(2）遍历已有图片列表，判断是否在前端上传的图片列表中，不在则删除旧图
+            if (oldImages != null) {
+                for (String img : oldImages) {
+                    // 判断旧图是否在已有图片列表中，不在则删除旧图
+                    if (!spuDto.getImages().contains(img)) {
+                        deleteImageFile(img);
                     }
                 }
-            } catch (Exception e) {
-                log.error("删除旧图片异常: {}", e.getMessage());
             }
         }
 
@@ -371,25 +367,25 @@ public class SpuController {
         }
 
         // 10. 调用service更新商品
-        try {
-            boolean success = spuService.update(spu);
-            if (success) {
-                Map<String, Object> data = new HashMap<>();
-                data.put("id", spu.getId());
-                data.put("mainImage", spu.getMainImage());
-                data.put("images", spu.getImages());
-                return Result.success("更新成功", data);
-            }
-            return Result.error("更新失败");
-        } catch (Exception e) {
-            log.error("更新商品失败: {}", e.getMessage());
-            return Result.error(e.getMessage());
+        // 上架校验：如果SPU将被设为上架状态，必须存在启用SKU
+        if (spu.getStatus() != null && spu.getStatus() == 1 && !spuService.hasEnabledSku(spu.getId())) {
+            return Result.error("该商品下没有启用状态的SKU，无法上架，请先添加并启用SKU");
         }
+        boolean success = spuService.update(spu);
+        if (success) {
+            Map<String, Object> data = new HashMap<>();
+            data.put("id", spu.getId());
+            data.put("mainImage", spu.getMainImage());
+            data.put("images", spu.getImages());
+            return Result.success("更新成功", data);
+        }
+        return Result.error("更新失败");
     }
 
     /**
      * 根据ID获取商品详情（包含商家信息）
-     * 返回商品基本信息及商家信息（用户名、头像、真实姓名、手机号）
+     * 上架商品（status=1）公开可见；
+     * 下架商品仅商品所属商家、管理员或超级管理员可查看
      *
      * @param id 商品ID
      * @return 商品详情（包含商家信息）
@@ -397,17 +393,39 @@ public class SpuController {
     @GetMapping("/detail/{id}")
     public Result<SpuDetailVo> getById(@PathVariable Long id) {
         SpuDetailVo spuDetail = spuService.getSpuDetailById(id);
-        if (spuDetail != null) {
+        if (spuDetail == null || spuDetail.getSpu() == null) {
+            return Result.error("商品不存在");
+        }
+
+        Spu spu = spuDetail.getSpu();
+
+        // 上架商品，任何人可看
+        if (spu.getStatus() == 1) {
             return Result.success(spuDetail);
         }
+
+        // 下架商品，仅商品所属商家或管理员可看
+        Long currentUserId = getCurrentUserId();
+        if (currentUserId != null) {
+            if (currentUserId.equals(spu.getSellerId()) || isAdminOrSeller()) {
+                return Result.success(spuDetail);
+            }
+        }
+
         return Result.error("商品不存在");
     }
 
     /**
      * 获取商品列表
+     * 公开接口，仅返回上架状态（status=1）的商品
      */
     @GetMapping("/list")
     public Result<List<Spu>> getList(Spu spu) {
+        // 公开接口只展示上架商品
+        if (spu == null) {
+            spu = new Spu();
+        }
+        spu.setStatus(1);
         List<Spu> list = spuService.getList(spu);
         return Result.success(list);
     }
@@ -455,6 +473,7 @@ public class SpuController {
 
     /**
      * 分页获取商品列表（支持分类及其子分类、多字段模糊搜索、品牌筛选）
+     * 公开接口，仅返回上架状态（status=1）的商品
      *
      * @param spu        查询条件
      * @param categoryId 分类ID（可选，传入会查询该分类及其子分类的商品）
@@ -482,10 +501,15 @@ public class SpuController {
         // 如果有搜索关键字或品牌ID或分类ID，使用综合搜索
         boolean hasAdvancedSearch = !StringUtils.isEmpty(keyword) || brandId != null || categoryIds != null;
         if (hasAdvancedSearch) {
+            // 公开接口只展示上架商品，status=1过滤由mapper层SQL处理
             list = spuService.searchByKeyword(categoryIds, keyword, brandId, page, pageSize);
             total = spuService.countSearchByKeyword(categoryIds, keyword, brandId);
         } else {
-            // 普通分页查询
+            // 普通分页查询：公开接口只展示上架商品
+            if (spu == null) {
+                spu = new Spu();
+            }
+            spu.setStatus(1);
             list = spuService.getPage(spu, page, pageSize);
         }
 

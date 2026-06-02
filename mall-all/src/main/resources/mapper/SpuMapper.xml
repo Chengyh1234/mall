@@ -87,6 +87,7 @@
         LEFT JOIN brands b ON s.brand_id = b.id
         WHERE 1=1
         AND s.is_deleted = 0
+        AND s.status = 1
         <if test="categoryIds != null and categoryIds.size() > 0">
             AND s.category_id IN
             <foreach collection="categoryIds" item="categoryId" open="(" separator="," close=")">
@@ -114,6 +115,7 @@
         LEFT JOIN brands b ON s.brand_id = b.id
         WHERE 1=1
         AND s.is_deleted = 0
+        AND s.status = 1
         <if test="categoryIds != null and categoryIds.size() > 0">
             AND s.category_id IN
             <foreach collection="categoryIds" item="categoryId" open="(" separator="," close=")">
@@ -131,5 +133,11 @@
             AND s.brand_id = #{brandId}
         </if>
     </select>
+
+    <update id="increaseSales">
+        UPDATE spu
+        SET sales = sales + #{quantity}, updated_at = NOW()
+        WHERE id = #{spuId}
+    </update>
 
 </mapper>

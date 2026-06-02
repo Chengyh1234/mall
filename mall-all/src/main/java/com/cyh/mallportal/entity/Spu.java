@@ -94,6 +94,12 @@ public class Spu implements Serializable {
     private Integer sales;
 
     /**
+     * 最低SKU售价（冗余字段，SKU增删改时同步更新）
+     */
+    @TableField(value = "min_price")
+    private java.math.BigDecimal minPrice;
+
+    /**
      * 状态（1-上架 0-下架）
      */
     @TableField(value = "status")

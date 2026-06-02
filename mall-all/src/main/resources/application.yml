@@ -38,6 +38,9 @@ file:
     stores-path: ./uploads/images/stores
     avatars-path: ./uploads/images/avatars
     banners-path: ./uploads/images/banners
+mall:
+  order:
+    pay-expire-minutes: 30
 mybatis-plus:
   mapper-locations: classpath:/mapper/**/*.xml
   global-config:

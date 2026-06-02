@@ -13,6 +13,7 @@
         <result column="status" property="status"/>
         <result column="pay_status" property="payStatus"/>
         <result column="pay_time" property="payTime"/>
+        <result column="expire_time" property="expireTime"/>
         <result column="pay_type" property="payType"/>
         <result column="delivery_type" property="deliveryType"/>
         <result column="delivery_company" property="deliveryCompany"/>
@@ -63,6 +64,18 @@
               AND o.status = 4
               AND o.created_at >= #{startTime}
         ) od
+    </select>
+
+    <!-- 统计商家指定时间范围内已完成订单的商品总成本，用于利润计算：利润 = 销售额 - 成本 -->
+    <select id="sumCompletedCostByTimeRange" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(oi.quantity * sk.cost_price), 0)
+        FROM orders o
+        INNER JOIN order_items oi ON o.id = oi.order_id
+        INNER JOIN sku sk ON oi.sku_id = sk.id
+        INNER JOIN spu s ON oi.spu_id = s.id
+        WHERE s.seller_id = #{sellerId}
+          AND o.status = 4
+          AND o.created_at >= #{startTime}
     </select>
 
     <!-- 查询商家近7天每日销售额：按日期分组，用于折线图 -->
@@ -131,6 +144,11 @@
         INNER JOIN spu s ON oi.spu_id = s.id
         WHERE o.order_no = #{orderNo}
           AND s.seller_id = #{sellerId}
+    </select>
+
+    <!-- 查询过期未支付的订单 -->
+    <select id="selectExpiredUnpaidOrders" resultMap="BaseResultMap">
+        SELECT * FROM orders WHERE status = 1 AND expire_time &lt; #{now}
     </select>
 
 </mapper>

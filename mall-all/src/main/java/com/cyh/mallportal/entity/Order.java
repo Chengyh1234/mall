@@ -80,6 +80,12 @@ public class Order implements Serializable {
     private LocalDateTime payTime;
 
     /**
+     * 支付截止时间（下单后超时未支付自动取消）
+     */
+    @TableField(value = "expire_time")
+    private LocalDateTime expireTime;
+
+    /**
      * 支付方式: alipay-支付宝 wechat-微信
      */
     @TableField(value = "pay_type")

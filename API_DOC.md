@@ -50,6 +50,19 @@
 
 ---
 
+## 🛡️ 全局异常处理
+
+所有接口统一由全局异常处理器拦截异常，无需各 Controller 自行 try-catch：
+
+| 异常类型 | 前端收到的 msg | 说明 |
+|---------|-------------|------|
+| `BusinessException`（业务异常） | 异常的 message 原文 | 如"商品不存在"、"该商家下已存在同名商品：xxx"等 |
+| 其他未预期的 `Exception` | `"服务器内部错误"` | 隐藏内部细节，完整堆栈仅记录在服务端日志 |
+
+> 💡 Controller 层的 `return Result.error("xxx")` 为正常校验返回，不走异常处理，msg 直接展示给前端。
+
+---
+
 ## 一、认证模块 (Auth)
 
 ### 1.1 用户登录
@@ -1258,6 +1271,12 @@
 
 ## 五、订单模块 (Order)
 
+> **库存机制说明：** 订单模块采用 **预扣库存（Redis + Lua 原子操作）** 模式：
+> - **下单时**：冻结库存（`frozen_stock += N`），设置 `expireTime` 支付截止时间（默认 30 分钟）
+> - **支付成功**：确认扣除库存（`stock -= N, frozen_stock -= N`）
+> - **超时/取消**：释放冻结库存（`frozen_stock -= N`）
+> - 可售库存 = `stock - frozen_stock`
+
 ### 4.1 创建订单
 
 **接口路径：** `/order/create`
@@ -1299,6 +1318,7 @@
 | orderId | Long | 订单ID | `1` |
 | orderNo | String | 订单号 | `ORD202605150001` |
 | payAmount | BigDecimal | 实付金额 | `9898.00` |
+| expireTime | DateTime | 支付截止时间 | `2026-05-15 10:30:00` |
 
 #### 响应示例
 ```json
@@ -1308,7 +1328,8 @@
     "data": {
         "orderId": 1,
         "orderNo": "ORD202605150001",
-        "payAmount": 9898.00
+        "payAmount": 9898.00,
+        "expireTime": "2026-05-15 10:30:00"
     }
 }
 ```
@@ -1329,6 +1350,7 @@
 | 订单商品不能为空 | 请求中没有包含订单项 |
 | 收货信息不能为空 | 收货地址或收货信息缺失 |
 | 收货地址不能为空 | 收货地址ID无效或未提供 |
+| 库存不足 | 商品库存不足，无法下单 |
 
 ---
 
@@ -1431,6 +1453,7 @@
 | receiverAddress | String | 收货地址 | `深圳市南山区...` |
 | remark | String | 备注 | `尽快发货` |
 | createdAt | DateTime | 创建时间 | `2026-05-15 10:00:00` |
+| expireTime | DateTime | 支付截止时间 | `2026-05-15 10:30:00` |
 
 #### 响应示例
 ```json
@@ -1706,7 +1729,7 @@
 **接口路径：** `/order/cancel/{orderId}`
 **HTTP方法：** PUT
 **权限：** 需认证 (isAuthenticated)
-**功能说明：** 取消订单（仅限未支付的订单）
+**功能说明：** 取消订单（仅限待付款状态），释放 Redis 中冻结的库存（`frozen_stock -= N`）
 
 #### 路径参数
 
@@ -1747,7 +1770,7 @@
 **接口路径：** `/order/pay/{orderId}`
 **HTTP方法：** PUT
 **权限：** 需认证 (isAuthenticated)
-**功能说明：** 模拟支付订单
+**功能说明：** 模拟支付订单，确认扣除库存（冻结 → 实扣：`stock -= N, frozen_stock -= N`）。需在 `expireTime` 之前支付，超时后无法支付。
 
 #### 路径参数
 
@@ -1786,6 +1809,7 @@
 | 订单不存在 | 订单ID无效或不存在 |
 | 无权操作此订单 | 当前用户无权操作该订单 |
 | 支付失败，订单状态不允许 | 当前订单状态不允许支付 |
+| 订单已超时 | 订单已超过支付截止时间，无法支付 |
 
 ---
 
@@ -1842,7 +1866,7 @@
 **接口路径：** `/order/confirm/{orderId}`
 **HTTP方法：** PUT
 **权限：** 需认证 (isAuthenticated)
-**功能说明：** 确认收货
+**功能说明：** 确认收货，确认后订单状态从"待收货"变为"已完成"，同时累加对应 SPU 商品的销量。
 
 #### 路径参数
 
@@ -1986,6 +2010,19 @@
 | 0 | 未支付 |
 | 1 | 已支付 |
 | 2 | 已退款 |
+
+---
+
+### 4.15 订单超时自动取消（后台定时任务）
+
+**功能说明：** 系统每 30 秒自动扫描 `status=1` 且 `expire_time < NOW()` 的订单，释放 Redis 冻结库存并更新状态为"已取消"，取消原因记为"支付超时自动取消"。
+
+| 项目 | 说明 |
+|------|------|
+| 触发方式 | 后台定时任务（`@Scheduled(fixedDelay = 30000)`） |
+| 扫描条件 | `status=1` 且 `expire_time < 当前时间` |
+| 库存处理 | 调用 `releaseStock.lua` 释放 `frozen_stock` |
+| 订单状态 | 更新为 `status=5`（已取消），`cancel_reason='支付超时自动取消'` |
 
 ---
 
@@ -2687,13 +2724,19 @@
 
 ## 八、商品模块 (Spu)
 
+> **SPU状态自动管理机制：**
+> - 新增SPU默认下架（status=0）
+> - 添加/创建启用SKU时，自动将SPU设为上架（status=1）
+> - 修改/删除SKU后，自动检查SPU下是否还有启用SKU：有则上架，无则下架
+> - 公开查询接口（`/spu/list`、`/spu/page`、`/spu/detail/{id}`）只返回有启用SKU的SPU
+
 ### 7.1 新增商品
 
 **接口路径：** `/spu/add`
 **HTTP方法：** POST
 **权限：** hasAuthority('product:add') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER')
 **Content-Type：** multipart/form-data
-**功能说明：** 新增商品（自动绑定当前商家ID）
+**功能说明：** 新增商品（自动绑定当前商家ID，**强制设为下架状态，需添加启用SKU后方可上架**）
 
 #### 请求参数 (Form Data)
 
@@ -2714,7 +2757,7 @@
 | unit | String | 否 | 单位 | `台` |
 | keywords | String | 否 | 关键词（逗号分隔） | `手机,小米,旗舰` |
 | sales | Integer | 否 | 销量（默认0） | `0` |
-| status | Integer | 否 | 状态（1-上架 0-下架，默认1） | `1` |
+| status | Integer | 否 | 状态（强制设为0=下架，传入任何值均被覆盖） | `0` |
 | mainImage | String | 否 | 主图路径（已有图片） | `2026/05/05/uuid_main.jpg` |
 | mainImageName | String | 否 | 指定上传文件中哪张作为主图 | `main.jpg` |
 | images | String | 否 | 图片集路径JSON数组 | `["2026/05/05/a.jpg"]` |
@@ -2756,7 +2799,10 @@
 |---------|------|
 | 用户未登录 | 当前用户未登录或登录已过期 |
 | 该商家下已存在同名商品：xxx | 同一商家下不允许出现完全相同的商品名称 |
-| 添加失败 | 商品保存失败 |
+| JSON格式错误 / 参数解析失败 | spuDto 参数不是合法的 JSON 格式 |
+| 图片上传失败 | 图片文件上传时发生异常（如文件过大、格式不支持等） |
+| 该商品下没有启用状态的SKU，无法上架，请先添加并启用SKU | 更新SPU状态为上架时，SPU下无启用SKU |
+| 添加失败 | 商品保存失败（服务端未知错误） |
 
 ---
 
@@ -2820,11 +2866,16 @@
 
 | 错误信息 | 说明 |
 |---------|------|
+| 商品ID不能为空 | 更新操作必须提供商品ID |
 | 用户未登录 | 当前用户未登录或登录已过期 |
 | 商品不存在 | 指定ID的商品不存在 |
 | 该商家下已存在同名商品：xxx | 同一商家下不允许出现完全相同的商品名称（修改名称时触发） |
+| 该分类下有子分类，请选择叶子分类 | 选择的分类不是叶子节点分类 |
 | 无权修改此商品 | 当前用户不是商品所有者且不是管理员 |
-| 更新失败 | 商品更新失败 |
+| 已有图片列表中不存在的图片: xxx | 前端传入的旧图片在数据库记录中不存在 |
+| JSON格式错误 / 参数解析失败 | spuDto 参数不是合法的 JSON 格式 |
+| 图片上传失败 | 图片文件上传时发生异常（如文件过大、格式不支持等） |
+| 更新失败 | 商品更新失败（服务端未知错误） |
 
 ---
 
@@ -2875,7 +2926,14 @@
 **接口路径：** `/spu/on-shelf/{id}`
 **HTTP方法：** PUT
 **权限：** hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')
-**功能说明：** 上架商品（设置 status=1，商品在店铺中正常展示）
+**功能说明：** 手动上架商品（设置 status=1）。**上架前会校验SPU下是否存在启用状态的SKU，不存在则返回错误。** 注意：SPU状态已由SKU增删改自动管理，一般情况下无需手动调用此接口。
+
+**错误响应：**
+| code | message | 触发条件 |
+|------|---------|----------|
+| 500 | 商品不存在 | SPU ID不存在 |
+| 500 | 无权操作此商品 | 非商品所属商家或管理员 |
+| 500 | 该商品下没有启用状态的SKU，无法上架，请先添加并启用SKU | SPU下无启用SKU时上架 |
 
 #### 路径参数
 
@@ -2917,7 +2975,7 @@
 **接口路径：** `/spu/off-shelf/{id}`
 **HTTP方法：** PUT
 **权限：** hasAuthority('product:offShelf') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')
-**功能说明：** 下架商品（设置 status=0，商品在店铺中不可见，但管理后台仍可见）
+**功能说明：** 手动下架商品（设置 status=0）。注意：删除/禁用所有启用SKU时，SPU会自动下架。
 
 #### 路径参数
 
@@ -3000,7 +3058,7 @@
 **接口路径：** `/spu/detail/{id}`
 **HTTP方法：** GET
 **权限：** 公开
-**功能说明：** 获取商品详情（含商家信息，用于前端展示商品详情及所属商家）
+**功能说明：** 获取商品详情（含商家信息）。**上架商品（status=1）公开可见；下架商品仅商品所属商家、管理员或超级管理员可查看。**
 
 #### 路径参数
 
@@ -3024,6 +3082,7 @@
 | spu.unit | String | 单位 | `台` |
 | spu.keywords | String | 关键词 | `手机,小米,旗舰` |
 | spu.sales | Integer | 销量 | `1000` |
+| spu.minPrice | BigDecimal | 最低SKU售价 | `3999.00` |
 | spu.status | Integer | 状态 | `1` |
 | spu.createdAt | DateTime | 创建时间 | `2026-05-15 10:00:00` |
 | sellerId | Long | 商家ID（冗余字段） | `123` |
@@ -3050,6 +3109,7 @@
             "unit": "台",
             "keywords": "手机,小米,旗舰",
             "sales": 1000,
+            "minPrice": 3999.00,
             "status": 1,
             "createdAt": "2026-05-15 10:00:00"
         },
@@ -3069,7 +3129,7 @@
 **接口路径：** `/spu/list`
 **HTTP方法：** GET
 **权限：** 公开
-**功能说明：** 获取商品列表（不分页）
+**功能说明：** 获取商品列表（不分页）。**仅返回上架状态（status=1）的商品。**
 
 #### 请求参数 (Query)
 
@@ -3091,6 +3151,7 @@
             "mainImage": "/uploads/product/xm14.jpg",
             "price": 4999.00,
             "sales": 1000,
+            "minPrice": 3999.00,
             "status": 1
         }
     ]
@@ -3124,6 +3185,7 @@
             "mainImage": "/uploads/images/spu/2026/05/15/uuid_xm14.jpg",
             "price": 4999.00,
             "sales": 1000,
+            "minPrice": 3999.00,
             "status": 1,
             "sellerId": 1
         }
@@ -3185,6 +3247,7 @@ list 数组内每个元素的字段：
 | unit | String | 单位 |
 | keywords | String | 关键词 |
 | sales | Integer | 销量 |
+| minPrice | BigDecimal | 最低SKU售价 |
 | status | Integer | 状态（1-上架 0-下架） |
 | isDeleted | Boolean | 逻辑删除 |
 | createdAt | String | 创建时间 |
@@ -3212,6 +3275,7 @@ list 数组内每个元素的字段：
                 "unit": "台",
                 "keywords": "小米,手机,旗舰",
                 "sales": 1000,
+                "minPrice": 3999.00,
                 "status": 1,
                 "isDeleted": false,
                 "createdAt": "2026-05-15 10:00:00",
@@ -3233,7 +3297,7 @@ list 数组内每个元素的字段：
 **接口路径：** `/spu/page`
 **HTTP方法：** GET
 **权限：** 公开
-**功能说明：** 分页获取商品列表（支持分类及其子分类、多字段模糊搜索、品牌筛选）
+**功能说明：** 分页获取商品列表（支持分类及其子分类、多字段模糊搜索、品牌筛选）。**仅返回上架状态（status=1）的商品。**
 **缓存策略：** 接口使用Redis缓存，缓存时间30分钟。商品增删改操作会自动清除缓存，保证数据一致性。
 
 #### 请求参数 (Query)
@@ -3268,6 +3332,7 @@ list 数组内每个元素的字段：
                 "mainImage": "/uploads/product/xm14.jpg",
                 "price": 4999.00,
                 "sales": 1000,
+                "minPrice": 3999.00,
                 "status": 1
             }
         ],
@@ -3282,13 +3347,20 @@ list 数组内每个元素的字段：
 
 ## 九、SKU模块 (Sku)
 
+> **库存字段说明：**
+> | 字段 | 说明 |
+> |------|------|
+> | `stock` | 总库存 |
+> | `frozenStock` | 冻结库存（已下单未支付） |
+> | 可售库存 | `stock - frozenStock` |
+
 ### 8.1 新增SKU
 
 **接口路径：** `/sku/add`
 **HTTP方法：** POST
 **权限：** hasAuthority('product:add') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER')
 **Content-Type：** multipart/form-data
-**功能说明：** 新增SKU
+**功能说明：** 新增SKU。**同时会自动更新SPU的最低售价(minPrice)和上架状态（新建启用SKU会将SPU自动上架）。**
 
 #### 请求参数 (Form Data)
 
@@ -3358,7 +3430,7 @@ list 数组内每个元素的字段：
 **接口路径：** `/sku/batch-add`
 **HTTP方法：** POST
 **权限：** hasAuthority('product:add') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER')
-**功能说明：** 批量新增SKU
+**功能说明：** 批量新增SKU。**同时会自动更新各SPU的最低售价(minPrice)和上架状态。**
 
 #### 请求参数 (Request Body)
 
@@ -3397,7 +3469,7 @@ list 数组内每个元素的字段：
 **接口路径：** `/sku/update`
 **HTTP方法：** PUT
 **权限：** hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER')
-**功能说明：** 更新SKU信息
+**功能说明：** 更新SKU信息。**同时会自动更新SPU的最低售价(minPrice)和上架状态（禁用全部启用SKU会导致SPU自动下架）。**
 
 #### 请求参数 (Request Body)
 
@@ -3431,7 +3503,7 @@ list 数组内每个元素的字段：
 **接口路径：** `/sku/delete/{id}`
 **HTTP方法：** DELETE
 **权限：** hasAuthority('product:delete') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER')
-**功能说明：** **逻辑删除SKU**（设置 is_deleted=1），**保留SKU对应的销售属性**（sku_sale_attr_values表记录保持不变）
+**功能说明：** **逻辑删除SKU**（设置 is_deleted=1），**保留SKU对应的销售属性**（sku_sale_attr_values表记录保持不变）。**同时会自动更新SPU的最低售价(minPrice)和上架状态（删除唯一启用SKU会导致SPU自动下架）。**
 
 #### 路径参数
 
@@ -3819,6 +3891,8 @@ list 数组内每个元素的字段：
 **Content-Type：** multipart/form-data
 **功能说明：** 新增品牌（支持Logo上传）
 
+**缓存说明：** 新增成功后清除所有品牌缓存（brand:*）
+
 #### 请求参数 (Form Data)
 
 | 参数名 | 类型 | 必填 | 说明 | 示例 |
@@ -3882,6 +3956,8 @@ list 数组内每个元素的字段：
 **Content-Type：** multipart/form-data
 **功能说明：** 更新品牌信息（支持Logo上传）
 
+**缓存说明：** 更新成功后清除所有品牌缓存（brand:*）
+
 #### 请求参数 (Form Data)
 
 | 参数名 | 类型 | 必填 | 说明 | 示例 |
@@ -3940,6 +4016,8 @@ list 数组内每个元素的字段：
 **权限：** hasAuthority('product:delete') or hasRole('SUPER_ADMIN') or hasRole('ADMIN')
 **功能说明：** 删除品牌（软删除）
 
+**缓存说明：** 删除成功后清除所有品牌缓存（brand:*）
+
 #### 路径参数
 
 | 参数名 | 类型 | 必填 | 说明 | 示例 |
@@ -3979,6 +4057,8 @@ list 数组内每个元素的字段：
 **HTTP方法：** GET
 **权限：** 公开
 **功能说明：** 根据ID获取品牌详情
+
+**缓存策略：** Redis 缓存，缓存键 `brand:id:{id}`，首次查询后缓存，数据变更时自动清除
 
 #### 路径参数
 
@@ -4042,6 +4122,8 @@ list 数组内每个元素的字段：
 **权限：** 公开
 **功能说明：** 获取品牌列表
 
+**缓存策略：** Redis 缓存，缓存键 `brand:list:{hash}`，首次查询后缓存，数据变更时自动清除
+
 #### 请求参数 (Query)
 
 | 参数名 | 类型 | 必填 | 说明 | 示例 |
@@ -4081,6 +4163,8 @@ list 数组内每个元素的字段：
 **HTTP方法：** GET
 **权限：** 公开
 **功能说明：** 分页获取品牌列表
+
+**缓存策略：** Redis 缓存，缓存键 `brand:page:{hash}:p:{page}:ps:{pageSize}`，首次查询后缓存，数据变更时自动清除
 
 #### 请求参数 (Query)
 
@@ -4134,6 +4218,8 @@ list 数组内每个元素的字段：
 **权限：** 公开
 **功能说明：** 根据状态获取品牌列表
 
+**缓存策略：** Redis 缓存，缓存键 `brand:status:{status}`，首次查询后缓存，数据变更时自动清除
+
 #### 路径参数
 
 | 参数名 | 类型 | 必填 | 说明 | 示例 |
@@ -4180,6 +4266,8 @@ list 数组内每个元素的字段：
 **权限：** 公开
 **功能说明：** 根据品牌名称模糊搜索
 
+**缓存策略：** 不使用缓存（模糊搜索命中率低，每次直接查询数据库）
+
 #### 请求参数 (Query)
 
 | 参数名 | 类型 | 必填 | 说明 | 示例 |
@@ -4224,6 +4312,8 @@ list 数组内每个元素的字段：
 **HTTP方法：** GET
 **权限：** 公开
 **功能说明：** 按排序号升序获取品牌列表
+
+**缓存策略：** Redis 缓存，缓存键 `brand:sort`，首次查询后缓存，数据变更时自动清除
 
 #### 响应示例
 ```json
@@ -6179,7 +6269,7 @@ list 数组内每个元素的字段：
 **接口路径：** `/sku/attr/create`
 **HTTP方法：** POST
 **权限：** `hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')`
-**功能说明：** 一步完成单个SKU的新增 + 销售属性绑定。属性值组合不能与已有SKU重复。
+**功能说明：** 一步完成单个SKU的新增 + 销售属性绑定。属性值组合不能与已有SKU重复。**同时会自动更新SPU的最低售价(minPrice)和上架状态（新建启用SKU会将SPU自动上架）。**
 
 #### 请求参数 (Body)
 
@@ -6223,7 +6313,7 @@ list 数组内每个元素的字段：
 **接口路径：** `/sku/attr/batch-create`
 **HTTP方法：** POST
 **权限：** `hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')`
-**功能说明：** 批量创建SKU并绑定销售属性。所有SKU必须在同一个SPU下，且每个SKU的属性值组合不能与已有SKU重复。
+**功能说明：** 批量创建SKU并绑定销售属性。所有SKU必须在同一个SPU下，且每个SKU的属性值组合不能与已有SKU重复。**同时会自动更新SPU的最低售价(minPrice)和上架状态。**
 
 #### 请求参数 (Body)
 
@@ -6300,7 +6390,7 @@ list 数组内每个元素的字段：
 **接口路径：** `/sku/attr/update-combined`
 **HTTP方法：** PUT
 **权限：** `hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')`
-**功能说明：** 更新SKU基本信息（价格、库存、状态等），**不修改销售属性绑定**。修改SKU信息时，销售价格、市场价和成本价三个字段均需传入。
+**功能说明：** 更新SKU基本信息（价格、库存、状态等），**不修改销售属性绑定**。修改SKU信息时，销售价格、市场价和成本价三个字段均需传入。**同时会自动更新SPU的最低售价(minPrice)和上架状态（禁用全部启用SKU会导致SPU自动下架）。**
 
 #### 请求参数 (Body)
 
@@ -7125,7 +7215,7 @@ list 数组内每个元素的字段：
 **接口路径：** `/store-admin/dashboard/sales/kpi`
 **HTTP方法：** GET
 **权限：** hasAuthority('store:manage') or hasRole('SUPER_ADMIN') or hasRole('SELLER')
-**功能说明：** 返回今日、近7天、本月、本年四个时间维度的销售总额，用于仪表盘核心指标卡片
+**功能说明：** 返回今日、近7天、本月、本年四个时间维度的销售额和利润，用于仪表盘核心指标卡片。利润 = 销售额 - 订单商品总成本（quantity × cost_price）。
 
 #### 请求参数
 
@@ -7139,6 +7229,10 @@ list 数组内每个元素的字段：
 | last7Days | BigDecimal | 近7天销售额（元），含今天 |
 | thisMonth | BigDecimal | 本月销售额（元），当月1日至今 |
 | thisYear | BigDecimal | 本年销售额（元），当年1月1日至今 |
+| todayProfit | BigDecimal | 今日利润（元），销售额 - 订单商品总成本 |
+| last7DaysProfit | BigDecimal | 近7天利润（元） |
+| thisMonthProfit | BigDecimal | 本月利润（元） |
+| thisYearProfit | BigDecimal | 本年利润（元） |
 
 #### 响应示例
 ```json
@@ -7149,7 +7243,11 @@ list 数组内每个元素的字段：
         "today": 1580.00,
         "last7Days": 12500.00,
         "thisMonth": 42000.00,
-        "thisYear": 185000.00
+        "thisYear": 185000.00,
+        "todayProfit": 520.00,
+        "last7DaysProfit": 4200.00,
+        "thisMonthProfit": 15000.00,
+        "thisYearProfit": 62000.00
     }
 }
 ```

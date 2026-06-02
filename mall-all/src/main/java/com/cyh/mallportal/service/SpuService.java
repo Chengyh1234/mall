@@ -140,4 +140,29 @@ public interface SpuService {
      * @return 恢复成功返回true，失败返回false
      */
     boolean restore(Long id);
+
+    /**
+     * 更新SPU的最低SKU售价（从该SPU下所有启用状态的SKU中取最低price）
+     * @param spuId SPU ID
+     */
+    void updateMinPriceForSpu(Long spuId);
+
+    /**
+     * 刷新SPU的上架/下架状态
+     * 查询该SPU下是否存在启用状态(status=1)的SKU：
+     *   有 → 设置SPU status=1（上架）
+     *   无 → 设置SPU status=0（下架）
+     * SKU增删改时均应调用此方法，确保SPU状态与SKU实际状态一致
+     *
+     * @param spuId SPU ID
+     */
+    void refreshSpuStatus(Long spuId);
+
+    /**
+     * 检查SPU下是否存在启用状态（status=1）的SKU
+     *
+     * @param spuId SPU ID
+     * @return true=存在启用SKU，false=不存在
+     */
+    boolean hasEnabledSku(Long spuId);
 }

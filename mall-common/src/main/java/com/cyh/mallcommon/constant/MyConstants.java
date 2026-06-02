@@ -7,6 +7,7 @@ package com.cyh.mallcommon.constant;
  * 1. Token相关常量
  * 2. 请求头常量
  * 3. 文件上传相关常量
+ * 4. 缓存相关常量
  *
  * @author cyh
  * @since 2024-01-01
@@ -106,4 +107,24 @@ public class MyConstants {
      * 横幅广告上传路径
      */
     public static final String BANNERS_IMAGE_PATH = "./uploads/images/banners";
+
+    // ==================== 缓存相关常量 ====================
+
+    /**
+     * SPU列表缓存键前缀
+     * 完整格式：spu:page:c:{categoryId}:b:{brandId}:k:{keywordHash}:s:{status}:p:{page}:ps:{pageSize}
+     */
+    public static final String SPU_CACHE_PREFIX = "spu:page:";
+
+    /**
+     * SPU总数缓存键前缀
+     * 完整格式：spu:count:c:{categoryId}:b:{brandId}:k:{keywordHash}:s:{status}
+     */
+    public static final String SPU_COUNT_PREFIX = "spu:count:";
+
+    /**
+     * SPU缓存过期时间（分钟）
+     * 设置为30分钟，平衡缓存命中率和数据新鲜度
+     */
+    public static final int SPU_CACHE_EXPIRE_MINUTES = 30;
 }

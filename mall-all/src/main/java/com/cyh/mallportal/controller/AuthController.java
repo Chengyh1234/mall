@@ -2,6 +2,7 @@ package com.cyh.mallportal.controller;
 
 import cn.hutool.core.util.IdUtil;
 import com.cyh.mallcommon.constant.MyConstants;
+import com.cyh.mallcommon.exception.BusinessException;
 import com.cyh.mallcommon.utils.Result;
 import com.cyh.mallportal.entity.User;
 import com.cyh.mallportal.mapper.UserMapper;
@@ -110,7 +111,7 @@ public class AuthController {
 
             return Result.success("登录成功", data);
         } catch (Exception e) {
-            return Result.error("用户名或密码错误");
+            throw new BusinessException("用户名或密码错误");
         }
     }
 

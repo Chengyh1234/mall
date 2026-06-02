@@ -30,10 +30,11 @@ public class StoreDashboardServiceImpl implements StoreDashboardService {
 
     /**
      * 获取销售 KPI 总览
-     * 返回今日、近7天、本月、本年四个时间维度的销售总额
+     * 返回今日、近7天、本月、本年四个时间维度的销售额和利润
+     * 利润 = 销售额 - 订单商品总成本（quantity * cost_price）
      *
      * @param sellerId 商家用户ID
-     * @return KPI 总览数据
+     * @return KPI 总览数据（含销售额和利润）
      */
     @Override
     public StoreDashboardVo.KpiOverview getSalesKpiOverview(Long sellerId) {
@@ -47,11 +48,27 @@ public class StoreDashboardServiceImpl implements StoreDashboardService {
         BigDecimal thisMonth = orderMapper.sumCompletedSalesByTimeRange(sellerId, monthStart);
         BigDecimal thisYear = orderMapper.sumCompletedSalesByTimeRange(sellerId, yearStart);
 
+        // 利润 = 销售额 - 成本
+        //下面是成本
+        BigDecimal todayCost = orderMapper.sumCompletedCostByTimeRange(sellerId, todayStart);
+        BigDecimal last7DaysCost = orderMapper.sumCompletedCostByTimeRange(sellerId, weekStart);
+        BigDecimal thisMonthCost = orderMapper.sumCompletedCostByTimeRange(sellerId, monthStart);
+        BigDecimal thisYearCost = orderMapper.sumCompletedCostByTimeRange(sellerId, yearStart);
+
+        System.out.println("todayCost: " + todayCost);
+        System.out.println("last7DaysCost: " + last7DaysCost);
+        System.out.println("thisMonthCost: " + thisMonthCost);
+        System.out.println("thisYearCost: " + thisYearCost);
+
         return new StoreDashboardVo.KpiOverview(
                 today != null ? today : BigDecimal.ZERO,
                 last7Days != null ? last7Days : BigDecimal.ZERO,
                 thisMonth != null ? thisMonth : BigDecimal.ZERO,
-                thisYear != null ? thisYear : BigDecimal.ZERO
+                thisYear != null ? thisYear : BigDecimal.ZERO,
+                today != null ? today.subtract(todayCost != null ? todayCost : BigDecimal.ZERO) : BigDecimal.ZERO,
+                last7Days != null ? last7Days.subtract(last7DaysCost != null ? last7DaysCost : BigDecimal.ZERO) : BigDecimal.ZERO,
+                thisMonth != null ? thisMonth.subtract(thisMonthCost != null ? thisMonthCost : BigDecimal.ZERO) : BigDecimal.ZERO,
+                thisYear != null ? thisYear.subtract(thisYearCost != null ? thisYearCost : BigDecimal.ZERO) : BigDecimal.ZERO
         );
     }
 

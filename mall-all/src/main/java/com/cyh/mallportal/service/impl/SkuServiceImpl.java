@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.cyh.mallportal.entity.*;
 import com.cyh.mallportal.mapper.*;
 import com.cyh.mallportal.service.SkuService;
+import com.cyh.mallportal.service.SpuService;
 import com.cyh.mallportal.vo.SkuVo;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -32,6 +33,7 @@ public class SkuServiceImpl implements SkuService {
     private final AttributeMapper attributeMapper;
     private final AttributeValueMapper attributeValueMapper;
     private final SkuSaleAttrValueMapper skuSaleAttrValueMapper;
+    private final SpuService spuService;
 
 
     /**
@@ -59,6 +61,12 @@ public class SkuServiceImpl implements SkuService {
 
         skuMapper.insert(sku);
         log.info("新增SKU成功, ID: {}", sku.getId());
+
+        spuService.updateMinPriceForSpu(sku.getSpuId());
+
+        // 新增SKU后刷新SPU状态：新增的SKU默认为启用状态，应触发SPU上架
+        spuService.refreshSpuStatus(sku.getSpuId());
+
         return sku.getId();
     }
 
@@ -99,6 +107,14 @@ public class SkuServiceImpl implements SkuService {
         }
 
         log.info("批量新增SKU成功");
+
+        Set<Long> spuIds = skus.stream().map(Sku::getSpuId).collect(Collectors.toSet());
+        for (Long spuId : spuIds) {
+            spuService.updateMinPriceForSpu(spuId);
+            // 批量新增SKU后刷新SPU状态
+            spuService.refreshSpuStatus(spuId);
+        }
+
         return true;
     }
 
@@ -121,6 +137,11 @@ public class SkuServiceImpl implements SkuService {
 
         // 逻辑删除：调用deleteById让MyBatis-Plus自动转换为UPDATE语句
         skuMapper.deleteById(id);
+
+        spuService.updateMinPriceForSpu(sku.getSpuId());
+
+        // 删除SKU后刷新SPU状态：删除唯一启用SKU时应下架SPU
+        spuService.refreshSpuStatus(sku.getSpuId());
 
         log.info("删除SKU成功: {}", id);
         return true;
@@ -150,6 +171,8 @@ public class SkuServiceImpl implements SkuService {
         wrapper.eq(Sku::getSpuId, spuId);
         skuMapper.delete(wrapper);
 
+        spuService.updateMinPriceForSpu(spuId);
+
         log.info("删除SPU下SKU完成并已清理销售属性绑定");
         return true;
     }
@@ -163,6 +186,15 @@ public class SkuServiceImpl implements SkuService {
 
         log.info("批量删除SKU, IDs: {}", ids);
 
+        // 删除前获取每个SKU的spuId，用于后续更新minPrice
+        Map<Long, Long> idToSpuIdMap = new HashMap<>();
+        for (Long id : ids) {
+            Sku sku = skuMapper.selectById(id);
+            if (sku != null) {
+                idToSpuIdMap.put(id, sku.getSpuId());
+            }
+        }
+
         // 先删除SKU的销售属性绑定
         for (Long id : ids) {
             skuSaleAttrValueMapper.delete(
@@ -172,6 +204,13 @@ public class SkuServiceImpl implements SkuService {
         // 逻辑删除SKU
         for (Long id : ids) {
             skuMapper.deleteById(id);
+        }
+
+        Set<Long> affectedSpuIds = new HashSet<>(idToSpuIdMap.values());
+        for (Long spuId : affectedSpuIds) {
+            spuService.updateMinPriceForSpu(spuId);
+            // 批量删除SKU后刷新SPU状态
+            spuService.refreshSpuStatus(spuId);
         }
 
         log.info("批量删除SKU完成, 数量: {}", ids.size());
@@ -195,6 +234,13 @@ public class SkuServiceImpl implements SkuService {
         boolean success = rows > 0;
         if (success) {
             log.info("更新SKU成功: {}", sku.getId());
+
+            Sku updatedSku = skuMapper.selectById(sku.getId());
+            if (updatedSku != null) {
+                spuService.updateMinPriceForSpu(updatedSku.getSpuId());
+                // 修改SKU后刷新SPU状态：SKU状态变更可能影响SPU的上架/下架
+                spuService.refreshSpuStatus(updatedSku.getSpuId());
+            }
         } else {
             log.warn("更新SKU失败: {}", sku.getId());
         }

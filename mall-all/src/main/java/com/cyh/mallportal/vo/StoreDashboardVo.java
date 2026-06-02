@@ -120,7 +120,7 @@ public class StoreDashboardVo {
 
     /**
      * KPI 总览
-     * 用于展示今日、近7天、本月、本年四个时间维度的销售总额
+     * 用于展示今日、近7天、本月、本年四个时间维度的销售额和利润
      */
     @Data
     @NoArgsConstructor
@@ -134,6 +134,14 @@ public class StoreDashboardVo {
         private BigDecimal thisMonth;
         /** 本年销售额（元） */
         private BigDecimal thisYear;
+        /** 今日利润（元），利润 = 销售额 - 订单商品总成本 */
+        private BigDecimal todayProfit;
+        /** 近7天利润（元） */
+        private BigDecimal last7DaysProfit;
+        /** 本月利润（元） */
+        private BigDecimal thisMonthProfit;
+        /** 本年利润（元） */
+        private BigDecimal thisYearProfit;
     }
 
     /**

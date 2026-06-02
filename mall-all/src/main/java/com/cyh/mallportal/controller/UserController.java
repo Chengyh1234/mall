@@ -62,12 +62,8 @@ public class UserController {
                                        @RequestParam(required = false) String password) {
         Long userId = getCurrentUserId();
 
-        try {
-            User user = userService.updateProfile(userId, realName, email, phone, password);
-            return Result.success("更新成功", user);
-        } catch (Exception e) {
-            return Result.error(e.getMessage());
-        }
+        User user = userService.updateProfile(userId, realName, email, phone, password);
+        return Result.success("更新成功", user);
     }
 
     /**
@@ -88,15 +84,11 @@ public class UserController {
             return Result.error("新密码长度不能少于6位");
         }
 
-        try {
-            boolean success = userService.updatePassword(userId, oldPassword, newPassword);
-            if (success) {
-                return Result.success("密码修改成功", null);
-            }
-            return Result.error("密码修改失败");
-        } catch (Exception e) {
-            return Result.error(e.getMessage());
+        boolean success = userService.updatePassword(userId, oldPassword, newPassword);
+        if (success) {
+            return Result.success("密码修改成功", null);
         }
+        return Result.error("密码修改失败");
     }
 
     /**
@@ -119,16 +111,12 @@ public class UserController {
         String avatarUrl = uploadResult.get("relativePath");
 
         // 更新用户头像
-        try {
-            userService.updateAvatar(userId, avatarUrl);
+        userService.updateAvatar(userId, avatarUrl);
 
-            Map<String, String> data = new HashMap<>();
-            data.put("avatar", avatarUrl);
-            data.put("avatarUrl", "/uploads/images/avatars/" + avatarUrl);
-            return Result.success("头像更新成功", data);
-        } catch (Exception e) {
-            return Result.error(e.getMessage());
-        }
+        Map<String, String> data = new HashMap<>();
+        data.put("avatar", avatarUrl);
+        data.put("avatarUrl", "/uploads/images/avatars/" + avatarUrl);
+        return Result.success("头像更新成功", data);
     }
 
     /**
