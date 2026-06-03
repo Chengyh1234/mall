@@ -17,6 +17,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -43,9 +44,30 @@ public class AuthController {
 
     /**
      * 登录接口
+     * <p>
+     * 需要先调用 GET /captcha 获取验证码，然后在登录时提交 captchaKey 和 captcha。
      */
     @PostMapping("/login")
     public Result<Map<String, Object>> login(@RequestBody LoginRequest request) {
+        // ========== 图形验证码校验 ==========
+        // 从 Redis 中获取存储的验证码文本
+        String redisKey = MyConstants.CAPTCHA_PREFIX + request.getCaptchaKey();
+        String storedCaptcha = (String) redisTemplate.opsForValue().get(redisKey);
+
+        // 验证码不存在或已过期
+        if (!StringUtils.hasText(storedCaptcha)) {
+            return Result.error("验证码已过期，请重新获取");
+        }
+
+        // 忽略大小写比较验证码
+        if (!storedCaptcha.equalsIgnoreCase(request.getCaptcha())) {
+            return Result.error("验证码错误");
+        }
+
+        // 校验通过后立即删除该验证码（一次性使用，防止重复提交）
+        redisTemplate.delete(redisKey);
+        // ========== 验证码校验结束 ==========
+
         try {
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())//创建认证对象
@@ -198,6 +220,10 @@ public class AuthController {
     public static class LoginRequest {
         private String username;
         private String password;
+        /** 验证码唯一标识（从 GET /captcha 接口获取） */
+        private String captchaKey;
+        /** 用户输入的验证码内容 */
+        private String captcha;
         private String ip;
     }
 

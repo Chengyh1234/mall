@@ -102,7 +102,8 @@ public class UserController {
     public Result<Map<String, String>> uploadAvatar(@RequestParam("file") MultipartFile file) {
         Long userId = getCurrentUserId();
 
-        // 上传头像文件
+        String oldAvatar = userService.getById(userId).getAvatar();
+
         Map<String, String> uploadResult = fileService.uploadImage(file, "avatars");
         if (uploadResult == null) {
             return Result.error("头像上传失败");
@@ -110,8 +111,11 @@ public class UserController {
 
         String avatarUrl = uploadResult.get("relativePath");
 
-        // 更新用户头像
         userService.updateAvatar(userId, avatarUrl);
+
+        if (oldAvatar != null) {
+            fileService.deleteFile(oldAvatar, "avatars");
+        }
 
         Map<String, String> data = new HashMap<>();
         data.put("avatar", avatarUrl);

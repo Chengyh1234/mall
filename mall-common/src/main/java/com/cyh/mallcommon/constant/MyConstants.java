@@ -108,6 +108,20 @@ public class MyConstants {
      */
     public static final String BANNERS_IMAGE_PATH = "./uploads/images/banners";
 
+    // ==================== 验证码相关常量 ====================
+
+    /**
+     * 验证码 Redis Key 前缀
+     * 完整格式：captcha:{captchaKey}
+     */
+    public static final String CAPTCHA_PREFIX = "captcha:";
+
+    /**
+     * 验证码过期时间（秒）
+     * 默认5分钟：300秒
+     */
+    public static final long CAPTCHA_EXPIRATION = 300L;
+
     // ==================== 缓存相关常量 ====================
 
     /**
@@ -127,4 +141,11 @@ public class MyConstants {
      * 设置为30分钟，平衡缓存命中率和数据新鲜度
      */
     public static final int SPU_CACHE_EXPIRE_MINUTES = 30;
+
+    // ==================== Banner轮播图相关常量 ====================
+
+    /**
+     * 轮播图缓存键前缀
+     */
+    public static final String BANNER_CACHE_PREFIX = "banner:";
 }

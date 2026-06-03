@@ -1,0 +1,67 @@
+package com.cyh.mallportal.service.impl;
+
+import com.cyh.mallportal.entity.Banner;
+import com.cyh.mallportal.service.BannerCacheService;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+
+import java.util.List;
+import java.util.Set;
+
+/**
+ * 轮播图缓存服务实现类
+ *
+ * <p>轮播图属于低频修改、高频读取的数据，
+ * 采用永久缓存策略，数据变更时手动清除缓存。</p>
+ */
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class BannerCacheServiceImpl implements BannerCacheService {
+
+    private final RedisTemplate<String, String> redisTemplate;
+    private final ObjectMapper objectMapper;
+
+    /** 启用的轮播图列表缓存键 */
+    private static final String BANNER_ACTIVE_KEY = "banner:active";
+
+    @Override
+    public List<Banner> getActiveBanners() {
+        try {
+            String json = redisTemplate.opsForValue().get(BANNER_ACTIVE_KEY);
+            if (StringUtils.hasText(json)) {
+                log.debug("从缓存获取启用的轮播图列表成功，缓存键: {}", BANNER_ACTIVE_KEY);
+                return objectMapper.readValue(json, new TypeReference<List<Banner>>() {});
+            }
+        } catch (JsonProcessingException e) {
+            log.error("反序列化轮播图列表缓存失败，缓存键: {}, 异常: {}", BANNER_ACTIVE_KEY, e.getMessage());
+        }
+        return null;
+    }
+
+    @Override
+    public void setActiveBanners(List<Banner> banners) {
+        try {
+            String json = objectMapper.writeValueAsString(banners);
+            redisTemplate.opsForValue().set(BANNER_ACTIVE_KEY, json);
+            log.debug("设置轮播图列表缓存成功（永久），缓存键: {}, 轮播图数量: {}", BANNER_ACTIVE_KEY, banners.size());
+        } catch (JsonProcessingException e) {
+            log.error("序列化轮播图列表缓存失败，缓存键: {}, 异常: {}", BANNER_ACTIVE_KEY, e.getMessage());
+        }
+    }
+
+    @Override
+    public void clearAllBannerCache() {
+        Set<String> keys = redisTemplate.keys("banner:*");
+        if (keys != null && !keys.isEmpty()) {
+            redisTemplate.delete(keys);
+            log.info("清除所有轮播图缓存成功，共清除 {} 个缓存", keys.size());
+        }
+    }
+}

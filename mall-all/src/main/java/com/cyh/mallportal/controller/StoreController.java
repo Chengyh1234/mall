@@ -127,32 +127,39 @@ public class StoreController {
 
         String date = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd"));
 
+        String oldLogo = oldStore.getLogo();
+        String oldBanner = oldStore.getBanner();
+        boolean logoUpdated = false;
+        boolean bannerUpdated = false;
+
         if (logoFile != null && !logoFile.isEmpty()) {
-            if (oldStore.getLogo() != null) {
-                deleteLogoFile(oldStore.getLogo());
-            }
             Map<String, String> logoInfo = uploadLogo(logoFile);
             if (logoInfo != null) {
                 store.setLogo(date + "/" + logoInfo.get("fileName"));
+                logoUpdated = true;
             }
         } else {
-            store.setLogo(oldStore.getLogo());
+            store.setLogo(oldLogo);
         }
 
         if (bannerFile != null && !bannerFile.isEmpty()) {
-            if (oldStore.getBanner() != null) {
-                deleteBannerFile(oldStore.getBanner());
-            }
             Map<String, String> bannerInfo = uploadBanner(bannerFile);
             if (bannerInfo != null) {
                 store.setBanner(date + "/" + bannerInfo.get("fileName"));
+                bannerUpdated = true;
             }
         } else {
-            store.setBanner(oldStore.getBanner());
+            store.setBanner(oldBanner);
         }
 
         boolean success = storeService.update(store);
         if (success) {
+            if (logoUpdated && oldLogo != null) {
+                deleteLogoFile(oldLogo);
+            }
+            if (bannerUpdated && oldBanner != null) {
+                deleteBannerFile(oldBanner);
+            }
             Map<String, Object> data = new HashMap<>();
             data.put("id", store.getId());
             data.put("logo", store.getLogo());

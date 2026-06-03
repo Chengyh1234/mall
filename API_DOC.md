@@ -22,6 +22,7 @@
 - [十六、店铺模块 (Store)](#十六店铺模块-store)
 - [十七、店铺管理员模块 (StoreAdmin)](#十七店铺管理员模块-storeadmin)
 - [十八、商家仪表盘模块 (StoreDashboard)](#十八商家仪表盘模块-storedashboard)
+- [十九、轮播图模块 (Banner)](#十九轮播图模块-banner)
 
 ---
 
@@ -35,6 +36,10 @@
 | `SUPER_ADMIN` | 超级管理员 | 系统最高权限 |
 | `ADMIN` | 管理员 | 系统管理 |
 | `SELLER` | 商家 | 商品管理 |
+| `content:banner` | 轮播图管理菜单 | 管理员 |
+| `content:banner:add` | 新增轮播图 | 管理员 |
+| `content:banner:edit` | 编辑/更新轮播图状态 | 管理员 |
+| `content:banner:delete` | 删除轮播图 | 管理员 |
 
 ---
 
@@ -78,12 +83,16 @@
 |--------|------|------|------|------|
 | username | String | 是 | 用户名/手机号/邮箱 | `user@example.com` |
 | password | String | 是 | 密码 | `123456` |
+| captchaKey | String | 是 | 验证码唯一标识（从 `/captcha` 接口获取） | `a1b2c3d4e5f6...` |
+| captcha | String | 是 | 验证码内容（不区分大小写） | `8A3K` |
 
 #### 请求示例
 ```json
 {
     "username": "user@example.com",
-    "password": "123456"
+    "password": "123456",
+    "captchaKey": "a1b2c3d4e5f6...",
+    "captcha": "8A3K"
 }
 ```
 
@@ -125,12 +134,51 @@
 
 | 错误信息 | 说明 |
 |---------|------|
+| 验证码已过期，请重新获取 | 验证码已超过5分钟有效期 |
+| 验证码错误 | 输入的验证码与图片不匹配 |
 | 用户名或密码错误 | 登录凭证不正确 |
 | 未登录 | 用户未登录或Token已过期 |
 
 ---
 
-### 1.2 用户注册
+### 1.2 获取验证码
+
+**接口路径：** `/captcha`
+**HTTP方法：** GET
+**权限：** 公开
+**功能说明：** 获取登录用的图形验证码（Base64格式图片）
+
+#### 请求参数
+无
+
+#### 响应参数 (Response)
+
+| 参数名 | 类型 | 说明 | 示例 |
+|--------|------|------|------|
+| captchaKey | String | 验证码唯一标识（登录时需提交） | `a1b2c3d4e5f6g7h8` |
+| captchaImage | String | 验证码图片 Base64 数据 | `data:image/png;base64,iVBOR...` |
+
+#### 响应示例
+```json
+{
+    "code": 200,
+    "msg": "success",
+    "data": {
+        "captchaKey": "a1b2c3d4e5f6g7h8",
+        "captchaImage": "data:image/png;base64,iVBORw0KGgo..."
+    }
+}
+```
+
+#### 错误信息说明
+
+| 错误信息 | 说明 |
+|---------|------|
+| （无） | 本接口通常不会返回业务错误 |
+
+---
+
+### 1.3 用户注册
 
 **接口路径：** `/auth/register`
 **HTTP方法：** POST
@@ -182,7 +230,7 @@
 
 ---
 
-### 1.3 用户登出
+### 1.4 用户登出
 
 **接口路径：** `/auth/logout`
 **HTTP方法：** POST
@@ -219,7 +267,7 @@
 
 ---
 
-### 1.4 获取当前用户信息
+### 1.5 获取当前用户信息
 
 **接口路径：** `/auth/info`
 **HTTP方法：** GET
@@ -458,7 +506,7 @@
 **HTTP方法：** POST
 **权限：** isAuthenticated()
 **Content-Type：** multipart/form-data
-**功能说明：** 上传并更新当前用户的头像
+**功能说明：** 上传并更新当前用户的头像。上传新头像成功后，系统会自动删除旧头像文件。
 
 #### 请求参数 (Form Data)
 
@@ -6741,7 +6789,7 @@ list 数组内每个元素的字段：
 **HTTP方法：** PUT
 **权限：** hasAuthority('store:manage') or hasRole('SUPER_ADMIN')
 **Content-Type：** multipart/form-data
-**功能说明：** 更新店铺信息（商家只能修改自己的店铺）
+**功能说明：** 更新店铺信息（商家只能修改自己的店铺）。上传新Logo或新横幅成功后，系统会自动删除对应的旧图片文件。
 
 #### 请求参数 (Form Data)
 
@@ -7337,6 +7385,195 @@ list 数组内每个元素的字段：
             "salesCount": 42,
             "percentOfTotal": 16.8,
             "countPercentOfTotal": 52.5
+        }
+    ]
+}
+```
+
+---
+
+## 十九、轮播图模块 (Banner)
+
+### 19.1 新增轮播图
+
+**接口路径：** `/banner/add`
+**HTTP方法：** POST
+**权限：** hasAuthority('content:banner:add')
+**功能说明：** 新增轮播图。上传图片成功后保存到数据库，同时清除首页轮播图缓存。
+
+#### 请求参数 (form-data)
+
+| 参数名 | 类型 | 必填 | 说明 | 示例 |
+|--------|------|------|------|------|
+| title | String | 是 | 轮播图标题 | "春季促销" |
+| linkUrl | String | 否 | 跳转链接 | "https://example.com" |
+| imageFile | File | 是 | 轮播图图片文件 | - |
+
+#### 响应示例
+
+```json
+{
+    "code": 200,
+    "msg": "新增成功",
+    "data": {
+        "id": 1,
+        "imageUrl": "/uploads/images/banners/xxx.jpg"
+    }
+}
+```
+
+---
+
+### 19.2 编辑轮播图
+
+**接口路径：** `/banner/update`
+**HTTP方法：** PUT
+**权限：** hasAuthority('content:banner:edit')
+**功能说明：** 编辑轮播图信息。可选更换图片，上传新图片成功后自动删除旧图片文件，并清除首页轮播图缓存。
+
+#### 请求参数 (form-data)
+
+| 参数名 | 类型 | 必填 | 说明 | 示例 |
+|--------|------|------|------|------|
+| id | Long | 是 | 轮播图ID | 1 |
+| title | String | 是 | 轮播图标题 | "春季促销" |
+| linkUrl | String | 否 | 跳转链接 | "https://example.com" |
+| imageFile | File | 否 | 轮播图图片文件（不传则保留原图） | - |
+
+#### 响应示例
+
+```json
+{
+    "code": 200,
+    "msg": "更新成功",
+    "data": {
+        "id": 1,
+        "imageUrl": "/uploads/images/banners/xxx.jpg"
+    }
+}
+```
+
+---
+
+### 19.3 删除轮播图
+
+**接口路径：** `/banner/delete/{id}`
+**HTTP方法：** DELETE
+**权限：** hasAuthority('content:banner:delete')
+**功能说明：** 删除轮播图（物理删除），同时删除关联的图片文件，并清除首页轮播图缓存。
+
+#### 路径参数
+
+| 参数名 | 类型 | 必填 | 说明 | 示例 |
+|--------|------|------|------|------|
+| id | Long | 是 | 轮播图ID | 1 |
+
+#### 响应示例
+
+```json
+{
+    "code": 200,
+    "msg": "删除成功",
+    "data": null
+}
+```
+
+---
+
+### 19.4 更新轮播图状态
+
+**接口路径：** `/banner/status/{id}`
+**HTTP方法：** PUT
+**权限：** hasAuthority('content:banner:edit')
+**功能说明：** 启用或禁用轮播图。禁用后前台首页不再展示，并清除首页轮播图缓存。
+
+#### 路径参数
+
+| 参数名 | 类型 | 必填 | 说明 | 示例 |
+|--------|------|------|------|------|
+| id | Long | 是 | 轮播图ID | 1 |
+
+#### 请求参数
+
+| 参数名 | 类型 | 必填 | 说明 | 示例 |
+|--------|------|------|------|------|
+| status | Integer | 是 | 状态: 1-启用 0-禁用 | 1 |
+
+#### 响应示例
+
+```json
+{
+    "code": 200,
+    "msg": "状态更新成功",
+    "data": null
+}
+```
+
+---
+
+### 19.5 获取轮播图列表（管理后台）
+
+**接口路径：** `/banner/list`
+**HTTP方法：** GET
+**权限：** hasAuthority('content:banner')
+**功能说明：** 获取轮播图列表，支持按状态筛选。用于管理后台的轮播图管理页面。
+
+#### 请求参数
+
+| 参数名 | 类型 | 必填 | 说明 | 示例 |
+|--------|------|------|------|------|
+| status | Integer | 否 | 状态过滤: 1-启用 0-禁用，不传查全部 | 1 |
+
+#### 响应示例
+
+```json
+{
+    "code": 200,
+    "msg": "操作成功",
+    "data": [
+        {
+            "id": 1,
+            "title": "春季促销",
+            "imageUrl": "xxx.jpg",
+            "linkUrl": "https://example.com",
+            "sort": 0,
+            "status": 1,
+            "createdAt": "2026-06-01 10:00:00",
+            "updatedAt": "2026-06-01 10:00:00"
+        }
+    ]
+}
+```
+
+---
+
+### 19.6 获取启用的轮播图列表（首页展示）
+
+**接口路径：** `/banner/active`
+**HTTP方法：** GET
+**权限：** 公开
+**功能说明：** 获取启用的轮播图列表（按排序号升序排列），结果由Redis缓存加速。用于前端首页轮播图展示。
+
+#### 请求参数
+
+无
+
+#### 响应示例
+
+```json
+{
+    "code": 200,
+    "msg": "操作成功",
+    "data": [
+        {
+            "id": 1,
+            "title": "春季促销",
+            "imageUrl": "xxx.jpg",
+            "linkUrl": "https://example.com",
+            "sort": 0,
+            "status": 1,
+            "createdAt": "2026-06-01 10:00:00",
+            "updatedAt": "2026-06-01 10:00:00"
         }
     ]
 }

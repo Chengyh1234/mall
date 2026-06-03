@@ -91,6 +91,8 @@ public class SecurityConfig {
                 // 配置请求授权规则
                 .authorizeHttpRequests(auth -> auth
                         //.anyRequest().permitAll()
+                        // 允许获取验证码无需认证
+                        .requestMatchers(HttpMethod.GET, "/captcha").permitAll()
                         // 允许登录接口无需认证 允许 POST 请求到登录注册接口
                         .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/register").permitAll()
                         // 允许静态资源访问
