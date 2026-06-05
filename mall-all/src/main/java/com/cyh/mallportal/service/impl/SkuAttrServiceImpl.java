@@ -434,9 +434,6 @@ public class SkuAttrServiceImpl implements SkuAttrService {
 
         spuService.updateMinPriceForSpu(spuId);
 
-        // 批量创建SKU后刷新SPU状态：新建SKU默认启用，应触发SPU上架
-        spuService.refreshSpuStatus(spuId);
-
         return resultMap;
     }
 
@@ -491,9 +488,6 @@ public class SkuAttrServiceImpl implements SkuAttrService {
 
         spuService.updateMinPriceForSpu(spuId);
 
-        // 创建SKU后刷新SPU状态：新建SKU默认启用，应触发SPU上架
-        spuService.refreshSpuStatus(spuId);
-
         return sku.getId();
     }
 
@@ -534,9 +528,6 @@ public class SkuAttrServiceImpl implements SkuAttrService {
         log.info("商家 {} 更新SKU {} 信息成功（不修改销售属性）", sellerId, skuId);
 
         spuService.updateMinPriceForSpu(sku.getSpuId());
-
-        // 更新SKU后刷新SPU状态：SKU状态变更可能影响SPU的上架/下架
-        spuService.refreshSpuStatus(sku.getSpuId());
 
         return true;
     }

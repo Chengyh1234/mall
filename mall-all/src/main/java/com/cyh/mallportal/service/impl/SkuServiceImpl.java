@@ -64,9 +64,6 @@ public class SkuServiceImpl implements SkuService {
 
         spuService.updateMinPriceForSpu(sku.getSpuId());
 
-        // 新增SKU后刷新SPU状态：新增的SKU默认为启用状态，应触发SPU上架
-        spuService.refreshSpuStatus(sku.getSpuId());
-
         return sku.getId();
     }
 
@@ -111,8 +108,6 @@ public class SkuServiceImpl implements SkuService {
         Set<Long> spuIds = skus.stream().map(Sku::getSpuId).collect(Collectors.toSet());
         for (Long spuId : spuIds) {
             spuService.updateMinPriceForSpu(spuId);
-            // 批量新增SKU后刷新SPU状态
-            spuService.refreshSpuStatus(spuId);
         }
 
         return true;
@@ -139,9 +134,6 @@ public class SkuServiceImpl implements SkuService {
         skuMapper.deleteById(id);
 
         spuService.updateMinPriceForSpu(sku.getSpuId());
-
-        // 删除SKU后刷新SPU状态：删除唯一启用SKU时应下架SPU
-        spuService.refreshSpuStatus(sku.getSpuId());
 
         log.info("删除SKU成功: {}", id);
         return true;
@@ -209,8 +201,6 @@ public class SkuServiceImpl implements SkuService {
         Set<Long> affectedSpuIds = new HashSet<>(idToSpuIdMap.values());
         for (Long spuId : affectedSpuIds) {
             spuService.updateMinPriceForSpu(spuId);
-            // 批量删除SKU后刷新SPU状态
-            spuService.refreshSpuStatus(spuId);
         }
 
         log.info("批量删除SKU完成, 数量: {}", ids.size());
@@ -238,8 +228,6 @@ public class SkuServiceImpl implements SkuService {
             Sku updatedSku = skuMapper.selectById(sku.getId());
             if (updatedSku != null) {
                 spuService.updateMinPriceForSpu(updatedSku.getSpuId());
-                // 修改SKU后刷新SPU状态：SKU状态变更可能影响SPU的上架/下架
-                spuService.refreshSpuStatus(updatedSku.getSpuId());
             }
         } else {
             log.warn("更新SKU失败: {}", sku.getId());

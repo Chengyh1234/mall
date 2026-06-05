@@ -148,21 +148,31 @@ public interface SpuService {
     void updateMinPriceForSpu(Long spuId);
 
     /**
-     * 刷新SPU的上架/下架状态
-     * 查询该SPU下是否存在启用状态(status=1)的SKU：
-     *   有 → 设置SPU status=1（上架）
-     *   无 → 设置SPU status=0（下架）
-     * SKU增删改时均应调用此方法，确保SPU状态与SKU实际状态一致
-     *
-     * @param spuId SPU ID
-     */
-    void refreshSpuStatus(Long spuId);
-
-    /**
      * 检查SPU下是否存在启用状态（status=1）的SKU
      *
      * @param spuId SPU ID
      * @return true=存在启用SKU，false=不存在
      */
     boolean hasEnabledSku(Long spuId);
+
+    /**
+     * 【运营管理员】分页获取全部商品列表（含上架和下架）
+     * 不限商家，用于运营管理员查看全平台商品
+     *
+     * @param status   状态（可选，1-上架 0-下架，不传则查询全部）
+     * @param keyword  关键字（可选，按商品名称模糊搜索）
+     * @param page     页码
+     * @param pageSize 每页数量
+     * @return 商品列表（含 categoryName、brandName）
+     */
+    List<Spu> getPageAll(Integer status, String keyword, Integer page, Integer pageSize);
+
+    /**
+     * 【运营管理员】统计全部商品数量
+     *
+     * @param status  状态（可选，不传统计全部）
+     * @param keyword 关键字（可选）
+     * @return 商品数量
+     */
+    int countAll(Integer status, String keyword);
 }

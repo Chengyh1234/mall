@@ -19,4 +19,16 @@
         ORDER BY ca.sort ASC, a.sort ASC
     </select>
 
+    <!-- 获取尚未绑定到指定分类的属性列表 -->
+    <select id="getAvailableByCategoryId" resultType="com.cyh.mallportal.entity.Attribute">
+        SELECT a.*
+        FROM attributes a
+        WHERE a.id NOT IN (
+            SELECT ca.attr_id
+            FROM category_attributes ca
+            WHERE ca.category_id = #{categoryId}
+        )
+        ORDER BY a.sort ASC, a.id ASC
+    </select>
+
 </mapper>

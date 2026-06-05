@@ -35,7 +35,7 @@ public class OrderController {
      * @return 订单信息
      */
     @PostMapping("/create")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('USER')")
     public Result<OrderVo> createOrder(@RequestBody OrderCreateDto orderCreateDto) {
         Long userId = getCurrentUserId();
 
@@ -231,7 +231,7 @@ public class OrderController {
      * @return 支付结果
      */
     @PutMapping("/pay/{orderId}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('USER')")
     public Result<Void> payOrder(@PathVariable Long orderId,
                                  @RequestParam(defaultValue = "alipay") String payType) {
         Long userId = getCurrentUserId();

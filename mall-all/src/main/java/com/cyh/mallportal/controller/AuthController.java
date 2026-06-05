@@ -43,9 +43,10 @@ public class AuthController {
     private UserMapper userMapper;
 
     /**
-     * 登录接口
+     * 用户登录接口（仅限普通用户角色）
      * <p>
      * 需要先调用 GET /captcha 获取验证码，然后在登录时提交 captchaKey 和 captcha。
+     * 登录成功后，会校验当前用户是否拥有 USER 角色，若无则拒绝登录。
      */
     @PostMapping("/login")
     public Result<Map<String, Object>> login(@RequestBody LoginRequest request) {
@@ -74,6 +75,13 @@ public class AuthController {
             );
 
             User user = (User) authentication.getPrincipal();
+
+            // ========== 角色校验：仅允许普通用户(USER)角色登录 ==========
+            boolean hasUserRole = user.getRoles() != null && user.getRoles().stream()
+                    .anyMatch(role -> "USER".equals(role.getCode()));
+            if (!hasUserRole) {
+                return Result.error("该账号无普通用户权限，请使用管理员登录入口");
+            }
 
             String token = IdUtil.fastSimpleUUID();
             String sessionId = IdUtil.fastSimpleUUID();
@@ -132,6 +140,106 @@ public class AuthController {
             data.put("roles", user.getRoles());
 
             return Result.success("登录成功", data);
+        } catch (Exception e) {
+            throw new BusinessException("用户名或密码错误");
+        }
+    }
+
+    /**
+     * 管理员登录接口（仅限运营管理员和超级管理员）
+     * <p>
+     * 与用户登录接口共用相同的验证码流程和 Token 生成逻辑，
+     * 但登录成功后额外校验角色：仅允许 ADMIN 或 SUPER_ADMIN 角色登录。
+     * </p>
+     * <p>
+     * 需要先调用 GET /captcha 获取验证码，然后在登录时提交 captchaKey 和 captcha。
+     */
+    @PostMapping("/admin/login")
+    public Result<Map<String, Object>> adminLogin(@RequestBody LoginRequest request) {
+        // ========== 图形验证码校验 ==========
+        String redisKey = MyConstants.CAPTCHA_PREFIX + request.getCaptchaKey();
+        String storedCaptcha = (String) redisTemplate.opsForValue().get(redisKey);
+
+        if (!StringUtils.hasText(storedCaptcha)) {
+            return Result.error("验证码已过期，请重新获取");
+        }
+
+        if (!storedCaptcha.equalsIgnoreCase(request.getCaptcha())) {
+            return Result.error("验证码错误");
+        }
+
+        redisTemplate.delete(redisKey);
+        // ========== 验证码校验结束 ==========
+
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
+            );
+
+            User user = (User) authentication.getPrincipal();
+
+            // ========== 角色校验：仅允许管理员(ADMIN)或超级管理员(SUPER_ADMIN)角色登录 ==========
+            boolean hasAdminRole = user.getRoles() != null && user.getRoles().stream()
+                    .anyMatch(role -> "ADMIN".equals(role.getCode()) || "SUPER_ADMIN".equals(role.getCode()));
+            if (!hasAdminRole) {
+                return Result.error("该账号无管理员权限，请使用普通用户登录入口");
+            }
+
+            String token = IdUtil.fastSimpleUUID();
+            String sessionId = IdUtil.fastSimpleUUID();
+
+            // 单点登录：检查用户是否已有活跃会话，如果有则使旧会话失效
+            String oldSessionId = (String) redisTemplate.opsForValue().get(MyConstants.USER_CURRENT_SESSION_PREFIX + user.getId());
+            if (oldSessionId != null) {
+                log.warn("管理员 {} 在其他设备登录，旧会话已失效", user.getUsername());
+            }
+
+            // 存储用户当前会话
+            redisTemplate.opsForValue().set(
+                    MyConstants.USER_CURRENT_SESSION_PREFIX + user.getId(),
+                    sessionId,
+                    MyConstants.TOKEN_EXPIRATION,
+                    TimeUnit.SECONDS
+            );
+
+            Map<String, Object> userInfo = new HashMap<>();
+            userInfo.put("sessionId", sessionId);
+            userInfo.put("userId", user.getId());
+            userInfo.put("username", user.getUsername());
+            userInfo.put("realName", user.getRealName());
+            userInfo.put("email", user.getEmail());
+            userInfo.put("phone", user.getPhone());
+
+            Map<String, String> rolesMap = new HashMap<>();
+            if (user.getRoles() != null) {
+                for (var role : user.getRoles()) {
+                    rolesMap.put(role.getCode(), role.getName());
+                }
+            }
+            userInfo.put("roles", rolesMap);
+
+            Map<String, Boolean> permissions = new HashMap<>();
+            for (GrantedAuthority authority : user.getAuthorities()) {
+                permissions.put(authority.getAuthority(), true);
+            }
+            userInfo.put("permissions", permissions);
+
+            redisTemplate.opsForValue().set(
+                    MyConstants.TOKEN_PREFIX + token,
+                    userInfo,
+                    MyConstants.TOKEN_EXPIRATION,
+                    TimeUnit.SECONDS
+            );
+
+            updateLastLogin(user.getId(), request.getIp());
+
+            Map<String, Object> data = new HashMap<>();
+            data.put("token", token);
+            data.put("username", user.getUsername());
+            data.put("realName", user.getRealName());
+            data.put("roles", user.getRoles());
+
+            return Result.success("管理员登录成功", data);
         } catch (Exception e) {
             throw new BusinessException("用户名或密码错误");
         }

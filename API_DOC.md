@@ -23,6 +23,9 @@
 - [十七、店铺管理员模块 (StoreAdmin)](#十七店铺管理员模块-storeadmin)
 - [十八、商家仪表盘模块 (StoreDashboard)](#十八商家仪表盘模块-storedashboard)
 - [十九、轮播图模块 (Banner)](#十九轮播图模块-banner)
+- [二十、属性管理模块 (AttributeManage)](#二十属性管理模块-attributemanage)
+- [二十一、分类-属性绑定管理模块 (CategoryAttributeManage)](#二十一分类-属性绑定管理模块-categoryattributemanage)
+- [二十二、用户管理模块 (UserManage)](#二十二用户管理模块-usermanage)
 
 ---
 
@@ -31,11 +34,14 @@
 | 权限标识 | 说明 | 适用角色 |
 |---------|------|---------|
 | `isAuthenticated()` | 需要登录 | 登录用户 |
+| `hasRole('USER')` | 需要普通用户角色 | 仅前台买家 |
 | `hasAuthority('xxx')` | 需要精确权限 | 指定权限 |
 | `hasRole('xxx')` | 需要角色 | 指定角色 |
 | `SUPER_ADMIN` | 超级管理员 | 系统最高权限 |
 | `ADMIN` | 管理员 | 系统管理 |
 | `SELLER` | 商家 | 商品管理 |
+| `STORE_ADMIN` | 店铺管理员 | 店铺管理 |
+| `USER` | 普通用户 | 前台买家 |
 | `content:banner` | 轮播图管理菜单 | 管理员 |
 | `content:banner:add` | 新增轮播图 | 管理员 |
 | `content:banner:edit` | 编辑/更新轮播图状态 | 管理员 |
@@ -70,12 +76,13 @@
 
 ## 一、认证模块 (Auth)
 
-### 1.1 用户登录
+### 1.1 用户登录（仅限普通用户）
 
 **接口路径：** `/auth/login`
 **HTTP方法：** POST
 **权限：** 公开
-**功能说明：** 用户登录获取Token
+**角色限制：** 仅允许拥有 `USER` 角色的账号登录
+**功能说明：** 普通用户登录获取Token
 
 #### 请求参数 (Request Body)
 
@@ -137,7 +144,80 @@
 | 验证码已过期，请重新获取 | 验证码已超过5分钟有效期 |
 | 验证码错误 | 输入的验证码与图片不匹配 |
 | 用户名或密码错误 | 登录凭证不正确 |
+| 该账号无普通用户权限，请使用管理员登录入口 | 账号未拥有 USER 角色 |
 | 未登录 | 用户未登录或Token已过期 |
+
+---
+
+### 1.1b 管理员登录（仅限管理员）
+
+**接口路径：** `/auth/admin/login`
+**HTTP方法：** POST
+**权限：** 公开
+**角色限制：** 仅允许拥有 `ADMIN` 或 `SUPER_ADMIN` 角色的账号登录
+**功能说明：** 运营管理员和超级管理员登录获取Token
+
+#### 请求参数 (Request Body)
+
+| 参数名 | 类型 | 必填 | 说明 | 示例 |
+|--------|------|------|------|------|
+| username | String | 是 | 用户名/手机号/邮箱 | `admin` |
+| password | String | 是 | 密码 | `123456` |
+| captchaKey | String | 是 | 验证码唯一标识（从 `/captcha` 接口获取） | `a1b2c3d4e5f6...` |
+| captcha | String | 是 | 验证码内容（不区分大小写） | `8A3K` |
+
+#### 请求示例
+```json
+{
+    "username": "admin",
+    "password": "123456",
+    "captchaKey": "a1b2c3d4e5f6...",
+    "captcha": "8A3K"
+}
+```
+
+#### 响应参数 (Response)
+
+| 参数名 | 类型 | 说明 | 示例 |
+|--------|------|------|------|
+| token | String | JWT Token | `eyJhbGciOiJIUzI1NiJ9...` |
+| userId | Long | 用户ID | `1` |
+| username | String | 用户名 | `admin` |
+| roles | List | 用户角色列表 | `["SUPER_ADMIN"]` |
+| permissions | List | 用户权限列表 | `["system", "product:add"]` |
+
+#### 响应示例
+```json
+{
+    "code": 200,
+    "msg": "管理员登录成功",
+    "data": {
+        "token": "eyJhbGciOiJIUzI1NiJ9...",
+        "userId": 1,
+        "username": "admin",
+        "roles": ["SUPER_ADMIN"],
+        "permissions": ["system", "product:add", "product:edit"]
+    }
+}
+```
+
+#### 错误返回示例
+```json
+{
+    "code": 500,
+    "msg": "该账号无管理员权限，请使用普通用户登录入口",
+    "data": null
+}
+```
+
+**错误信息说明：**
+
+| 错误信息 | 说明 |
+|---------|------|
+| 验证码已过期，请重新获取 | 验证码已超过5分钟有效期 |
+| 验证码错误 | 输入的验证码与图片不匹配 |
+| 用户名或密码错误 | 登录凭证不正确 |
+| 该账号无管理员权限，请使用普通用户登录入口 | 账号未拥有 ADMIN 或 SUPER_ADMIN 角色 |
 
 ---
 
@@ -556,7 +636,7 @@
 
 **接口路径：** `/address/add`
 **HTTP方法：** POST
-**权限：** 需认证 (isAuthenticated)
+**权限：** 需角色 USER (hasRole('USER'))
 **功能说明：** 添加新的收货地址
 
 #### 请求参数 (Request Body)
@@ -614,7 +694,7 @@
 
 **接口路径：** `/address/update`
 **HTTP方法：** PUT
-**权限：** 需认证 (isAuthenticated)
+**权限：** 需角色 USER (hasRole('USER'))
 **功能说明：** 更新收货地址
 
 #### 请求参数 (Request Body)
@@ -664,7 +744,7 @@
 
 **接口路径：** `/address/delete/{addressId}`
 **HTTP方法：** DELETE
-**权限：** 需认证 (isAuthenticated)
+**权限：** 需角色 USER (hasRole('USER'))
 **功能说明：** 删除收货地址
 
 #### 路径参数
@@ -719,7 +799,7 @@
 
 **接口路径：** `/address/detail/{addressId}`
 **HTTP方法：** GET
-**权限：** 需认证 (isAuthenticated)
+**权限：** 需角色 USER (hasRole('USER'))
 **功能说明：** 获取收货地址详情
 
 #### 路径参数
@@ -784,7 +864,7 @@
 
 **接口路径：** `/address/list`
 **HTTP方法：** GET
-**权限：** 需认证 (isAuthenticated)
+**权限：** 需角色 USER (hasRole('USER'))
 **功能说明：** 获取当前用户的所有收货地址
 
 #### 响应参数 (Response)
@@ -819,7 +899,7 @@
 
 **接口路径：** `/address/default`
 **HTTP方法：** GET
-**权限：** 需认证 (isAuthenticated)
+**权限：** 需角色 USER (hasRole('USER'))
 **功能说明：** 获取当前用户的默认收货地址
 
 #### 响应示例
@@ -861,7 +941,7 @@
 
 **接口路径：** `/address/set-default/{addressId}`
 **HTTP方法：** PUT
-**权限：** 需认证 (isAuthenticated)
+**权限：** 需角色 USER (hasRole('USER'))
 **功能说明：** 将指定地址设为默认地址
 
 #### 路径参数
@@ -902,7 +982,7 @@
 
 **接口路径：** `/cart/add`
 **HTTP方法：** POST
-**权限：** 需认证 (isAuthenticated)
+**权限：** 需角色 USER (hasRole('USER'))
 **功能说明：** 添加商品到购物车
 
 #### 请求参数 (Request Body)
@@ -959,7 +1039,7 @@
 
 **接口路径：** `/cart/quantity/{skuId}`
 **HTTP方法：** PUT
-**权限：** 需认证 (isAuthenticated)
+**权限：** 需角色 USER (hasRole('USER'))
 **功能说明：** 更新购物车中商品的数量
 
 #### 路径参数
@@ -1004,7 +1084,7 @@
 
 **接口路径：** `/cart/selected/{skuId}`
 **HTTP方法：** PUT
-**权限：** 需认证 (isAuthenticated)
+**权限：** 需角色 USER (hasRole('USER'))
 **功能说明：** 设置购物车中商品的选中状态
 
 #### 路径参数
@@ -1050,7 +1130,7 @@
 
 **接口路径：** `/cart/selected-all`
 **HTTP方法：** PUT
-**权限：** 需认证 (isAuthenticated)
+**权限：** 需角色 USER (hasRole('USER'))
 **功能说明：** 设置购物车中所有商品的选中状态
 
 #### 请求参数 (Query)
@@ -1090,7 +1170,7 @@
 
 **接口路径：** `/cart/remove/{skuId}`
 **HTTP方法：** DELETE
-**权限：** 需认证 (isAuthenticated)
+**权限：** 需角色 USER (hasRole('USER'))
 **功能说明：** 从购物车中移除商品
 
 #### 路径参数
@@ -1129,7 +1209,7 @@
 
 **接口路径：** `/cart/clear`
 **HTTP方法：** DELETE
-**权限：** 需认证 (isAuthenticated)
+**权限：** 需角色 USER (hasRole('USER'))
 **功能说明：** 清空购物车所有商品
 
 #### 响应示例
@@ -1162,7 +1242,7 @@
 
 **接口路径：** `/cart/clear-selected`
 **HTTP方法：** DELETE
-**权限：** 需认证 (isAuthenticated)
+**权限：** 需角色 USER (hasRole('USER'))
 **功能说明：** 清空购物车中已选中的商品（结算后调用）
 
 #### 响应示例
@@ -1195,7 +1275,7 @@
 
 **接口路径：** `/cart/list`
 **HTTP方法：** GET
-**权限：** 需认证 (isAuthenticated)
+**权限：** 需角色 USER (hasRole('USER'))
 **功能说明：** 获取购物车列表（包含商品详情和实时库存）
 
 #### 响应参数 (Response)
@@ -1255,7 +1335,7 @@
 
 **接口路径：** `/cart/selected`
 **HTTP方法：** GET
-**权限：** 需认证 (isAuthenticated)
+**权限：** 需角色 USER (hasRole('USER'))
 **功能说明：** 获取已选中的商品（用于结算）
 
 #### 响应参数 (Response)
@@ -1289,7 +1369,7 @@
 
 **接口路径：** `/cart/summary`
 **HTTP方法：** GET
-**权限：** 需认证 (isAuthenticated)
+**权限：** 需角色 USER (hasRole('USER'))
 **功能说明：** 获取购物车概要（总数量、总金额、选中数量）
 
 #### 响应参数 (Response)
@@ -1329,7 +1409,7 @@
 
 **接口路径：** `/order/create`
 **HTTP方法：** POST
-**权限：** 需认证 (isAuthenticated)
+**权限：** 需角色 USER (hasRole('USER'))
 **功能说明：** 直接创建订单（不走购物车）
 
 #### 请求参数 (Request Body)
@@ -1817,7 +1897,7 @@
 
 **接口路径：** `/order/pay/{orderId}`
 **HTTP方法：** PUT
-**权限：** 需认证 (isAuthenticated)
+**权限：** 需角色 USER (hasRole('USER'))
 **功能说明：** 模拟支付订单，确认扣除库存（冻结 → 实扣：`stock -= N, frozen_stock -= N`）。需在 `expireTime` 之前支付，超时后无法支付。
 
 #### 路径参数
@@ -3340,7 +3420,96 @@ list 数组内每个元素的字段：
 
 ---
 
-### 7.11 分页获取商品列表
+### 7.11 【运营管理员】分页获取全部商品列表
+
+**接口路径：** `/spu/page-all`
+**HTTP方法：** GET
+**权限：** hasRole('ADMIN') or hasRole('SUPER_ADMIN')
+**功能说明：** 运营管理员分页获取全平台全部商品（含上架和下架），不限商家，支持按状态筛选和商品名称搜索
+
+#### 请求参数 (Query)
+
+| 参数名 | 类型 | 必填 | 说明 | 示例 |
+|--------|------|------|------|------|
+| status | Integer | 否 | 状态筛选（1-上架 0-下架，不传则查询全部） | `1` |
+| keyword | String | 否 | 搜索关键字（按商品名称模糊搜索） | `小米` |
+| page | Integer | 否 | 页码（默认1） | `1` |
+| pageSize | Integer | 否 | 每页数量（默认10） | `10` |
+
+#### 响应参数 (Response)
+
+外部字段：
+
+| 参数名 | 类型 | 说明 | 示例 |
+|--------|------|------|------|
+| list | Array | 商品列表（每个元素含 categoryName、brandName） | |
+| page | Integer | 当前页码 | `1` |
+| pageSize | Integer | 每页数量 | `10` |
+| total | Integer | 总记录数 | `50` |
+
+list 数组内每个元素的字段：
+
+| 参数名 | 类型 | 说明 |
+|--------|------|------|
+| id | Long | 商品ID |
+| name | String | 商品名称 |
+| categoryId | Long | 分类ID |
+| categoryName | String | 分类名称（非数据库字段，批量查分类表回填） |
+| brandId | Long | 品牌ID |
+| brandName | String | 品牌名称（非数据库字段，批量查品牌表回填） |
+| sellerId | Long | 商家ID |
+| storeId | Long | 店铺ID |
+| description | String | 商品描述 |
+| mainImage | String | 主图路径 |
+| images | String | 图片集（JSON数组） |
+| unit | String | 单位 |
+| keywords | String | 关键词 |
+| sales | Integer | 销量 |
+| minPrice | BigDecimal | 最低SKU售价 |
+| status | Integer | 状态（1-上架 0-下架） |
+| isDeleted | Boolean | 逻辑删除 |
+| createdAt | String | 创建时间 |
+| updatedAt | String | 更新时间 |
+
+#### 响应示例
+```json
+{
+    "code": 200,
+    "msg": "操作成功",
+    "data": {
+        "list": [
+            {
+                "id": 1,
+                "name": "小米手机14",
+                "categoryId": 5,
+                "categoryName": "智能手机",
+                "brandId": 3,
+                "brandName": "小米",
+                "sellerId": 1,
+                "storeId": 1,
+                "description": "旗舰手机",
+                "mainImage": "/uploads/images/spu/2026/05/15/uuid_xm14.jpg",
+                "images": "[\"/uploads/images/spu/2026/05/15/uuid_1.jpg\"]",
+                "unit": "台",
+                "keywords": "小米,手机,旗舰",
+                "sales": 1000,
+                "minPrice": 3999.00,
+                "status": 1,
+                "isDeleted": false,
+                "createdAt": "2026-05-15 10:00:00",
+                "updatedAt": "2026-05-15 10:00:00"
+            }
+        ],
+        "page": 1,
+        "pageSize": 10,
+        "total": 50
+    }
+}
+```
+
+---
+
+### 7.12 分页获取商品列表
 
 **接口路径：** `/spu/page`
 **HTTP方法：** GET
@@ -7398,7 +7567,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/banner/add`
 **HTTP方法：** POST
-**权限：** hasAuthority('content:banner:add')
+**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
 **功能说明：** 新增轮播图。上传图片成功后保存到数据库，同时清除首页轮播图缓存。
 
 #### 请求参数 (form-data)
@@ -7428,7 +7597,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/banner/update`
 **HTTP方法：** PUT
-**权限：** hasAuthority('content:banner:edit')
+**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
 **功能说明：** 编辑轮播图信息。可选更换图片，上传新图片成功后自动删除旧图片文件，并清除首页轮播图缓存。
 
 #### 请求参数 (form-data)
@@ -7459,7 +7628,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/banner/delete/{id}`
 **HTTP方法：** DELETE
-**权限：** hasAuthority('content:banner:delete')
+**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
 **功能说明：** 删除轮播图（物理删除），同时删除关联的图片文件，并清除首页轮播图缓存。
 
 #### 路径参数
@@ -7480,12 +7649,12 @@ list 数组内每个元素的字段：
 
 ---
 
-### 19.4 更新轮播图状态
+### 19.4 启用轮播图
 
-**接口路径：** `/banner/status/{id}`
+**接口路径：** `/banner/enable/{id}`
 **HTTP方法：** PUT
-**权限：** hasAuthority('content:banner:edit')
-**功能说明：** 启用或禁用轮播图。禁用后前台首页不再展示，并清除首页轮播图缓存。
+**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**功能说明：** 启用轮播图。启用后前台首页可见，并清除首页轮播图缓存。
 
 #### 路径参数
 
@@ -7493,30 +7662,49 @@ list 数组内每个元素的字段：
 |--------|------|------|------|------|
 | id | Long | 是 | 轮播图ID | 1 |
 
-#### 请求参数
-
-| 参数名 | 类型 | 必填 | 说明 | 示例 |
-|--------|------|------|------|------|
-| status | Integer | 是 | 状态: 1-启用 0-禁用 | 1 |
-
 #### 响应示例
 
 ```json
 {
     "code": 200,
-    "msg": "状态更新成功",
+    "msg": "轮播图已启用",
     "data": null
 }
 ```
 
 ---
 
-### 19.5 获取轮播图列表（管理后台）
+### 19.5 禁用轮播图
+
+**接口路径：** `/banner/disable/{id}`
+**HTTP方法：** PUT
+**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**功能说明：** 禁用轮播图。禁用后前台首页不再展示，并清除首页轮播图缓存。
+
+#### 路径参数
+
+| 参数名 | 类型 | 必填 | 说明 | 示例 |
+|--------|------|------|------|------|
+| id | Long | 是 | 轮播图ID | 1 |
+
+#### 响应示例
+
+```json
+{
+    "code": 200,
+    "msg": "轮播图已禁用",
+    "data": null
+}
+```
+
+---
+
+### 19.6 获取轮播图列表（管理后台）
 
 **接口路径：** `/banner/list`
 **HTTP方法：** GET
-**权限：** hasAuthority('content:banner')
-**功能说明：** 获取轮播图列表，支持按状态筛选。用于管理后台的轮播图管理页面。
+**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**功能说明：** 获取轮播图列表，支持按状态筛选。可查看所有状态（启用+禁用）的轮播图。用于管理后台的轮播图管理页面。
 
 #### 请求参数
 
@@ -7547,7 +7735,7 @@ list 数组内每个元素的字段：
 
 ---
 
-### 19.6 获取启用的轮播图列表（首页展示）
+### 19.7 获取启用的轮播图列表（首页展示）
 
 **接口路径：** `/banner/active`
 **HTTP方法：** GET
@@ -7578,6 +7766,585 @@ list 数组内每个元素的字段：
     ]
 }
 ```
+
+---
+
+## 二十、属性管理模块 (AttributeManage)
+
+### 20.1 新增属性
+
+**接口路径：** `/attribute/manage/add`
+**HTTP方法：** POST
+**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**功能说明：** 新增属性定义。属性分为销售属性（如颜色、内存）和基本属性（如电池容量、屏幕尺寸）。
+
+#### 请求参数 (Body - JSON)
+
+| 参数名 | 类型 | 必填 | 说明 | 示例 |
+|--------|------|------|------|------|
+| name | String | 是 | 属性名称 | "颜色" |
+| attrType | Integer | 是 | 属性类型：1-销售属性，2-基本属性 | 1 |
+| sort | Integer | 否 | 排序（越小越靠前，默认0） | 1 |
+
+#### 响应示例
+
+```json
+{
+    "code": 200,
+    "msg": "新增成功",
+    "data": {
+        "id": 8
+    }
+}
+```
+
+---
+
+### 20.2 修改属性
+
+**接口路径：** `/attribute/manage/update/{id}`
+**HTTP方法：** PUT
+**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**功能说明：** 修改属性信息。如果该属性下已有属性值，则禁止修改属性类型（attrType），但可以修改名称和排序。
+
+#### 路径参数
+
+| 参数名 | 类型 | 必填 | 说明 | 示例 |
+|--------|------|------|------|------|
+| id | Long | 是 | 属性ID | 1 |
+
+#### 请求参数 (Body - JSON)
+
+| 参数名 | 类型 | 必填 | 说明 | 示例 |
+|--------|------|------|------|------|
+| name | String | 是 | 属性名称 | "外观颜色" |
+| attrType | Integer | 是 | 属性类型（有属性值时禁止变更） | 1 |
+| sort | Integer | 否 | 排序 | 1 |
+
+#### 响应示例
+
+```json
+{
+    "code": 200,
+    "msg": "修改成功",
+    "data": null
+}
+```
+
+#### 错误信息说明
+
+| 错误信息 | 说明 |
+|---------|------|
+| 属性不存在 | 指定的属性ID不存在 |
+| 该属性下存在属性值，无法修改属性类型 | 该属性已有属性值，不能变更属性类型 |
+
+---
+
+### 20.3 删除属性
+
+**接口路径：** `/attribute/manage/delete/{id}`
+**HTTP方法：** DELETE
+**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**功能说明：** 删除属性定义。如果该属性下存在属性值，则禁止删除。关联的 `category_attributes` 记录由数据库级联删除。
+
+#### 路径参数
+
+| 参数名 | 类型 | 必填 | 说明 | 示例 |
+|--------|------|------|------|------|
+| id | Long | 是 | 属性ID | 1 |
+
+#### 响应示例
+
+```json
+{
+    "code": 200,
+    "msg": "删除成功",
+    "data": null
+}
+```
+
+#### 错误信息说明
+
+| 错误信息 | 说明 |
+|---------|------|
+| 属性不存在 | 指定的属性ID不存在 |
+| 该属性下存在属性值，请先删除所有属性值 | 该属性下仍有属性值，需先清空 |
+
+---
+
+### 20.4 查询属性列表
+
+**接口路径：** `/attribute/manage/list`
+**HTTP方法：** GET
+**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**功能说明：** 查询全部属性列表，每个属性包含其下的所有属性值。
+
+#### 响应参数
+
+| 参数名 | 类型 | 说明 | 示例 |
+|--------|------|------|------|
+| id | Long | 属性ID | 1 |
+| name | String | 属性名称 | "颜色" |
+| attrType | Integer | 属性类型：1-销售属性，2-基本属性 | 1 |
+| sort | Integer | 排序 | 1 |
+| createdAt | DateTime | 创建时间 | "2026-05-12T14:07:25" |
+| updatedAt | DateTime | 更新时间 | "2026-05-12T14:07:25" |
+| values | Array | 该属性下的属性值列表 | |
+
+#### 响应示例
+
+```json
+{
+    "code": 200,
+    "msg": "操作成功",
+    "data": [
+        {
+            "id": 1,
+            "name": "颜色",
+            "attrType": 1,
+            "sort": 1,
+            "createdAt": "2026-05-12T14:07:25",
+            "updatedAt": "2026-05-12T14:07:25",
+            "values": [
+                {
+                    "id": 1,
+                    "attrId": 1,
+                    "value": "黑色",
+                    "imageUrl": "/images/phone/black.png",
+                    "sort": 1,
+                    "createdAt": "2026-05-12T14:07:25",
+                    "updatedAt": "2026-05-12T14:07:25"
+                }
+            ]
+        }
+    ]
+}
+```
+
+---
+
+### 20.5 查询属性详情
+
+**接口路径：** `/attribute/manage/{id}`
+**HTTP方法：** GET
+**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**功能说明：** 查询单个属性详情，包含其下的所有属性值。
+
+#### 路径参数
+
+| 参数名 | 类型 | 必填 | 说明 | 示例 |
+|--------|------|------|------|------|
+| id | Long | 是 | 属性ID | 1 |
+
+#### 响应示例
+
+```json
+{
+    "code": 200,
+    "msg": "操作成功",
+    "data": {
+        "id": 1,
+        "name": "颜色",
+        "attrType": 1,
+        "sort": 1,
+        "createdAt": "2026-05-12T14:07:25",
+        "updatedAt": "2026-05-12T14:07:25",
+        "values": [
+            {
+                "id": 1,
+                "attrId": 1,
+                "value": "黑色",
+                "imageUrl": "/images/phone/black.png",
+                "sort": 1,
+                "createdAt": "2026-05-12T14:07:25",
+                "updatedAt": "2026-05-12T14:07:25"
+            }
+        ]
+    }
+}
+```
+
+---
+
+### 20.6 新增属性值
+
+**接口路径：** `/attribute/manage/value/add`
+**HTTP方法：** POST
+**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**功能说明：** 在指定属性下新增属性值（如颜色下新增"蓝色"）。
+
+#### 请求参数 (Body - JSON)
+
+| 参数名 | 类型 | 必填 | 说明 | 示例 |
+|--------|------|------|------|------|
+| attrId | Long | 是 | 所属属性ID | 1 |
+| value | String | 是 | 属性值名称 | "蓝色" |
+| imageUrl | String | 否 | 销售属性图片（如颜色色块） | "/images/phone/blue.png" |
+| sort | Integer | 否 | 排序（默认0） | 5 |
+
+#### 响应示例
+
+```json
+{
+    "code": 200,
+    "msg": "新增成功",
+    "data": {
+        "id": 14
+    }
+}
+```
+
+---
+
+### 20.7 修改属性值
+
+**接口路径：** `/attribute/manage/value/update/{id}`
+**HTTP方法：** PUT
+**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**功能说明：** 修改属性值。如果该属性值已被 SPU 或 SKU 引用，则禁止修改。
+
+#### 路径参数
+
+| 参数名 | 类型 | 必填 | 说明 | 示例 |
+|--------|------|------|------|------|
+| id | Long | 是 | 属性值ID | 14 |
+
+#### 请求参数 (Body - JSON)
+
+| 参数名 | 类型 | 必填 | 说明 | 示例 |
+|--------|------|------|------|------|
+| attrId | Long | 是 | 所属属性ID | 1 |
+| value | String | 是 | 属性值名称 | "天蓝色" |
+| imageUrl | String | 否 | 销售属性图片 | "/images/phone/blue.png" |
+| sort | Integer | 否 | 排序 | 5 |
+
+#### 响应示例
+
+```json
+{
+    "code": 200,
+    "msg": "修改成功",
+    "data": null
+}
+```
+
+#### 错误信息说明
+
+| 错误信息 | 说明 |
+|---------|------|
+| 属性值不存在 | 指定的属性值ID不存在 |
+| 该属性值已被 SPU 基本属性引用，无法修改或删除 | 该值被 SPU 基本属性使用 |
+| 该属性值已被 SPU 销售属性引用，无法修改或删除 | 该值被 SPU 销售属性 JSON 字段引用 |
+| 该属性值已被 SKU 销售属性引用，无法修改或删除 | 该值被 SKU 销售属性使用 |
+
+---
+
+### 20.8 删除属性值
+
+**接口路径：** `/attribute/manage/value/delete/{id}`
+**HTTP方法：** DELETE
+**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**功能说明：** 删除属性值。如果该属性值已被 SPU 或 SKU 引用，则禁止删除。
+
+#### 路径参数
+
+| 参数名 | 类型 | 必填 | 说明 | 示例 |
+|--------|------|------|------|------|
+| id | Long | 是 | 属性值ID | 14 |
+
+#### 响应示例
+
+```json
+{
+    "code": 200,
+    "msg": "删除成功",
+    "data": null
+}
+```
+
+#### 错误信息说明
+
+同 20.7 修改属性值的错误信息。
+
+---
+
+### 20.9 查询属性值列表
+
+**接口路径：** `/attribute/manage/value/list/{attrId}`
+**HTTP方法：** GET
+**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**功能说明：** 根据属性ID查询其下的所有属性值。
+
+#### 路径参数
+
+| 参数名 | 类型 | 必填 | 说明 | 示例 |
+|--------|------|------|------|------|
+| attrId | Long | 是 | 属性ID | 1 |
+
+#### 响应示例
+
+```json
+{
+    "code": 200,
+    "msg": "操作成功",
+    "data": [
+        {
+            "id": 1,
+            "attrId": 1,
+            "value": "黑色",
+            "imageUrl": "/images/phone/black.png",
+            "sort": 1,
+            "createdAt": "2026-05-12T14:07:25",
+            "updatedAt": "2026-05-12T14:07:25"
+        }
+    ]
+}
+```
+
+---
+
+## 二十一、分类-属性绑定管理模块 (CategoryAttributeManage)
+
+### 21.1 获取分类已绑定的属性列表
+
+**接口路径：** `/category/attribute/manage/bound/{categoryId}`
+**HTTP方法：** GET
+**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**功能说明：** 获取指定分类已绑定的属性列表，每个属性附带 SPU 引用状态（hasSpuUsage），前端可根据该字段展示锁定图标，提示运营管理员哪些属性无法解绑。
+
+#### 路径参数
+
+| 参数名 | 类型 | 必填 | 说明 | 示例 |
+|--------|------|------|------|------|
+| categoryId | Long | 是 | 分类ID | 27 |
+
+#### 响应参数
+
+| 参数名 | 类型 | 说明 | 示例 |
+|--------|------|------|------|
+| id | Long | 绑定记录ID | 1 |
+| categoryId | Long | 分类ID | 27 |
+| attrId | Long | 属性ID | 1 |
+| attrName | String | 属性名称 | "颜色" |
+| attrType | Integer | 属性类型: 1-销售属性，2-基本属性 | 1 |
+| sort | Integer | 排序 | 1 |
+| hasSpuUsage | Boolean | 该分类下的SPU是否已使用该属性 | true |
+
+#### 响应示例
+
+```json
+{
+    "code": 200,
+    "msg": "操作成功",
+    "data": [
+        {
+            "id": 1,
+            "categoryId": 27,
+            "attrId": 1,
+            "attrName": "颜色",
+            "attrType": 1,
+            "sort": 1,
+            "hasSpuUsage": true
+        },
+        {
+            "id": 2,
+            "categoryId": 27,
+            "attrId": 2,
+            "attrName": "内存",
+            "attrType": 1,
+            "sort": 2,
+            "hasSpuUsage": false
+        }
+    ]
+}
+```
+
+---
+
+### 21.2 获取分类可绑定的属性列表
+
+**接口路径：** `/category/attribute/manage/available/{categoryId}`
+**HTTP方法：** GET
+**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**功能说明：** 获取尚未绑定到指定分类的所有属性，供运营管理员选择绑定。
+
+#### 路径参数
+
+| 参数名 | 类型 | 必填 | 说明 | 示例 |
+|--------|------|------|------|------|
+| categoryId | Long | 是 | 分类ID | 27 |
+
+#### 响应示例
+
+```json
+{
+    "code": 200,
+    "msg": "操作成功",
+    "data": [
+        {
+            "id": 8,
+            "name": "屏幕尺寸",
+            "attrType": 2,
+            "sort": 0,
+            "createdAt": "2026-05-12T14:07:25",
+            "updatedAt": "2026-05-12T14:07:25"
+        }
+    ]
+}
+```
+
+---
+
+### 21.3 绑定属性到分类
+
+**接口路径：** `/category/attribute/manage/bind`
+**HTTP方法：** POST
+**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**功能说明：** 将属性绑定到指定分类。**仅允许绑定到叶子分类**（没有子分类的分类），因为 SPU 只能挂在叶子分类下，非叶子分类绑定属性无实际意义。
+
+#### 请求参数 (Body - JSON)
+
+| 参数名 | 类型 | 必填 | 说明 | 示例 |
+|--------|------|------|------|------|
+| categoryId | Long | 是 | 分类ID（必须是叶子分类） | 27 |
+| attrId | Long | 是 | 属性ID | 8 |
+| sort | Integer | 否 | 排序（默认0） | 10 |
+
+#### 响应示例
+
+```json
+{
+    "code": 200,
+    "msg": "绑定成功",
+    "data": {
+        "id": 8
+    }
+}
+```
+
+#### 错误信息说明
+
+| 错误信息 | 说明 |
+|---------|------|
+| 该属性已绑定到此分类，请勿重复绑定 | 该分类已绑定过此属性 |
+| 该分类下有子分类，请选择叶子分类进行属性绑定 | 目标分类不是叶子分类，禁止绑定 |
+
+---
+
+### 21.4 修改绑定排序
+
+**接口路径：** `/category/attribute/manage/update-sort/{id}`
+**HTTP方法：** PUT
+**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**功能说明：** 修改绑定记录的排序。调整排序不影响已有 SPU 数据，无约束条件。
+
+#### 路径参数
+
+| 参数名 | 类型 | 必填 | 说明 | 示例 |
+|--------|------|------|------|------|
+| id | Long | 是 | 绑定记录ID | 8 |
+
+#### 请求参数 (Body - JSON)
+
+| 参数名 | 类型 | 必填 | 说明 | 示例 |
+|--------|------|------|------|------|
+| sort | Integer | 是 | 排序 | 5 |
+
+#### 响应示例
+
+```json
+{
+    "code": 200,
+    "msg": "排序修改成功",
+    "data": null
+}
+```
+
+---
+
+### 21.5 解绑属性
+
+**接口路径：** `/category/attribute/manage/unbind/{id}`
+**HTTP方法：** DELETE
+**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**功能说明：** 从分类中解绑属性。如果该分类下的 SPU 已使用了该属性，则禁止解绑。
+
+#### 路径参数
+
+| 参数名 | 类型 | 必填 | 说明 | 示例 |
+|--------|------|------|------|------|
+| id | Long | 是 | 绑定记录ID | 8 |
+
+#### 响应示例
+
+```json
+{
+    "code": 200,
+    "msg": "解绑成功",
+    "data": null
+}
+```
+
+#### 错误信息说明
+
+| 错误信息 | 说明 |
+|---------|------|
+| 绑定记录不存在 | 指定的绑定记录ID不存在 |
+| 该分类下的 SPU 已使用了该属性，无法解绑。请先移除相关 SPU 的属性绑定后再操作 | 该分类下存在 SPU 使用了该属性，禁止解绑 |
+
+---
+
+## 二十二、用户管理模块 (UserManage)
+
+### 22.1 将普通用户升级为商家
+
+**接口路径：** `/user/manage/promote-to-seller/{userId}`
+**HTTP方法：** PUT
+**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**功能说明：** 将普通用户升级为商家。系统会自动：
+1. 为用户添加 SELLER 角色
+2. 自动创建默认店铺（店铺名为"用户真实姓名/用户名 + 的店铺"）
+3. 如果用户已有店铺则跳过创建
+
+#### 路径参数
+
+| 参数名 | 类型 | 必填 | 说明 | 示例 |
+|--------|------|------|------|------|
+| userId | Long | 是 | 待升级的用户ID | 6 |
+
+#### 响应参数
+
+| 参数名 | 类型 | 说明 | 示例 |
+|--------|------|------|------|
+| userId | Long | 用户ID | 6 |
+| roleId | Long | 商家角色ID | 3 |
+| roleCode | String | 商家角色编码 | "SELLER" |
+| roleName | String | 商家角色名称 | "普通卖家" |
+| storeId | Long | 店铺ID（新建或已有） | 3 |
+
+#### 响应示例
+
+```json
+{
+    "code": 200,
+    "msg": "用户升级为商家成功",
+    "data": {
+        "userId": 6,
+        "roleId": 3,
+        "roleCode": "SELLER",
+        "roleName": "普通卖家",
+        "storeId": 3
+    }
+}
+```
+
+#### 错误信息说明
+
+| 错误信息 | 说明 |
+|---------|------|
+| 用户不存在 | 指定的用户ID无效 |
+| 商家角色不存在，请联系超级管理员 | 数据库中未找到 SELLER 角色 |
+| 该用户已是商家，请勿重复操作 | 用户已拥有商家角色 |
 
 ---
 

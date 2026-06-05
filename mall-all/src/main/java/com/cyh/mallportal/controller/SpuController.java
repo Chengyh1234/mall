@@ -472,6 +472,33 @@ public class SpuController {
     }
 
     /**
+     * 【运营管理员】分页获取全部商品列表（含上架和下架）
+     * 不限商家，用于运营管理员查看全平台商品，支持按状态筛选和商品名称搜索
+     * 返回格式与 page-by-seller 一致，但不包含 sellerId 字段
+     *
+     * @param status   状态筛选（可选，1-上架 0-下架，不传则查询全部）
+     * @param keyword  搜索关键字（可选，按商品名称模糊搜索）
+     * @param page     页码，默认第1页
+     * @param pageSize 每页数量，默认10条
+     * @return 商品分页列表（含 categoryName、brandName）
+     */
+    @GetMapping("/page-all")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
+    public Result<Map<String, Object>> getPageAll(@RequestParam(required = false) Integer status,
+                                                  @RequestParam(required = false) String keyword,
+                                                  @RequestParam(defaultValue = "1") Integer page,
+                                                  @RequestParam(defaultValue = "10") Integer pageSize) {
+        List<Spu> list = spuService.getPageAll(status, keyword, page, pageSize);
+        int total = spuService.countAll(status, keyword);
+        Map<String, Object> data = new HashMap<>();
+        data.put("list", list);
+        data.put("page", page);
+        data.put("pageSize", pageSize);
+        data.put("total", total);
+        return Result.success(data);
+    }
+
+    /**
      * 分页获取商品列表（支持分类及其子分类、多字段模糊搜索、品牌筛选）
      * 公开接口，仅返回上架状态（status=1）的商品
      *
