@@ -270,28 +270,24 @@ public class CartItemServiceImpl implements CartItemService {
      * 获取用户购物车列表
      *
      * @param userId 用户ID
-     * @return 购物车列表（包含商品详情）
+     * @return 购物车列表
      */
     @Override
-    public List<CartItemVo> getCartList(Long userId) {
+    public List<CartItem> getCartList(Long userId) {
         log.info("获取购物车列表, 用户ID: {}", userId);
-
-        List<CartItem> items = cartItemMapper.selectByUserId(userId);
-        return convertToVoList(items);
+        return cartItemMapper.selectByUserId(userId);
     }
 
     /**
      * 获取用户已选中的购物车商品
      *
      * @param userId 用户ID
-     * @return 已选中的购物车列表（用于结算）
+     * @return 已选中的购物车列表
      */
     @Override
-    public List<CartItemVo> getSelectedItems(Long userId) {
+    public List<CartItem> getSelectedItems(Long userId) {
         log.info("获取已选中的购物车商品, 用户ID: {}", userId);
-
-        List<CartItem> items = cartItemMapper.selectSelectedByUserId(userId);
-        return convertToVoList(items);
+        return cartItemMapper.selectSelectedByUserId(userId);
     }
 
     /**
@@ -339,34 +335,28 @@ public class CartItemServiceImpl implements CartItemService {
      *
      * @param userId 用户ID
      * @param skuId  SKU ID
-     * @return 购物车项VO
+     * @return 购物车项实体
      */
     @Override
-    public CartItemVo getCartItem(Long userId, Long skuId) {
-        CartItem cartItem = cartItemMapper.selectByUserIdAndSkuId(userId, skuId);
-        if (cartItem == null) {
-            return null;
-        }
-        List<CartItemVo> voList = convertToVoList(List.of(cartItem));
-        return voList.isEmpty() ? null : voList.get(0);
+    public CartItem getCartItem(Long userId, Long skuId) {
+        return cartItemMapper.selectByUserIdAndSkuId(userId, skuId);
     }
 
     /**
-     * 将购物车项列表转换为VO列表，并补充实时库存等信息
+     * 将购物车实体列表转换为VO列表，并补充实时库存等信息
      *
      * @param items 购物车项列表
      * @return 购物车项VO列表
      */
-    private List<CartItemVo> convertToVoList(List<CartItem> items) {
+    @Override
+    public List<CartItemVo> toCartItemVoList(List<CartItem> items) {
         return items.stream().map(item -> {
             CartItemVo vo = CartItemVo.fromCartItem(item);
 
-            // 补充实时库存信息
+            // 补充实时库存
             Sku sku = skuMapper.selectById(item.getSkuId());
             if (sku != null) {
                 vo.setStock(sku.getStock());
-                vo.setSkuStatus(sku.getStatus());
-                vo.setSpuId(sku.getSpuId());
             }
 
             return vo;

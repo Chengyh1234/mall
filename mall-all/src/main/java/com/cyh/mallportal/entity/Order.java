@@ -62,7 +62,7 @@ public class Order implements Serializable {
     private BigDecimal freightAmount;
 
     /**
-     * 订单状态: 1-待付款 2-待发货 3-待收货 4-已完成 5-已取消 6-退款中 7-已退款
+     * 订单状态: 1-待付款 2-待发货 3-待收货 4-已完成 5-已取消 6-退款中 7-已退款 8-已拒绝
      */
     @TableField(value = "status")
     private Integer status;
@@ -169,4 +169,47 @@ public class Order implements Serializable {
     @Version
     @TableField(value = "version")
     private Integer version;
+
+    /**
+     * 逻辑删除: 0-正常 1-已删除（用户删除标记，非MP逻辑删除）
+     * 用户查询手动过滤 is_deleted=0，商家/管理员不对此字段做过滤
+     */
+    private Integer isDeleted;
+
+    /**
+     * 退款原因
+     */
+    @TableField(value = "refund_reason")
+    private String refundReason;
+
+    /**
+     * 退款金额
+     */
+    @TableField(value = "refund_amount")
+    private BigDecimal refundAmount;
+
+    /**
+     * 退款来源状态: 2-待发货 3-待收货 4-已完成
+     * 申请退款时记录退款前的状态，取消退款时恢复
+     */
+    @TableField(value = "refund_from_status")
+    private Integer refundFromStatus;
+
+    /**
+     * 退款操作人ID（审核通过或拒接退款的操作用户ID）
+     */
+    @TableField(value = "refund_operator_id")
+    private Long refundOperatorId;
+
+    /**
+     * 拒绝原因（拒接退款时填写）
+     */
+    @TableField(value = "reject_reason")
+    private String rejectReason;
+
+    /**
+     * 拒绝时间（拒接退款时记录）
+     */
+    @TableField(value = "rejected_at")
+    private LocalDateTime rejectedAt;
 }

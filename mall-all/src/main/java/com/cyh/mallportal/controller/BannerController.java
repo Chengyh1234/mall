@@ -3,7 +3,9 @@ package com.cyh.mallportal.controller;
 import com.cyh.mallportal.entity.Banner;
 import com.cyh.mallportal.service.BannerService;
 import com.cyh.mallportal.service.FileService;
+import com.cyh.mallportal.vo.BannerVO;
 import com.cyh.mallcommon.utils.Result;
+import com.cyh.mallcommon.constant.FileConstants;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -15,11 +17,15 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
- * 轮播图管理控制器
+ * 轮播图管理控制器 已经处理响应
  * 提供轮播图的增删改查和状态管理功能
- * 运营管理员和超级管理员可管理，首页展示接口公开
+ *
+ * 权限说明：
+ * - 管理端接口（增/删/改/查全部）仅限 SUPER_ADMIN、ADMIN 角色访问
+ * - 首页展示接口（/banner/active）公开访问，无需登录
  */
 @Slf4j
 @RestController
@@ -35,13 +41,15 @@ public class BannerController {
     /**
      * 新增轮播图
      *
-     * @param title    轮播图标题
-     * @param linkUrl  跳转链接（可选）
+     * 权限：SUPER_ADMIN、ADMIN
+     *
+     * @param title     轮播图标题
+     * @param linkUrl   跳转链接（可选）
      * @param imageFile 轮播图图片文件
      * @return 新增结果
      */
     @PostMapping("/add")
-    @PreAuthorize("hasAuthority('content:banner:add')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
     public Result<Map<String, Object>> add(@RequestParam("title") String title,
                                            @RequestParam(value = "linkUrl", required = false) String linkUrl,
                                            @RequestParam("imageFile") MultipartFile imageFile) {
@@ -52,7 +60,7 @@ public class BannerController {
             return Result.error("图片文件不能为空");
         }
 
-        Map<String, String> uploadResult = fileService.uploadImage(imageFile, "banners");
+        Map<String, String> uploadResult = fileService.uploadImage(imageFile, FileConstants.BANNERS);
         if (uploadResult == null) {
             return Result.error("图片上传失败");
         }
@@ -77,6 +85,8 @@ public class BannerController {
     /**
      * 编辑轮播图（可选更换图片）
      *
+     * 权限：SUPER_ADMIN、ADMIN
+     *
      * @param id        轮播图ID
      * @param title     轮播图标题
      * @param linkUrl   跳转链接（可选）
@@ -84,7 +94,7 @@ public class BannerController {
      * @return 更新结果
      */
     @PutMapping("/update")
-    @PreAuthorize("hasAuthority('content:banner:edit')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
     public Result<Map<String, Object>> update(@RequestParam("id") Long id,
                                               @RequestParam("title") String title,
                                               @RequestParam(value = "linkUrl", required = false) String linkUrl,
@@ -109,7 +119,7 @@ public class BannerController {
         if (imageFile != null && !imageFile.isEmpty()) {
             String oldImageUrl = existingBanner.getImageUrl();
 
-            Map<String, String> uploadResult = fileService.uploadImage(imageFile, "banners");
+            Map<String, String> uploadResult = fileService.uploadImage(imageFile, FileConstants.BANNERS);
             if (uploadResult == null) {
                 return Result.error("图片上传失败");
             }
@@ -118,7 +128,7 @@ public class BannerController {
             boolean updated = bannerService.update(banner);
             if (updated) {
                 if (StringUtils.hasText(oldImageUrl)) {
-                    fileService.deleteFile(oldImageUrl, "banners");
+                    fileService.deleteFile(oldImageUrl, FileConstants.BANNERS);
                 }
                 Map<String, Object> data = new HashMap<>();
                 data.put("id", id);
@@ -140,11 +150,13 @@ public class BannerController {
     /**
      * 删除轮播图（物理删除，同时删除图片文件）
      *
+     * 权限：SUPER_ADMIN、ADMIN
+     *
      * @param id 轮播图ID
      * @return 删除结果
      */
     @DeleteMapping("/delete/{id}")
-    @PreAuthorize("hasAuthority('content:banner:delete')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
     public Result<Void> delete(@PathVariable Long id) {
         if (id == null) {
             return Result.error("轮播图ID不能为空");
@@ -158,7 +170,7 @@ public class BannerController {
         boolean success = bannerService.delete(id);
         if (success) {
             if (StringUtils.hasText(existing.getImageUrl())) {
-                fileService.deleteFile(existing.getImageUrl(), "banners");
+                fileService.deleteFile(existing.getImageUrl(), FileConstants.BANNERS);
             }
             return Result.success("删除成功", null);
         }
@@ -166,38 +178,60 @@ public class BannerController {
     }
 
     /**
-     * 更新轮播图状态
+     * 启用轮播图
      *
-     * @param id     轮播图ID
-     * @param status 状态（1-启用 0-禁用）
-     * @return 更新结果
+     * 权限：SUPER_ADMIN、ADMIN
+     *
+     * @param id 轮播图ID
+     * @return 操作结果
      */
-    @PutMapping("/status/{id}")
-    @PreAuthorize("hasAuthority('content:banner:edit')")
-    public Result<Void> updateStatus(@PathVariable Long id,
-                                     @RequestParam("status") Integer status) {
+    @PutMapping("/enable/{id}")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
+    public Result<Void> enable(@PathVariable Long id) {
         if (id == null) {
             return Result.error("轮播图ID不能为空");
         }
-        if (status == null || (status != 0 && status != 1)) {
-            return Result.error("状态参数无效，请输入0或1");
+
+        boolean success = bannerService.updateStatus(id, 1);
+        if (success) {
+            return Result.success("轮播图已启用", null);
+        }
+        return Result.error("启用失败");
+    }
+
+    /**
+     * 禁用轮播图
+     *
+     * 权限：SUPER_ADMIN、ADMIN
+     *
+     * @param id 轮播图ID
+     * @return 操作结果
+     */
+    @PutMapping("/disable/{id}")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
+    public Result<Void> disable(@PathVariable Long id) {
+        if (id == null) {
+            return Result.error("轮播图ID不能为空");
         }
 
-        boolean success = bannerService.updateStatus(id, status);
+        boolean success = bannerService.updateStatus(id, 0);
         if (success) {
-            return Result.success("状态更新成功", null);
+            return Result.success("轮播图已禁用", null);
         }
-        return Result.error("状态更新失败");
+        return Result.error("禁用失败");
     }
 
     /**
      * 获取轮播图列表（管理后台用，支持按状态筛选）
      *
+     * 权限：SUPER_ADMIN、ADMIN
+     * 可查看所有状态（启用+禁用）的轮播图
+     *
      * @param status 状态（可选，传null查全部）
      * @return 轮播图列表
      */
     @GetMapping("/list")
-    @PreAuthorize("hasAuthority('content:banner')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
     public Result<List<Banner>> getList(@RequestParam(value = "status", required = false) Integer status) {
         List<Banner> list = bannerService.getList(status);
         return Result.success(list);
@@ -206,11 +240,16 @@ public class BannerController {
     /**
      * 获取启用的轮播图列表（首页展示用，走Redis缓存）
      *
+     * 公开接口，无需登录，仅返回启用状态（status=1）的轮播图
+     *
      * @return 启用的轮播图列表
      */
     @GetMapping("/active")
-    public Result<List<Banner>> getActiveList() {
-        List<Banner> list = bannerService.getActiveList();
-        return Result.success(list);
+    public Result<List<BannerVO>> getActiveList() {
+        List<Banner> banners = bannerService.getActiveList();
+        List<BannerVO> voList = banners.stream()
+                .map(BannerVO::fromBanner)
+                .collect(Collectors.toList());
+        return Result.success(voList);
     }
 }

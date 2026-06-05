@@ -77,16 +77,6 @@ public class CartItemVo {
     private Integer stock;
 
     /**
-     * SKU状态（实时查询）
-     */
-    private Integer skuStatus;
-
-    /**
-     * SPU ID
-     */
-    private Long spuId;
-
-    /**
      * 将CartItem转换为CartItemVo
      */
     public static CartItemVo fromCartItem(CartItem cartItem) {

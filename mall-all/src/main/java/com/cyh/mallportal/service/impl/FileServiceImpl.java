@@ -1,8 +1,8 @@
 package com.cyh.mallportal.service.impl;
 
+import com.cyh.mallcommon.constant.FileConstants;
 import com.cyh.mallportal.service.FileService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -18,29 +18,6 @@ import java.util.UUID;
 @Slf4j
 @Service
 public class FileServiceImpl implements FileService {
-
-    @Value("${file.upload.base-path:./uploads}")
-    private String basePath;
-
-    @Value("${file.upload.spu-path:./uploads/images/spu}")
-    private String spuPath;
-
-    @Value("${file.upload.sku-path:./uploads/images/sku}")
-    private String skuPath;
-
-    @Value("${file.upload.brands-path:./uploads/images/brands}")
-    private String brandsPath;
-
-    @Value("${file.upload.stores-path:./uploads/images/stores}")
-    private String storesPath;
-
-    @Value("${file.upload.avatars-path:./uploads/images/avatars}")
-    private String avatarsPath;
-
-    @Value("${file.upload.banners-path:./uploads/images/banners}")
-    private String bannersPath;
-
-    private static final String[] ALLOWED_IMAGE_TYPES = {"image/jpeg", "image/png", "image/gif", "image/webp"};
 
     @Override
     public Map<String, String> uploadFile(MultipartFile file, String subDir) {
@@ -62,7 +39,7 @@ public class FileServiceImpl implements FileService {
 
             String newFileName = UUID.randomUUID().toString() + "_" + originalFilename;
 
-            String targetPath = getPathBySubDir(subDir);
+            String targetPath = FileConstants.BASE_PATH + subDir;
             File uploadDir = new File(targetPath, dateDir);
             if (!uploadDir.exists()) {
                 uploadDir.mkdirs();
@@ -86,38 +63,8 @@ public class FileServiceImpl implements FileService {
         }
     }
 
-    private String getPathBySubDir(String subDir) {
-        if (subDir == null) {
-            return basePath;
-        }
-        switch (subDir.toLowerCase()) {
-            case "spu":
-                return spuPath;
-            case "sku":
-                return skuPath;
-            case "brands":
-                return brandsPath;
-            case "stores":
-                return storesPath;
-            case "avatars":
-                return avatarsPath;
-            case "banners":
-                return bannersPath;
-            default:
-                return basePath + "/" + subDir;
-        }
-    }
-
-    /**
-     * 上传图片（带图片类型校验）
-     *
-     * @param file 上传的图片文件
-     * @param subDir 子目录路径（如 "images"、"logos"）
-     * @return 上传结果，包含日期和文件名，失败返回null
-     */
     @Override
     public Map<String, String> uploadImage(MultipartFile file, String subDir) {
-        // 校验是否为图片
         if (!isImage(file)) {
             log.warn("文件不是有效的图片类型: {}", file.getContentType());
             return null;
@@ -133,7 +80,7 @@ public class FileServiceImpl implements FileService {
         }
 
         try {
-            String targetPath = getPathBySubDir(subDir);
+            String targetPath = FileConstants.BASE_PATH + subDir;
             File file = new File(targetPath, relativePath);
 
             if (!file.exists()) {
@@ -160,7 +107,7 @@ public class FileServiceImpl implements FileService {
             return null;
         }
 
-        String targetPath = getPathBySubDir(subDir);
+        String targetPath = FileConstants.BASE_PATH + subDir;
         File file = new File(targetPath, relativePath);
         if (file.exists() && file.isFile()) {
             return file;
@@ -173,15 +120,9 @@ public class FileServiceImpl implements FileService {
         if (!StringUtils.hasText(relativePath)) {
             return null;
         }
-        return "/uploads/images/" + subDir + "/" + relativePath;
+        return FileConstants.URL_PREFIX + subDir + "/" + relativePath;
     }
 
-    /**
-     * 检查文件是否为图片
-     *
-     * @param file 上传的文件
-     * @return 是否为图片
-     */
     @Override
     public boolean isImage(MultipartFile file) {
         if (file == null || file.isEmpty()) {
@@ -193,20 +134,9 @@ public class FileServiceImpl implements FileService {
             return false;
         }
 
-        for (String allowedType : ALLOWED_IMAGE_TYPES) {
-            if (allowedType.equals(contentType)) {
-                return true;
-            }
-        }
-        return false;
+        return FileConstants.ALLOWED_IMAGE_TYPES.contains(contentType);
     }
 
-    /**
-     * 获取文件扩展名
-     *
-     * @param filename 文件名
-     * @return 扩展名（不含点），如 "jpg"、"png"
-     */
     @Override
     public String getFileExtension(String filename) {
         if (filename == null || filename.isEmpty()) {

@@ -35,8 +35,18 @@ public class MyConstants {
     /**
      * 用户当前会话Redis Key前缀
      * 完整格式：user:current_session:{userId}
+     * 用于：单点登录（SSO）强制踢下线
      */
     public static final String USER_CURRENT_SESSION_PREFIX = "user:current_session:";
+
+    /**
+     * 用户活跃Token映射Redis Key前缀
+     * 完整格式：user:active_token:{userId}
+     * 用于通过userId快速找到其对应的token，便于权限变更时原地更新Redis缓存
+     *
+     * 用于：后台权限变更的索引
+     */
+    public static final String USER_ACTIVE_TOKEN_PREFIX = "user:active_token:";
 
     // ==================== 请求头常量 ====================
 
@@ -51,62 +61,7 @@ public class MyConstants {
      */
     public static final String BEARER_PREFIX = "Bearer ";
 
-    // ==================== 文件上传常量 ====================
 
-    /**
-     * 允许的图片类型
-     */
-    public static final String[] ALLOWED_IMAGE_TYPES = {
-            "image/jpeg",
-            "image/png",
-            "image/gif",
-            "image/webp"
-    };
-
-    /**
-     * 默认上传基础路径
-     */
-    public static final String DEFAULT_UPLOAD_PATH = "./uploads";
-
-    /**
-     * 默认图片上传路径
-     */
-    public static final String DEFAULT_IMAGES_PATH = "./uploads/images";
-
-    /**
-     * 默认Logo上传路径
-     */
-    public static final String DEFAULT_LOGO_PATH = "./uploads/images/brands";
-
-    /**
-     * 商品主图上传路径
-     */
-    public static final String SPU_IMAGE_PATH = "./uploads/images/spu";
-
-    /**
-     * SKU规格图上传路径
-     */
-    public static final String SKU_IMAGE_PATH = "./uploads/images/sku";
-
-    /**
-     * 品牌图片上传路径
-     */
-    public static final String BRANDS_IMAGE_PATH = "./uploads/images/brands";
-
-    /**
-     * 店铺图片上传路径
-     */
-    public static final String STORES_IMAGE_PATH = "./uploads/images/stores";
-
-    /**
-     * 用户头像上传路径
-     */
-    public static final String AVATARS_IMAGE_PATH = "./uploads/images/avatars";
-
-    /**
-     * 横幅广告上传路径
-     */
-    public static final String BANNERS_IMAGE_PATH = "./uploads/images/banners";
 
     // ==================== 验证码相关常量 ====================
 
@@ -141,6 +96,32 @@ public class MyConstants {
      * 设置为30分钟，平衡缓存命中率和数据新鲜度
      */
     public static final int SPU_CACHE_EXPIRE_MINUTES = 30;
+
+    // ==================== 邮箱验证码相关常量 ====================
+
+    /**
+     * 登录邮箱验证码 Redis Key 前缀
+     * 完整格式：email:login:code:{email}
+     */
+    public static final String EMAIL_LOGIN_CODE_PREFIX = "email:login:code:";
+
+    /**
+     * 注册邮箱验证码 Redis Key 前缀
+     * 完整格式：email:register:code:{email}
+     */
+    public static final String EMAIL_REGISTER_CODE_PREFIX = "email:register:code:";
+
+    /**
+     * 重置密码邮箱验证码 Redis Key 前缀
+     * 完整格式：email:reset:pwd:{email}
+     */
+    public static final String EMAIL_RESET_PWD_CODE_PREFIX = "email:reset:pwd:";
+
+    /**
+     * 邮箱验证码过期时间（秒）
+     * 默认1分钟：60秒
+     */
+    public static final long EMAIL_CODE_EXPIRATION = 60L;
 
     // ==================== Banner轮播图相关常量 ====================
 

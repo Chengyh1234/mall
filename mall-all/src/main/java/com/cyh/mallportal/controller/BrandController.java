@@ -3,13 +3,13 @@ package com.cyh.mallportal.controller;
 import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.cyh.mallcommon.utils.Result;
+import com.cyh.mallcommon.constant.FileConstants;
 import com.cyh.mallportal.dto.BrandDto;
 import com.cyh.mallportal.entity.Brand;
 import com.cyh.mallportal.service.BrandService;
 import com.cyh.mallportal.service.FileService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
@@ -36,12 +36,6 @@ public class BrandController {
 
     @Autowired
     private FileService fileService;
-
-    /**
-     * Logo上传路径配置
-     */
-    @Value("${file.upload.logo-path:./uploads/logos}")
-    private String logoPath;
 
     /**
      * 新增品牌（支持form-data格式上传）
@@ -291,17 +285,17 @@ public class BrandController {
      * 上传品牌Logo（使用公共FileService）
      */
     private Map<String, String> uploadLogo(MultipartFile file) {
-        Map<String, String> result = fileService.uploadImage(file, "brands");
+        Map<String, String> result = fileService.uploadImage(file, FileConstants.BRAND_LOGO);
         if (result != null) {
             Map<String, String> response = new HashMap<>();
             response.put("logo", result.get("relativePath"));
-            response.put("logoUrl", "/uploads/images/brands/" + result.get("relativePath"));
+            response.put("logoUrl", "/uploads/images/brand/logo/" + result.get("relativePath"));
             return response;
         }
         return null;
     }
 
     private void deleteLogoFile(String logo) {
-        fileService.deleteFile(logo, "brands");
+        fileService.deleteFile(logo, FileConstants.BRAND_LOGO);
     }
 }

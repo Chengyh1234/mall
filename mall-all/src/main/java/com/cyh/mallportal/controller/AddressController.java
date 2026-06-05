@@ -33,7 +33,7 @@ public class AddressController {
      * @return 添加结果
      */
     @PostMapping("/add")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('USER')")
     public Result<Map<String, Object>> addAddress(@RequestBody AddressDto addressDto) {
         Long userId = getCurrentUserId();
 
@@ -73,7 +73,7 @@ public class AddressController {
      * @return 更新结果
      */
     @PutMapping("/update")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('USER')")
     public Result<Void> updateAddress(@RequestBody AddressDto addressDto) {
         Long userId = getCurrentUserId();
 
@@ -95,7 +95,7 @@ public class AddressController {
      * @return 删除结果
      */
     @DeleteMapping("/delete/{addressId}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('USER')")
     public Result<Void> deleteAddress(@PathVariable Long addressId) {
         Long userId = getCurrentUserId();
 
@@ -113,7 +113,7 @@ public class AddressController {
      * @return 地址详情
      */
     @GetMapping("/detail/{addressId}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('USER')")
     public Result<Address> getAddressById(@PathVariable Long addressId) {
         Long userId = getCurrentUserId();
 
@@ -130,7 +130,7 @@ public class AddressController {
      * @return 地址列表
      */
     @GetMapping("/list")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('USER')")
     public Result<List<Address>> getAddressesByUserId() {
         Long userId = getCurrentUserId();
 
@@ -144,7 +144,7 @@ public class AddressController {
      * @return 默认地址
      */
     @GetMapping("/default")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('USER')")
     public Result<Address> getDefaultAddress() {
         Long userId = getCurrentUserId();
 
@@ -162,7 +162,7 @@ public class AddressController {
      * @return 设置结果
      */
     @PutMapping("/set-default/{addressId}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('USER')")
     public Result<Void> setDefaultAddress(@PathVariable Long addressId) {
         Long userId = getCurrentUserId();
 

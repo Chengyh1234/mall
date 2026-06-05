@@ -84,6 +84,12 @@ public class Store implements Serializable {
     private Integer sort;
 
     /**
+     * 审核驳回原因
+     */
+    @TableField(value = "reject_reason")
+    private String rejectReason;
+
+    /**
      * 创建时间
      */
     @TableField(value = "created_at", fill = FieldFill.INSERT)

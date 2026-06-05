@@ -144,12 +144,13 @@ public class SpuServiceImpl implements SpuService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean update(Spu spu) {
+        // 1. 校验商品是否存在
         Spu oldSpu = spuMapper.selectById(spu.getId());
         if (oldSpu == null) {
             throw new BusinessException("商品不存在");
         }
 
-        // 校验同一商家下商品名称唯一性（排除当前商品自身）
+        // 2. 校验同一商家下商品名称唯一性（排除当前商品自身）
         if (spu.getName() != null) {
             Long sellerId = spu.getSellerId() != null ? spu.getSellerId() : oldSpu.getSellerId();
             if (sellerId != null) {
@@ -165,7 +166,9 @@ public class SpuServiceImpl implements SpuService {
             }
         }
 
+        // 3. 如果修改了分类，校验新分类是否为叶子分类，并清理旧数据
         if (spu.getCategoryId() != null && !spu.getCategoryId().equals(oldSpu.getCategoryId())) {
+            // 3.1 校验分类是否为叶子分类（SPU只能挂在叶子分类下）
             Long childCount = categoryMapper.selectCount(
                     new LambdaQueryWrapper<Category>()
                             .eq(Category::getParentId, spu.getCategoryId())
@@ -177,24 +180,32 @@ public class SpuServiceImpl implements SpuService {
 
             Long spuId = spu.getId();
 
+            // 3.2 清理旧分类下的基本属性绑定
             spuBasicAttrValueMapper.delete(
                     new LambdaQueryWrapper<SpuBasicAttrValue>()
                             .eq(SpuBasicAttrValue::getSpuId, spuId)
             );
 
+            // 3.3 清理旧分类下的销售属性绑定
             spuSaleAttrChoiceMapper.delete(
                     new LambdaQueryWrapper<SpuSaleAttrChoice>()
                             .eq(SpuSaleAttrChoice::getSpuId, spuId)
             );
 
+            // 3.4 清理旧分类下的SKU（分类变更后旧SKU的属性值已不适用）
             skuMapper.delete(
                     new LambdaQueryWrapper<Sku>()
                             .eq(Sku::getSpuId, spuId)
             );
 
             log.info("分类变更，已清理SPU {} 的旧属性绑定和SKU", spuId);
+
+            // 3.5 分类变更后旧属性/SKU已清空，将商品置为下架状态
+            // 商家需要在新分类下重新配置属性和SKU后才能再次上架
+            spu.setStatus(0);
         }
 
+        // 4. 更新商品信息并清除缓存
         spu.setUpdatedAt(LocalDateTime.now());
         int result = spuMapper.updateById(spu);
         if (result > 0) {
@@ -536,6 +547,59 @@ public class SpuServiceImpl implements SpuService {
     }
 
     /**
+     * 【运营管理员】分页获取全部商品列表（含上架和下架）
+     * 不限商家，用于运营管理员查看全平台商品
+     * 与 page-by-seller 接口格式一致，但不限制商家
+     *
+     * @param status   状态（可选，1-上架 0-下架，不传则查询全部）
+     * @param keyword  关键字（可选，按商品名称模糊搜索）
+     * @param page     页码
+     * @param pageSize 每页数量
+     * @return 商品列表（含 categoryName、brandName）
+     */
+    @Override
+    public List<Spu> getPageAll(Integer status, String keyword, Integer page, Integer pageSize) {
+        Page<Spu> pageParam = new Page<>(page != null ? page : 1, pageSize != null ? pageSize : 10);
+        LambdaQueryWrapper<Spu> queryWrapper = new LambdaQueryWrapper<>();
+        // 不限制商家，运营管理员可查看全部商品
+        if (status != null) {
+            queryWrapper.eq(Spu::getStatus, status);
+        }
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            queryWrapper.like(Spu::getName, keyword.trim());
+        }
+        queryWrapper.orderByDesc(Spu::getCreatedAt);
+        IPage<Spu> result = spuMapper.selectPage(pageParam, queryWrapper);
+        List<Spu> spuList = result.getRecords();
+
+        // 批量回填分类名称和品牌名称
+        fillCategoryAndBrandNames(spuList);
+
+        return spuList;
+    }
+
+    /**
+     * 【运营管理员】统计全部商品数量
+     *
+     * @param status  状态（可选，不传则统计全部）
+     * @param keyword 关键字（可选）
+     * @return 商品数量
+     */
+    @Override
+    public int countAll(Integer status, String keyword) {
+        LambdaQueryWrapper<Spu> queryWrapper = new LambdaQueryWrapper<>();
+        // 不限制商家，运营管理员统计全部商品
+        if (status != null) {
+            queryWrapper.eq(Spu::getStatus, status);
+        }
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            queryWrapper.like(Spu::getName, keyword.trim());
+        }
+        long count = spuMapper.selectCount(queryWrapper);
+        return (int) count;
+    }
+
+    /**
      * 根据商家ID获取商品详情
      * 用于商家查看自己商品的详情
      * @param id 商品ID
@@ -573,36 +637,6 @@ public class SpuServiceImpl implements SpuService {
         spuMapper.updateById(spu);
 
         log.info("更新SPU[{}]的最低售价: {}", spuId, minPrice);
-    }
-
-    /**
-     * 刷新SPU的上架/下架状态
-     * 查询该SPU下是否存在启用状态的SKU，自动同步SPU状态
-     *   - 存在启用SKU → 上架(status=1)
-     *   - 不存在启用SKU → 下架(status=0)
-     * SKU增删改时均应调用此方法
-     *
-     * @param spuId SPU ID
-     */
-    @Override
-    public void refreshSpuStatus(Long spuId) {
-        LambdaQueryWrapper<Sku> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Sku::getSpuId, spuId);
-        wrapper.eq(Sku::getStatus, 1);
-        wrapper.last("LIMIT 1");
-        Sku sku = skuMapper.selectOne(wrapper);
-
-        int status = sku != null ? 1 : 0;
-
-        Spu spu = new Spu();
-        spu.setId(spuId);
-        spu.setStatus(status);
-        spuMapper.updateById(spu);
-
-        // 清除缓存，确保下次查询拿到最新状态
-        spuCacheService.clearAllSpuCache();
-
-        log.info("刷新SPU[{}]的上架状态: {}", spuId, status);
     }
 
     /**
@@ -647,5 +681,86 @@ public class SpuServiceImpl implements SpuService {
             }
         }
         return vo;
+    }
+
+    /**
+     * 根据店铺ID分页查询 SPU 列表（公开）
+     * 仅返回上架商品（status=1），支持多条件筛选和排序
+     *
+     * @param storeId    店铺ID
+     * @param keyword    商品名称关键字（模糊匹配，可选）
+     * @param categoryId 分类ID（精确匹配，可选）
+     * @param minPrice   最低售价下限（可选）
+     * @param maxPrice   最低售价上限（可选）
+     * @param sortBy     排序字段（sales/price/created_at，默认 created_at）
+     * @param sortOrder  排序方向（asc/desc，默认 desc）
+     * @param page       页码
+     * @param pageSize   每页数量
+     * @return 商品列表（含 categoryName、brandName）
+     */
+    @Override
+    public List<Spu> getPageByStoreId(Long storeId, String keyword, Long categoryId,
+                                      BigDecimal minPrice, BigDecimal maxPrice,
+                                      String sortBy, String sortOrder,
+                                      Integer page, Integer pageSize) {
+        Page<Spu> pageParam = new Page<>(page != null ? page : 1, pageSize != null ? pageSize : 10);
+        LambdaQueryWrapper<Spu> queryWrapper = buildStoreSpuQuery(storeId, keyword, categoryId, minPrice, maxPrice);
+
+        // 构建排序条件
+        if ("sales".equalsIgnoreCase(sortBy)) {
+            queryWrapper.orderBy(true, "asc".equalsIgnoreCase(sortOrder), Spu::getSales);
+        } else if ("price".equalsIgnoreCase(sortBy)) {
+            queryWrapper.orderBy(true, "asc".equalsIgnoreCase(sortOrder), Spu::getMinPrice);
+        } else {
+            // 默认按创建时间排序
+            queryWrapper.orderBy(true, !"asc".equalsIgnoreCase(sortOrder), Spu::getCreatedAt);
+        }
+
+        IPage<Spu> result = spuMapper.selectPage(pageParam, queryWrapper);
+        List<Spu> spuList = result.getRecords();
+
+        // 回填分类名称和品牌名称
+        fillCategoryAndBrandNames(spuList);
+
+        return spuList;
+    }
+
+    /**
+     * 统计店铺下 SPU 总数（公开）
+     * 与 getPageByStoreId 条件一致
+     */
+    @Override
+    public int countByStoreId(Long storeId, String keyword, Long categoryId,
+                              BigDecimal minPrice, BigDecimal maxPrice) {
+        LambdaQueryWrapper<Spu> queryWrapper = buildStoreSpuQuery(storeId, keyword, categoryId, minPrice, maxPrice);
+        long count = spuMapper.selectCount(queryWrapper);
+        return (int) count;
+    }
+
+    /**
+     * 构建店铺 SPU 查询条件
+     * 仅返回上架（status=1）+ 未删除的商品
+     */
+    private LambdaQueryWrapper<Spu> buildStoreSpuQuery(Long storeId, String keyword,
+                                                        Long categoryId,
+                                                        BigDecimal minPrice, BigDecimal maxPrice) {
+        LambdaQueryWrapper<Spu> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Spu::getStoreId, storeId);
+        queryWrapper.eq(Spu::getStatus, 1);          // 仅上架商品
+        queryWrapper.eq(Spu::getIsDeleted, false);    // 未删除
+
+        if (categoryId != null) {
+            queryWrapper.eq(Spu::getCategoryId, categoryId);
+        }
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            queryWrapper.like(Spu::getName, keyword.trim());
+        }
+        if (minPrice != null) {
+            queryWrapper.ge(Spu::getMinPrice, minPrice);
+        }
+        if (maxPrice != null) {
+            queryWrapper.le(Spu::getMinPrice, maxPrice);
+        }
+        return queryWrapper;
     }
 }

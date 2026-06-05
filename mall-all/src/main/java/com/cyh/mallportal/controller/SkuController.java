@@ -2,6 +2,7 @@ package com.cyh.mallportal.controller;
 
 import com.alibaba.fastjson2.JSON;
 import com.cyh.mallcommon.utils.Result;
+import com.cyh.mallcommon.constant.FileConstants;
 import com.cyh.mallportal.dto.SkuDto;
 import com.cyh.mallportal.entity.Sku;
 import com.cyh.mallportal.service.FileService;
@@ -463,7 +464,7 @@ public class SkuController {
     }
 
     private Map<String, String> uploadImage(MultipartFile file) {
-        Map<String, String> result = fileService.uploadImage(file, "sku");
+        Map<String, String> result = fileService.uploadImage(file, FileConstants.SKU);
         if (result != null) {
             Map<String, String> response = new HashMap<>();
             response.put("relativePath", result.get("relativePath"));
@@ -474,6 +475,6 @@ public class SkuController {
     }
 
     private void deleteImageFile(String image) {
-        fileService.deleteFile(image, "sku");
+        fileService.deleteFile(image, FileConstants.SKU);
     }
 }

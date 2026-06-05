@@ -66,7 +66,7 @@ public class Result<T> {
      * @return Result
      */
     public static <T> Result<T> error() {
-        return new Result<>(500, "error", null);
+        return new Result<>(40000, "error", null);
     }
 
     /**
@@ -76,7 +76,7 @@ public class Result<T> {
      * @return Result
      */
     public static <T> Result<T> error(String message) {
-        return new Result<>(500, message, null);
+        return new Result<>(40000, message, null);
     }
 
     /**

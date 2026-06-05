@@ -1,7 +1,11 @@
 package com.cyh.mallportal.controller;
 
 import com.cyh.mallcommon.utils.Result;
+import com.cyh.mallcommon.constant.FileConstants;
 import com.cyh.mallportal.entity.User;
+import com.cyh.mallportal.mapper.RoleMapper;
+import com.cyh.mallportal.mapper.UserMapper;
+import com.cyh.mallportal.vo.UserInfoVo;
 import com.cyh.mallportal.service.FileService;
 import com.cyh.mallportal.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -28,26 +33,39 @@ public class UserController {
     @Autowired
     private FileService fileService;
 
+    @Autowired
+    private RoleMapper roleMapper;
+
+    @Autowired
+    private UserMapper userMapper;
+
     /**
-     * 获取当前用户信息
+     * 获取当前用户信息（敏感字段已脱敏）
+     * 包含角色列表和权限列表
      *
-     * @return 用户信息（不含密码）
+     * @return 用户信息 VO（邮箱、手机号、真实姓名已脱敏）
      */
     @GetMapping("/profile")
     @PreAuthorize("isAuthenticated()")
-    public Result<User> getProfile() {
+    public Result<UserInfoVo> getProfile() {
         Long userId = getCurrentUserId();
         User user = userService.getById(userId);
         if (user != null) {
-            return Result.success(user);
+            // 加载角色编码和权限编码
+            List<String> roles = roleMapper.selectByUserId(userId).stream()
+                    .map(role -> role.getCode())
+                    .toList();
+            List<String> authorities = userMapper.selectPermissionCodesByUserId(userId);
+            return Result.success(UserInfoVo.fromUser(user, roles, authorities));
         }
         return Result.error("用户不存在");
     }
 
     /**
-     * 更新用户基本信息（真实姓名、邮箱、手机号）
-     * 更新邮箱或手机号时需要验证密码
+     * 更新用户基本信息（用户名、真实姓名、邮箱、手机号）
+     * 更新用户名时校验唯一性；更新邮箱或手机号时需要验证密码
      *
+     * @param username  用户名（更新时校验唯一性）
      * @param realName 真实姓名
      * @param email    邮箱（更新时需要密码验证）
      * @param phone    手机号（更新时需要密码验证）
@@ -56,14 +74,21 @@ public class UserController {
      */
     @PutMapping("/profile")
     @PreAuthorize("isAuthenticated()")
-    public Result<User> updateProfile(@RequestParam(required = false) String realName,
+    public Result<UserInfoVo> updateProfile(@RequestParam(required = false) String username,
+                                       @RequestParam(required = false) String realName,
                                        @RequestParam(required = false) String email,
                                        @RequestParam(required = false) String phone,
                                        @RequestParam(required = false) String password) {
         Long userId = getCurrentUserId();
 
-        User user = userService.updateProfile(userId, realName, email, phone, password);
-        return Result.success("更新成功", user);
+        User user = userService.updateProfile(userId, username, realName, email, phone, password);
+        // 加载角色编码和权限编码
+        List<String> roles = roleMapper.selectByUserId(userId).stream()
+                .map(role -> role.getCode())
+                .toList();
+        List<String> authorities = userMapper.selectPermissionCodesByUserId(userId);
+        UserInfoVo userInfoVo = UserInfoVo.fromUser(user, roles, authorities);
+        return Result.success("更新成功", userInfoVo);
     }
 
     /**
@@ -104,7 +129,7 @@ public class UserController {
 
         String oldAvatar = userService.getById(userId).getAvatar();
 
-        Map<String, String> uploadResult = fileService.uploadImage(file, "avatars");
+        Map<String, String> uploadResult = fileService.uploadImage(file, FileConstants.USER_AVATARS);
         if (uploadResult == null) {
             return Result.error("头像上传失败");
         }
@@ -114,12 +139,12 @@ public class UserController {
         userService.updateAvatar(userId, avatarUrl);
 
         if (oldAvatar != null) {
-            fileService.deleteFile(oldAvatar, "avatars");
+            fileService.deleteFile(oldAvatar, FileConstants.USER_AVATARS);
         }
 
         Map<String, String> data = new HashMap<>();
         data.put("avatar", avatarUrl);
-        data.put("avatarUrl", "/uploads/images/avatars/" + avatarUrl);
+        data.put("avatarUrl", "/uploads/images/user/avatars/" + avatarUrl);
         return Result.success("头像更新成功", data);
     }
 

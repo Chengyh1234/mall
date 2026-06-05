@@ -1412,6 +1412,7 @@ CREATE TABLE `stores`  (
                            `address` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '店铺地址',
                            `business_license` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '营业执照',
                            `status` tinyint NULL DEFAULT 1 COMMENT '状态: 1-正常 0-禁用 2-审核中 3-审核失败',
+                           `reject_reason` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NULL DEFAULT NULL COMMENT '审核驳回原因',
                            `sort` int NULL DEFAULT 0 COMMENT '排序',
                            `created_at` datetime NULL DEFAULT CURRENT_TIMESTAMP,
                            `updated_at` datetime NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

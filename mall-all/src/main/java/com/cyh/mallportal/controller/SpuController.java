@@ -5,12 +5,14 @@ import com.alibaba.druid.util.StringUtils;
 import com.alibaba.fastjson2.JSON;
 
 import com.cyh.mallcommon.utils.Result;
+import com.cyh.mallcommon.constant.FileConstants;
 import com.cyh.mallportal.dto.SpuDto;
 import com.cyh.mallportal.entity.Spu;
 import com.cyh.mallportal.entity.User;
 import com.cyh.mallportal.service.CategoryService;
 import com.cyh.mallportal.service.FileService;
 import com.cyh.mallportal.service.SpuService;
+import com.cyh.mallportal.service.StoreService;
 import com.cyh.mallportal.vo.SpuDetailVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,6 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -45,33 +48,45 @@ public class SpuController {
     @Autowired
     private FileService fileService;
 
+    @Autowired
+    private StoreService storeService;
+
     //@Value("${file.upload.images-path:./uploads/images}")
     //private String imagesPath;
 
     /**
-     * 上传图片时，上传图片到指定目录，返回图片路径，日期/UUID+文件名保存在数据库中
+     * 新增商品
+     * 店铺ID由系统根据当前登录商家自动获取，无需前端传入
      */
     @PostMapping("/add")
     @PreAuthorize("hasAuthority('product:add') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Map<String, Object>> add(@RequestPart(value = "spuDto") String spuDtoString,
                                            @RequestPart(value = "imageFiles", required = false) List<MultipartFile> imageFiles) {
         SpuDto spuDto = JSON.parseObject(spuDtoString, SpuDto.class);
-        // 1. 创建Spu实体并设置基本信息
+        // 1. 获取当前登录用户ID
+        Long sellerId = getCurrentUserId();
+        if (sellerId == null) {
+            return Result.error("用户未登录");
+        }
+
+        // 2. 根据商家ID自动获取其所属店铺ID
+        com.cyh.mallportal.entity.Store store = storeService.getBySellerId(sellerId);
+        if (store == null) {
+            return Result.error("未找到您的店铺，请先创建店铺");
+        }
+
+        // 3. 创建Spu实体并设置基本信息
         Spu spu = new Spu();
         spu.setName(spuDto.getName());
         spu.setCategoryId(spuDto.getCategoryId());
         spu.setBrandId(spuDto.getBrandId());
-        spu.setStoreId(spuDto.getStoreId());
+        spu.setStoreId(store.getId());          // 自动设置店铺ID
         spu.setDescription(spuDto.getDescription());
         spu.setUnit(spuDto.getUnit());
         spu.setKeywords(spuDto.getKeywords());
         spu.setSales(spuDto.getSales());
         spu.setStatus(spuDto.getStatus());
-        // 2. 设置商家ID为当前登录用户ID（商品归属商家）
-        Long sellerId = getCurrentUserId();
-        if (sellerId == null) {
-            return Result.error("用户未登录");
-        }
+        // 4. 设置商家ID为当前登录用户ID（商品归属商家）
         spu.setSellerId(sellerId);
 
         String mainImageName = spuDto.getMainImageName();
@@ -146,7 +161,7 @@ public class SpuController {
             return Result.error("用户未登录");
         }
         // 如果当前用户不是管理员且不是商品所有者，拒绝操作
-        if (!isAdminOrSeller() && !currentUserId.equals(spu.getSellerId())) {
+        if (!currentUserId.equals(spu.getSellerId())) {
             return Result.error("无权删除此商品");
         }
 
@@ -173,7 +188,7 @@ public class SpuController {
         if (currentUserId == null) {
             return Result.error("用户未登录");
         }
-        if (!isAdminOrSeller() && !currentUserId.equals(spu.getSellerId())) {
+        if (!currentUserId.equals(spu.getSellerId())) {
             return Result.error("无权操作此商品");
         }
 
@@ -205,7 +220,7 @@ public class SpuController {
         if (currentUserId == null) {
             return Result.error("用户未登录");
         }
-        if (!isAdminOrSeller() && !currentUserId.equals(spu.getSellerId())) {
+        if (!currentUserId.equals(spu.getSellerId())) {
             return Result.error("无权操作此商品");
         }
 
@@ -226,9 +241,6 @@ public class SpuController {
         Long currentUserId = getCurrentUserId();
         if (currentUserId == null) {
             return Result.error("用户未登录");
-        }
-        if (!isAdminOrSeller()) {
-            return Result.error("无权操作");
         }
 
         boolean success = spuService.restore(id);
@@ -271,7 +283,7 @@ public class SpuController {
             return Result.error("用户未登录");
         }
         // 3.如果当前用户不是管理员且不是商品所有者，拒绝操作
-        if (!isAdminOrSeller() && !currentUserId.equals(oldSpu.getSellerId())) {
+        if ( !currentUserId.equals(oldSpu.getSellerId())) {
             return Result.error("无权修改此商品");
         }
 
@@ -472,6 +484,33 @@ public class SpuController {
     }
 
     /**
+     * 【运营管理员】分页获取全部商品列表（含上架和下架）
+     * 不限商家，用于运营管理员查看全平台商品，支持按状态筛选和商品名称搜索
+     * 返回格式与 page-by-seller 一致，但不包含 sellerId 字段
+     *
+     * @param status   状态筛选（可选，1-上架 0-下架，不传则查询全部）
+     * @param keyword  搜索关键字（可选，按商品名称模糊搜索）
+     * @param page     页码，默认第1页
+     * @param pageSize 每页数量，默认10条
+     * @return 商品分页列表（含 categoryName、brandName）
+     */
+    @GetMapping("/page-all")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
+    public Result<Map<String, Object>> getPageAll(@RequestParam(required = false) Integer status,
+                                                  @RequestParam(required = false) String keyword,
+                                                  @RequestParam(defaultValue = "1") Integer page,
+                                                  @RequestParam(defaultValue = "10") Integer pageSize) {
+        List<Spu> list = spuService.getPageAll(status, keyword, page, pageSize);
+        int total = spuService.countAll(status, keyword);
+        Map<String, Object> data = new HashMap<>();
+        data.put("list", list);
+        data.put("page", page);
+        data.put("pageSize", pageSize);
+        data.put("total", total);
+        return Result.success(data);
+    }
+
+    /**
      * 分页获取商品列表（支持分类及其子分类、多字段模糊搜索、品牌筛选）
      * 公开接口，仅返回上架状态（status=1）的商品
      *
@@ -533,14 +572,54 @@ public class SpuController {
     }
 
     /**
+     * 根据店铺ID分页查询 SPU 列表（公开，无需登录）
+     * 仅返回上架商品（status=1），支持按名称关键字、分类、价格范围筛选和排序
+     *
+     * @param storeId   店铺ID（路径参数）
+     * @param keyword   商品名称关键字（模糊匹配，可选）
+     * @param categoryId 分类ID（精确匹配，可选）
+     * @param minPrice  最低售价下限（可选）
+     * @param maxPrice  最低售价上限（可选）
+     * @param sortBy    排序字段：sales（销量）/ price（价格）/ created_at（创建时间），默认 created_at
+     * @param sortOrder 排序方向：asc（升序）/ desc（降序），默认 desc
+     * @param page      页码，默认第1页
+     * @param pageSize  每页数量，默认10条
+     * @return 分页数据：{ list, page, pageSize, total, storeId, ...filters }
+     */
+    @GetMapping("/by-store/{storeId}/page")
+    public Result<Map<String, Object>> getPageByStoreId(@PathVariable Long storeId,
+                                                        @RequestParam(required = false) String keyword,
+                                                        @RequestParam(required = false) Long categoryId,
+                                                        @RequestParam(required = false) BigDecimal minPrice,
+                                                        @RequestParam(required = false) BigDecimal maxPrice,
+                                                        @RequestParam(defaultValue = "created_at") String sortBy,
+                                                        @RequestParam(defaultValue = "desc") String sortOrder,
+                                                        @RequestParam(defaultValue = "1") Integer page,
+                                                        @RequestParam(defaultValue = "10") Integer pageSize) {
+        List<Spu> list = spuService.getPageByStoreId(storeId, keyword, categoryId,
+                minPrice, maxPrice, sortBy, sortOrder, page, pageSize);
+        int total = spuService.countByStoreId(storeId, keyword, categoryId, minPrice, maxPrice);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("list", list);
+        data.put("page", page);
+        data.put("pageSize", pageSize);
+        data.put("total", total);
+        data.put("storeId", storeId);
+        if (keyword != null) data.put("keyword", keyword);
+        if (categoryId != null) data.put("categoryId", categoryId);
+        return Result.success(data);
+    }
+
+    /**
      * 上传图片（使用公共FileService）
      */
     private Map<String, String> uploadImage(MultipartFile file) {
-        return fileService.uploadFile(file, "spu");
+        return fileService.uploadFile(file, FileConstants.SPU);
     }
 
     private void deleteImageFile(String imagePath) {
-        fileService.deleteFile(imagePath, "spu");
+        fileService.deleteFile(imagePath, FileConstants.SPU);
     }
 
     /**

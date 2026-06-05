@@ -31,6 +31,40 @@
           AND deleted_at IS NULL
     </select>
 
+    <!-- 统一账号查询：支持用户名/手机号/邮箱 三选一登录 -->
+    <select id="selectByAccount" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List" />
+        FROM users
+        WHERE deleted_at IS NULL
+          AND (
+              username = #{account}
+              OR phone = #{account}
+              OR email = #{account}
+          )
+        LIMIT 1
+    </select>
+
+    <!-- 根据手机号查询用户 -->
+    <select id="selectByPhone" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List" />
+        FROM users
+        WHERE phone = #{phone}
+          AND deleted_at IS NULL
+        LIMIT 1
+    </select>
+
+    <!-- 根据邮箱查询用户 -->
+    <select id="selectByEmail" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List" />
+        FROM users
+        WHERE email = #{email}
+          AND deleted_at IS NULL
+        LIMIT 1
+    </select>
+
     <select id="selectRoleCodesByUserId" resultType="string">
         SELECT r.code
         FROM roles r

@@ -13,13 +13,26 @@
         <result column="address" property="address" />
         <result column="business_license" property="businessLicense" />
         <result column="status" property="status" />
+        <result column="reject_reason" property="rejectReason" />
         <result column="sort" property="sort" />
         <result column="created_at" property="createdAt" />
         <result column="updated_at" property="updatedAt" />
     </resultMap>
 
+    <!-- 公开页面店铺展示所用 resultMap，仅映射 StoreVO 所需字段（id, name, logo, description） -->
+    <resultMap id="StoreVOResultMap" type="com.cyh.mallportal.vo.StoreVO">
+        <id column="id" property="id" />
+        <result column="name" property="name" />
+        <result column="logo" property="logo" />
+        <result column="description" property="description" />
+    </resultMap>
+
     <sql id="Base_Column_List">
-        id, name, seller_id, logo, banner, description, phone, address, business_license, status, sort, created_at, updated_at
+        id, name, seller_id, logo, banner, description, phone, address, business_license, status, reject_reason, sort, created_at, updated_at
+    </sql>
+
+    <sql id="StoreVO_Column_List">
+        id, name, logo, description
     </sql>
 
     <select id="selectBySellerId" resultMap="BaseResultMap">
@@ -61,6 +74,76 @@
         </if>
         <if test="status != null">
             AND status = #{status}
+        </if>
+    </select>
+
+    <!-- 分页查询公开店铺列表（仅 status=1），返回 StoreVO -->
+    <select id="selectPageVO" resultMap="StoreVOResultMap">
+        SELECT
+        <include refid="StoreVO_Column_List" />
+        FROM stores
+        WHERE status = 1
+        <if test="keyword != null and keyword != ''">
+            AND name LIKE CONCAT('%', #{keyword}, '%')
+        </if>
+        ORDER BY sort ASC, created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 统计公开店铺数量（仅 status=1） -->
+    <select id="countPageVO" resultType="int">
+        SELECT COUNT(*)
+        FROM stores
+        WHERE status = 1
+        <if test="keyword != null and keyword != ''">
+            AND name LIKE CONCAT('%', #{keyword}, '%')
+        </if>
+    </select>
+
+    <!-- 管理员分页查询店铺列表（多条件筛选），返回完整 Store 实体 -->
+    <select id="selectAdminPage" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List" />
+        FROM stores
+        WHERE 1=1
+        <if test="id != null">
+            AND id = #{id}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND name LIKE CONCAT('%', #{keyword}, '%')
+        </if>
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+        <if test="sellerId != null">
+            AND seller_id = #{sellerId}
+        </if>
+        <if test="phone != null and phone != ''">
+            AND phone LIKE CONCAT('%', #{phone}, '%')
+        </if>
+        ORDER BY sort ASC, created_at DESC
+        LIMIT #{offset}, #{limit}
+    </select>
+
+    <!-- 管理员统计店铺总数（多条件筛选） -->
+    <select id="countAdminPage" resultType="int">
+        SELECT COUNT(*)
+        FROM stores
+        WHERE 1=1
+        <if test="id != null">
+            AND id = #{id}
+        </if>
+        <if test="keyword != null and keyword != ''">
+            AND name LIKE CONCAT('%', #{keyword}, '%')
+        </if>
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+        <if test="sellerId != null">
+            AND seller_id = #{sellerId}
+        </if>
+        <if test="phone != null and phone != ''">
+            AND phone LIKE CONCAT('%', #{phone}, '%')
         </if>
     </select>
 

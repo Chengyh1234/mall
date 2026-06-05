@@ -1,6 +1,7 @@
 package com.cyh.mallportal.config;
 
 import com.cyh.mallportal.filter.TokenAuthenticationFilter;
+import com.cyh.mallportal.handler.CustomAuthenticationEntryPoint;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -60,6 +61,12 @@ public class SecurityConfig {
     private final TokenAuthenticationFilter tokenAuthenticationFilter;
 
     /**
+     * 未登录认证处理器
+     * 访问受保护接口时未携带Token → 返回统一的JSON 401
+     */
+    private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
+
+    /**
      * 用户详情服务
      * 用于加载用户信息和权限
      */
@@ -90,20 +97,52 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 // 配置请求授权规则
                 .authorizeHttpRequests(auth -> auth
-                        //.anyRequest().permitAll()
                         // 允许获取验证码无需认证
                         .requestMatchers(HttpMethod.GET, "/captcha").permitAll()
-                        // 允许登录接口无需认证 允许 POST 请求到登录注册接口
-                        .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/register").permitAll()
+                        // 允许登录/注册/密码重置接口无需认证
+                        .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/register",
+                                "/auth/register/send-email-code", "/auth/admin/login",
+                                "/auth/login/send-email-code", "/auth/login/email-code",
+                                "/auth/reset-password/send-code", "/auth/reset-password/reset").permitAll()
                         // 允许静态资源访问
                         .requestMatchers("/uploads/images/**").permitAll()
-                        // 允许所有GET请求无需登录（公开查询接口）
-                        .requestMatchers(HttpMethod.GET, "/auth/info").authenticated()
-                        .requestMatchers(HttpMethod.GET, "/**").permitAll()
-                        // /auth/info需要认证
-                        // 其他所有请求需要登录认证
-                        //.requestMatchers().authenticated()
-                        // 兜底：任何其他请求都需要认证
+                        // 公开浏览接口（产品浏览、品牌、分类等，无需登录）
+                        .requestMatchers(HttpMethod.GET,
+                                "/attribute/category/**",
+                                "/attribute/sales/**",
+                                "/attribute/basic/**",
+                                "/attribute/spu/**",
+                                "/banner/active",
+                                "/brand/**",
+                                "/category/detail/**",
+                                "/category/list",
+                                "/category/page",
+                                "/category/tree",
+                                "/category/level1",
+                                "/category/children/**",
+                                "/delivery/list/**",
+                                "/delivery/detail/**",
+                                "/delivery/status-desc/**",
+                                "/logistics/list",
+                                "/logistics/detail/**",
+                                "/logistics/code/**",
+                                "/order/status-desc/**",
+                                "/order/pay-status-desc/**",
+                                "/sku/detail/**",
+                                "/sku/list",
+                                "/sku/page",
+                                "/sku/min-price/**",
+                                "/sku/total-stock/**",
+                                "/sku/list-with-attributes",
+                                "/sku/detail-with-attributes/**",
+                                "/spu/detail/**",
+                                "/spu/list",
+                                "/spu/page",
+                                "/spu/by-store/**",
+                                "/store/detail/**",
+                                "/store/page"
+                        ).permitAll()
+                        // 兜底：其他请求（含未列出的GET、所有POST/PUT/DELETE）都需要认证
                         .anyRequest().authenticated()
                 )
                 // 配置认证提供者
@@ -113,7 +152,11 @@ public class SecurityConfig {
                 // 禁用表单登录（前后端分离使用Token方式）
                 .formLogin(form -> form.disable())
                 // 禁用HTTP Basic认证
-                .httpBasic(basic -> basic.disable());
+                .httpBasic(basic -> basic.disable())
+                // 异常处理：接管 Spring Security 过滤器链中的认证异常
+                .exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(customAuthenticationEntryPoint)
+                );
 
         return http.build();
     }

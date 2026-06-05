@@ -4,11 +4,14 @@ import cn.hutool.core.io.FileUtil;
 import com.alibaba.druid.util.StringUtils;
 import com.alibaba.fastjson2.JSON;
 import com.cyh.mallcommon.utils.Result;
+import com.cyh.mallcommon.constant.FileConstants;
 import com.cyh.mallportal.dto.StoreDto;
 import com.cyh.mallportal.entity.Store;
 import com.cyh.mallportal.entity.User;
 import com.cyh.mallportal.service.FileService;
 import com.cyh.mallportal.service.StoreService;
+import com.cyh.mallportal.vo.StoreDetailVO;
+import com.cyh.mallportal.vo.StoreVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -153,6 +156,7 @@ public class StoreController {
         }
 
         boolean success = storeService.update(store);
+        // 4. 处理文件删除
         if (success) {
             if (logoUpdated && oldLogo != null) {
                 deleteLogoFile(oldLogo);
@@ -170,13 +174,17 @@ public class StoreController {
     }
 
     /**
-     * 获取店铺详情
+     * 获取店铺详情（公开）
+     * 返回 StoreDetailVO，包含店铺名称、Logo、横幅、描述、地址、创建时间，不含内部管理字段
+     *
+     * @param id 店铺ID
+     * @return 店铺详情 VO
      */
     @GetMapping("/detail/{id}")
-    public Result<Store> getById(@PathVariable Long id) {
-        Store store = storeService.getById(id);
-        if (store != null) {
-            return Result.success(store);
+    public Result<StoreDetailVO> getDetail(@PathVariable Long id) {
+        StoreDetailVO storeDetail = storeService.getDetailVO(id);
+        if (storeDetail != null) {
+            return Result.success(storeDetail);
         }
         return Result.error("店铺不存在");
     }
@@ -199,24 +207,53 @@ public class StoreController {
     }
 
     /**
-     * 获取店铺列表
-     */
-    @GetMapping("/list")
-    public Result<List<Store>> getList(Store store) {
-        List<Store> list = storeService.getList(store);
-        return Result.success(list);
-    }
-
-    /**
-     * 分页获取店铺列表
+     * 分页获取公开店铺列表（仅 status=1）
+     * 无需登录即可访问，返回 StoreVO（不包含敏感管理字段）
+     *
+     * @param keyword  搜索关键字（店铺名称模糊匹配，可选）
+     * @param page     页码，默认第1页
+     * @param pageSize 每页数量，默认10条
+     * @return 分页数据：{ list, page, pageSize, total }
      */
     @GetMapping("/page")
     public Result<Map<String, Object>> getPage(@RequestParam(required = false) String keyword,
-                                               @RequestParam(required = false) Integer status,
                                                @RequestParam(defaultValue = "1") Integer page,
                                                @RequestParam(defaultValue = "10") Integer pageSize) {
-        List<Store> list = storeService.getPage(keyword, status, page, pageSize);
-        int total = storeService.countPage(keyword, status);
+        List<StoreVO> list = storeService.getPageVO(keyword, page, pageSize);
+        int total = storeService.countPageVO(keyword);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put("list", list);
+        data.put("page", page);
+        data.put("pageSize", pageSize);
+        data.put("total", total);
+        return Result.success(data);
+    }
+
+    /**
+     * 管理员分页查询店铺列表（多条件筛选）
+     * 可查看全部状态的店铺，返回完整 Store 实体，支持按店铺ID、名称关键字、状态、商家ID、联系电话搜索
+     *
+     * @param id       店铺ID（精确匹配，可选）
+     * @param keyword  店铺名称（模糊匹配，可选）
+     * @param status   店铺状态（可选，不传查全部）
+     * @param sellerId 商家用户ID（精确匹配，可选）
+     * @param phone    联系电话（模糊匹配，可选）
+     * @param page     页码，默认第1页
+     * @param pageSize 每页数量，默认10条
+     * @return 分页数据：{ list, page, pageSize, total }
+     */
+    @GetMapping("/admin/page")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
+    public Result<Map<String, Object>> getAdminPage(@RequestParam(required = false) Long id,
+                                                    @RequestParam(required = false) String keyword,
+                                                    @RequestParam(required = false) Integer status,
+                                                    @RequestParam(required = false) Long sellerId,
+                                                    @RequestParam(required = false) String phone,
+                                                    @RequestParam(defaultValue = "1") Integer page,
+                                                    @RequestParam(defaultValue = "10") Integer pageSize) {
+        List<Store> list = storeService.getAdminPage(id, keyword, status, sellerId, phone, page, pageSize);
+        int total = storeService.countAdminPage(id, keyword, status, sellerId, phone);
 
         Map<String, Object> data = new HashMap<>();
         data.put("list", list);
@@ -230,7 +267,7 @@ public class StoreController {
      * 更新店铺状态
      */
     @PutMapping("/status/{id}")
-    @PreAuthorize("hasAuthority('store:manage') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
     public Result<Void> updateStatus(@PathVariable Long id, @RequestParam Integer status) {
         boolean success = storeService.updateStatus(id, status);
         if (success) {
@@ -240,33 +277,33 @@ public class StoreController {
     }
 
     /**
-     * 上传店铺Logo（上传到uploads/stores目录）
+     * 上传店铺Logo（上传到uploads/images/stores/logo目录）
      */
     private Map<String, String> uploadLogo(MultipartFile file) {
-        return fileService.uploadFile(file, "stores");
+        return fileService.uploadFile(file, FileConstants.STORE_LOGO);
     }
 
     /**
-     * 上传店铺横幅（上传到uploads/banners目录）
+     * 上传店铺横幅（上传到uploads/images/stores/banner目录）
      */
     private Map<String, String> uploadBanner(MultipartFile file) {
-        return fileService.uploadFile(file, "banners");
+        return fileService.uploadFile(file, FileConstants.STORE_BANNER);
     }
 
     private void deleteLogoFile(String logoPath) {
-        fileService.deleteFile(logoPath, "stores");
+        fileService.deleteFile(logoPath, FileConstants.STORE_LOGO);
     }
 
     private void deleteBannerFile(String bannerPath) {
-        fileService.deleteFile(bannerPath, "banners");
+        fileService.deleteFile(bannerPath, FileConstants.STORE_BANNER);
     }
 
     private Map<String, String> uploadImage(MultipartFile file) {
-        return fileService.uploadFile(file, "stores");
+        return fileService.uploadFile(file, FileConstants.STORE_IMAGES);
     }
 
     private void deleteImageFile(String imagePath) {
-        fileService.deleteFile(imagePath, "stores");
+        fileService.deleteFile(imagePath, FileConstants.STORE_IMAGES);
     }
 
     /**

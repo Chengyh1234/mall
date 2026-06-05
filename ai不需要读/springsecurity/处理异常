@@ -1,0 +1,11 @@
+1.对于SecurityConfig中.anyRequest().authenticated()需要进行登录验证，这个在过滤链中进行处理，
+如果没有进行登录会发出异常，但是不会被ControllerAdvice进行处理。
+解释:
+过滤器（Filter）中抛出的异常无法被 @ControllerAdvice 捕获
+（原因在于 Spring MVC 的 @ControllerAdvice 是基于 DispatcherServlet 的异常处理机制，
+而过滤器（Filter）在 Servlet 容器层面运行，位于 DispatcherServlet 之前。
+当请求还在过滤器链中时，DispatcherServlet 尚未介入，因此 @ControllerAdvice 无法感知过滤器里发生的异常。）
+处理：在SpringSecurity过滤链中有一个可以处理异常
+
+2.对于.requestMatchers("/admin/**").hasRole("ADMIN")权限异常无法在ControllerAdvice处理
+在接口上@PreAuthorize的权限异常可以在ControllerAdvice进程处理

@@ -1,5 +1,6 @@
 package com.cyh.mallportal.config;
 
+import com.cyh.mallcommon.constant.FileConstants;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
@@ -16,28 +17,28 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        String spuLocation = new File(basePath, "images/spu").toURI().toString();
-        registry.addResourceHandler("/uploads/images/spu/**")
-                .addResourceLocations(spuLocation);
+        // SPU 商品图片
+        addHandler(registry, FileConstants.SPU);
+        // SKU 规格图片
+        addHandler(registry, FileConstants.SKU);
+        // 品牌 Logo
+        addHandler(registry, FileConstants.BRAND_LOGO);
+        // 店铺图片（含 logo/banners/其他）
+        addHandler(registry, FileConstants.STORE_IMAGES);
+        // 用户头像
+        addHandler(registry, FileConstants.USER_AVATARS);
+        // 轮播图
+        addHandler(registry, FileConstants.BANNERS);
+        // 分类图标
+        addHandler(registry, FileConstants.CATEGORY_ICONS);
+    }
 
-        String skuLocation = new File(basePath, "images/sku").toURI().toString();
-        registry.addResourceHandler("/uploads/images/sku/**")
-                .addResourceLocations(skuLocation);
-
-        String brandsLocation = new File(basePath, "images/brands").toURI().toString();
-        registry.addResourceHandler("/uploads/images/brands/**")
-                .addResourceLocations(brandsLocation);
-
-        String storesLocation = new File(basePath, "images/stores").toURI().toString();
-        registry.addResourceHandler("/uploads/images/stores/**")
-                .addResourceLocations(storesLocation);
-
-        String avatarsLocation = new File(basePath, "images/avatars").toURI().toString();
-        registry.addResourceHandler("/uploads/images/avatars/**")
-                .addResourceLocations(avatarsLocation);
-
-        String bannersLocation = new File(basePath, "images/banners").toURI().toString();
-        registry.addResourceHandler("/uploads/images/banners/**")
-                .addResourceLocations(bannersLocation);
+    /**
+     * 注册静态资源映射：URL /uploads/subDir/** → 本地文件 basePath + subDir
+     */
+    private void addHandler(ResourceHandlerRegistry registry, String subDir) {
+        String location = new File(basePath, subDir).toURI().toString();
+        registry.addResourceHandler(FileConstants.URL_PREFIX + subDir + "/**")
+                .addResourceLocations(location);
     }
 }

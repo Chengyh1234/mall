@@ -26,10 +26,11 @@ public class UserServiceImpl implements UserService {
     private final PasswordEncoder passwordEncoder;
 
     /**
-     * 更新用户基本信息（真实姓名、邮箱、手机号）
-     * 校验邮箱和手机号唯一性，更新敏感信息时需要验证密码
+     * 更新用户基本信息（用户名、真实姓名、邮箱、手机号）
+     * 校验用户名、邮箱和手机号唯一性，更新敏感信息时需要验证密码
      *
      * @param userId   用户ID
+     * @param username 用户名（更新时校验唯一性）
      * @param realName 真实姓名
      * @param email    邮箱
      * @param phone    手机号
@@ -38,13 +39,25 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public User updateProfile(Long userId, String realName, String email, String phone, String password) {
+    public User updateProfile(Long userId, String username, String realName, String email, String phone, String password) {
         log.info("更新用户信息, 用户ID: {}", userId);
 
         User user = userMapper.selectById(userId);
         if (user == null) {
             log.warn("用户不存在, {}", userId);
             throw new BusinessException("用户不存在");
+        }
+
+        // 用户名唯一性校验
+        if (username != null && !username.isEmpty() && !username.equals(user.getUsername())) {
+            QueryWrapper<User> usernameQuery = new QueryWrapper<>();
+            usernameQuery.eq("username", username);
+            User existingByUsername = userMapper.selectOne(usernameQuery);
+            if (existingByUsername != null) {
+                log.warn("用户名已被使用: {}", username);
+                throw new BusinessException("该用户名已被其他用户使用");
+            }
+            user.setUsername(username);
         }
 
         // 邮箱格式校验

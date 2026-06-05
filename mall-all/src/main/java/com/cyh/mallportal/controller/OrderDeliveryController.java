@@ -80,7 +80,7 @@ public class OrderDeliveryController {
             OrderDelivery delivery = orderDeliveryService.getByDeliveryNo(deliveryNo);
             if (delivery != null) {
                 OrderVo orderVo = orderService.getOrderById(delivery.getOrderId());
-                if (orderVo != null && orderVo.getOrder() != null && !orderVo.getOrder().getUserId().equals(userId)) {
+                if (orderVo != null && !orderVo.getUserId().equals(userId)) {
                     return Result.error("无权操作此订单");
                 }
             }
@@ -126,7 +126,7 @@ public class OrderDeliveryController {
         // 非管理员需要验证订单归属
         if (!isAdmin && userId != null) {
             OrderVo orderVo = orderService.getOrderById(orderId);
-            if (orderVo != null && orderVo.getOrder() != null && !orderVo.getOrder().getUserId().equals(userId)) {
+            if (orderVo != null && !orderVo.getUserId().equals(userId)) {
                 return Result.error("无权查看此订单的发货记录");
             }
         }

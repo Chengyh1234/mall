@@ -22,6 +22,14 @@ public interface RoleMapper extends BaseMapper<Role> {
     List<Role> selectByUserId(@Param("userId") Long userId);
 
     /**
+     * 根据角色编码查询角色
+     *
+     * @param code 角色编码，如 USER、ADMIN
+     * @return 角色信息
+     */
+    Role selectByCode(@Param("code") String code);
+
+    /**
      * 根据角色ID查询权限ID列表
      *
      * @param roleId 角色ID

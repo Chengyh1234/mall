@@ -2,6 +2,7 @@ package com.cyh.mallportal.controller;
 
 import com.alibaba.fastjson2.JSON;
 import com.cyh.mallcommon.utils.Result;
+import com.cyh.mallcommon.constant.FileConstants;
 import com.cyh.mallportal.dto.CategoryDto;
 import com.cyh.mallportal.entity.Category;
 import com.cyh.mallportal.service.CategoryService;
@@ -286,11 +287,11 @@ public class CategoryController {
      * @return 上传结果，包含图标路径
      */
     private Map<String, String> uploadIcon(MultipartFile file) {
-        Map<String, String> result = fileService.uploadImage(file, "icons");
+        Map<String, String> result = fileService.uploadImage(file, FileConstants.CATEGORY_ICONS);
         if (result != null) {
             Map<String, String> response = new HashMap<>();
             response.put("icon", result.get("relativePath"));
-            response.put("iconUrl", "/uploads/icons/" + result.get("relativePath"));
+            response.put("iconUrl", "/uploads/images/icons/" + result.get("relativePath"));
             return response;
         }
         return null;
@@ -302,6 +303,6 @@ public class CategoryController {
      * @param icon 图标路径（相对路径）
      */
     private void deleteIconFile(String icon) {
-        fileService.deleteFile(icon, "icons");
+        fileService.deleteFile(icon, FileConstants.CATEGORY_ICONS);
     }
 }

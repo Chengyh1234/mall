@@ -1,6 +1,7 @@
 package com.cyh.mallportal.service;
 
 import com.cyh.mallportal.entity.Banner;
+import com.cyh.mallportal.vo.BannerVO;
 
 import java.util.List;
 

@@ -18,7 +18,7 @@ public interface UserService {
      * @param password 当前密码（用于验证身份）
      * @return 更新后的用户信息
      */
-    User updateProfile(Long userId, String realName, String email, String phone, String password);
+    User updateProfile(Long userId, String username, String realName, String email, String phone, String password);
 
     /**
      * 修改密码

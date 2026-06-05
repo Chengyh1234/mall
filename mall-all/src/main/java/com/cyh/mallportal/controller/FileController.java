@@ -1,3 +1,4 @@
+/*
 package com.cyh.mallportal.controller;
 
 import com.cyh.mallcommon.utils.Result;
@@ -18,34 +19,17 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * 文件管理控制器
- * 提供公共的文件上传、下载、删除接口
- */
 @Slf4j
 @RestController
 @RequestMapping("/file")
 public class FileController {
 
-    /**
-     * 文件服务接口
-     */
     @Autowired
     private FileService fileService;
 
-    /**
-     * 文件上传根路径
-     */
     @Value("${file.upload.base-path:./uploads}")
     private String basePath;
 
-    /**
-     * 上传通用文件
-     *
-     * @param file 上传的文件
-     * @param subDir 子目录（如 "images"、"logos"、"documents"）
-     * @return 上传结果，包含文件路径和访问URL
-     */
     @PostMapping("/upload")
     @PreAuthorize("hasAuthority('product:add') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Map<String, String>> uploadFile(@RequestParam("file") MultipartFile file,
@@ -57,13 +41,6 @@ public class FileController {
         return Result.error("上传失败");
     }
 
-    /**
-     * 上传图片文件
-     *
-     * @param file 上传的图片
-     * @param subDir 子目录（如 "images"、"logos"）
-     * @return 上传结果，包含文件路径和访问URL
-     */
     @PostMapping("/upload/image")
     @PreAuthorize("hasAuthority('product:add') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Map<String, String>> uploadImage(@RequestParam("file") MultipartFile file,
@@ -75,13 +52,6 @@ public class FileController {
         return Result.error("上传失败：只支持上传图片文件（jpg、png、gif、webp）");
     }
 
-    /**
-     * 删除文件
-     *
-     * @param relativePath 文件相对路径（如 "2026/05/07/uuid_file.jpg"）
-     * @param subDir 子目录（如 "images"、"logos"）
-     * @return 删除结果
-     */
     @DeleteMapping("/delete")
     @PreAuthorize("hasAuthority('product:delete') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Void> deleteFile(@RequestParam String relativePath,
@@ -93,13 +63,6 @@ public class FileController {
         return Result.error("删除失败：文件不存在或无法删除");
     }
 
-    /**
-     * 下载文件
-     *
-     * @param relativePath 文件相对路径
-     * @param subDir 子目录
-     * @return 文件内容
-     */
     @GetMapping("/download")
     public ResponseEntity<Resource> downloadFile(@RequestParam String relativePath,
                                                  @RequestParam(defaultValue = "images") String subDir) {
@@ -118,13 +81,6 @@ public class FileController {
                 .body(resource);
     }
 
-    /**
-     * 预览图片
-     *
-     * @param relativePath 图片相对路径
-     * @param subDir 子目录
-     * @return 图片内容
-     */
     @GetMapping("/preview")
     public ResponseEntity<Resource> previewImage(@RequestParam String relativePath,
                                                  @RequestParam(defaultValue = "images") String subDir) {
@@ -135,7 +91,6 @@ public class FileController {
 
         Resource resource = new FileSystemResource(file);
 
-        // 根据文件扩展名设置Content-Type
         String extension = fileService.getFileExtension(file.getName());
         MediaType mediaType = getMediaType(extension);
 
@@ -144,13 +99,6 @@ public class FileController {
                 .body(resource);
     }
 
-    /**
-     * 获取文件访问URL
-     *
-     * @param relativePath 文件相对路径
-     * @param subDir 子目录
-     * @return 文件访问URL
-     */
     @GetMapping("/url")
     public Result<Map<String, String>> getFileUrl(@RequestParam String relativePath,
                                                    @RequestParam(defaultValue = "images") String subDir) {
@@ -161,9 +109,6 @@ public class FileController {
         return Result.success(result);
     }
 
-    /**
-     * 根据扩展名获取MediaType
-     */
     private MediaType getMediaType(String extension) {
         if (extension == null) {
             return MediaType.APPLICATION_OCTET_STREAM;
@@ -184,9 +129,6 @@ public class FileController {
         }
     }
 
-    /**
-     * 获取完整的访问URL
-     */
     private String getFullUrl(String relativeUrl) {
         if (relativeUrl == null) {
             return null;
@@ -194,3 +136,4 @@ public class FileController {
         return "/uploads" + relativeUrl;
     }
 }
+*/

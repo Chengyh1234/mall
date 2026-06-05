@@ -3,6 +3,7 @@ package com.cyh.mallportal.service;
 import com.cyh.mallportal.entity.Spu;
 import com.cyh.mallportal.vo.SpuDetailVo;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -148,21 +149,58 @@ public interface SpuService {
     void updateMinPriceForSpu(Long spuId);
 
     /**
-     * 刷新SPU的上架/下架状态
-     * 查询该SPU下是否存在启用状态(status=1)的SKU：
-     *   有 → 设置SPU status=1（上架）
-     *   无 → 设置SPU status=0（下架）
-     * SKU增删改时均应调用此方法，确保SPU状态与SKU实际状态一致
-     *
-     * @param spuId SPU ID
-     */
-    void refreshSpuStatus(Long spuId);
-
-    /**
      * 检查SPU下是否存在启用状态（status=1）的SKU
      *
      * @param spuId SPU ID
      * @return true=存在启用SKU，false=不存在
      */
     boolean hasEnabledSku(Long spuId);
+
+    /**
+     * 【运营管理员】分页获取全部商品列表（含上架和下架）
+     * 不限商家，用于运营管理员查看全平台商品
+     *
+     * @param status   状态（可选，1-上架 0-下架，不传则查询全部）
+     * @param keyword  关键字（可选，按商品名称模糊搜索）
+     * @param page     页码
+     * @param pageSize 每页数量
+     * @return 商品列表（含 categoryName、brandName）
+     */
+    List<Spu> getPageAll(Integer status, String keyword, Integer page, Integer pageSize);
+
+    /**
+     * 【运营管理员】统计全部商品数量
+     *
+     * @param status  状态（可选，不传统计全部）
+     * @param keyword 关键字（可选）
+     * @return 商品数量
+     */
+    int countAll(Integer status, String keyword);
+
+    /**
+     * 根据店铺ID分页查询 SPU 列表（公开）
+     * 仅返回上架商品（status=1），支持多条件筛选和排序
+     *
+     * @param storeId    店铺ID
+     * @param keyword    商品名称关键字（模糊匹配，可选）
+     * @param categoryId 分类ID（精确匹配，可选）
+     * @param minPrice   最低售价下限（可选）
+     * @param maxPrice   最低售价上限（可选）
+     * @param sortBy     排序字段（sales/price/created_at，默认 created_at）
+     * @param sortOrder  排序方向（asc/desc，默认 desc）
+     * @param page       页码
+     * @param pageSize   每页数量
+     * @return 商品列表（含 categoryName、brandName）
+     */
+    List<Spu> getPageByStoreId(Long storeId, String keyword, Long categoryId,
+                               BigDecimal minPrice, BigDecimal maxPrice,
+                               String sortBy, String sortOrder,
+                               Integer page, Integer pageSize);
+
+    /**
+     * 统计店铺下 SPU 总数（公开）
+     * 与 getPageByStoreId 条件一致
+     */
+    int countByStoreId(Long storeId, String keyword, Long categoryId,
+                       BigDecimal minPrice, BigDecimal maxPrice);
 }

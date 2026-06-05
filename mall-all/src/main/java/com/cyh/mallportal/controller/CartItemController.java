@@ -2,6 +2,7 @@ package com.cyh.mallportal.controller;
 
 import com.cyh.mallcommon.utils.Result;
 import com.cyh.mallportal.dto.CartItemDto;
+import com.cyh.mallportal.entity.CartItem;
 import com.cyh.mallportal.entity.User;
 import com.cyh.mallportal.service.CartItemService;
 import com.cyh.mallportal.vo.CartItemVo;
@@ -17,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 购物车管理控制器
+ * 购物车管理控制器 已处理响应
  * 提供购物车的增删改查及结算功能
  */
 @RestController
@@ -35,7 +36,7 @@ public class CartItemController {
      * @return 添加结果
      */
     @PostMapping("/add")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('USER')")
     public Result<Map<String, Object>> addToCart(@RequestBody CartItemDto cartItemDto) {
         Long userId = getCurrentUserId();
 
@@ -64,7 +65,7 @@ public class CartItemController {
      * @return 更新结果
      */
     @PutMapping("/quantity/{skuId}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('USER')")
     public Result<Void> updateQuantity(@PathVariable Long skuId,
                                        @RequestParam Integer quantity) {
         Long userId = getCurrentUserId();
@@ -84,7 +85,7 @@ public class CartItemController {
      * @return 设置结果
      */
     @PutMapping("/selected/{skuId}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('USER')")
     public Result<Void> setSelected(@PathVariable Long skuId,
                                     @RequestParam Integer selected) {
         Long userId = getCurrentUserId();
@@ -107,7 +108,7 @@ public class CartItemController {
      * @return 设置结果
      */
     @PutMapping("/selected-all")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('USER')")
     public Result<Void> setAllSelected(@RequestParam Integer selected) {
         Long userId = getCurrentUserId();
 
@@ -129,7 +130,7 @@ public class CartItemController {
      * @return 移除结果
      */
     @DeleteMapping("/remove/{skuId}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('USER')")
     public Result<Void> removeFromCart(@PathVariable Long skuId) {
         Long userId = getCurrentUserId();
 
@@ -146,7 +147,7 @@ public class CartItemController {
      * @return 清空结果
      */
     @DeleteMapping("/clear")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('USER')")
     public Result<Void> clearCart() {
         Long userId = getCurrentUserId();
 
@@ -163,7 +164,7 @@ public class CartItemController {
      * @return 清空结果
      */
     @DeleteMapping("/clear-selected")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('USER')")
     public Result<Void> clearSelected() {
         Long userId = getCurrentUserId();
 
@@ -180,26 +181,13 @@ public class CartItemController {
      * @return 购物车列表（包含商品详情和实时库存）
      */
     @GetMapping("/list")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('USER')")
     public Result<List<CartItemVo>> getCartList() {
         Long userId = getCurrentUserId();
 
-        List<CartItemVo> list = cartItemService.getCartList(userId);
-        return Result.success(list);
-    }
-
-    /**
-     * 获取已选中的购物车商品（用于结算）
-     *
-     * @return 已选中的购物车商品列表
-     */
-    @GetMapping("/selected")
-    @PreAuthorize("isAuthenticated()")
-    public Result<List<CartItemVo>> getSelectedItems() {
-        Long userId = getCurrentUserId();
-
-        List<CartItemVo> list = cartItemService.getSelectedItems(userId);
-        return Result.success(list);
+        List<CartItem> items = cartItemService.getCartList(userId);
+        List<CartItemVo> voList = cartItemService.toCartItemVoList(items);
+        return Result.success(voList);
     }
 
     /**
@@ -208,7 +196,7 @@ public class CartItemController {
      * @return 购物车概要（商品种数、已选种数、总价）
      */
     @GetMapping("/summary")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('USER')")
     public Result<Map<String, Object>> getCartSummary() {
         Long userId = getCurrentUserId();
 

@@ -1,6 +1,7 @@
 package com.cyh.mallportal.service;
 
 import com.cyh.mallportal.dto.CartItemDto;
+import com.cyh.mallportal.entity.CartItem;
 import com.cyh.mallportal.vo.CartItemVo;
 
 import java.util.List;
@@ -79,17 +80,17 @@ public interface CartItemService {
      * 获取用户购物车列表
      *
      * @param userId 用户ID
-     * @return 购物车列表（包含商品详情）
+     * @return 购物车列表（实体）
      */
-    List<CartItemVo> getCartList(Long userId);
+    List<CartItem> getCartList(Long userId);
 
     /**
      * 获取用户已选中的购物车商品
      *
      * @param userId 用户ID
-     * @return 已选中的购物车列表（用于结算）
+     * @return 已选中的购物车列表（实体，用于结算）
      */
-    List<CartItemVo> getSelectedItems(Long userId);
+    List<CartItem> getSelectedItems(Long userId);
 
     /**
      * 获取购物车商品数量
@@ -120,7 +121,15 @@ public interface CartItemService {
      *
      * @param userId 用户ID
      * @param skuId  SKU ID
-     * @return 购物车项VO
+     * @return 购物车项实体
      */
-    CartItemVo getCartItem(Long userId, Long skuId);
+    CartItem getCartItem(Long userId, Long skuId);
+
+    /**
+     * 将购物车实体列表转换为VO列表（补充实时库存信息）
+     *
+     * @param items 购物车实体列表
+     * @return 购物车VO列表
+     */
+    List<CartItemVo> toCartItemVoList(List<CartItem> items);
 }
