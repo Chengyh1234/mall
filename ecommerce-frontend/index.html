@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="">
+  <head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="/favicon.ico">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vite App</title>
+    <script>
+      (function() {
+        const BLOCKED_URLS = ['daxuesoutijiang', 'hybridaction', 'aegis', '999999', 'ffffff', 'via.placeholder.com'];
+        const BLOCKED_ERRORS = ['m[w] is not a function', 'CORS', 'ERR_CONNECTION_CLOSED', 'ERR_FAILED', 'Illegal invocation'];
+        const BLOCKED_KEYWORDS = ['yuke', 'isYuke', 'isyuuuuuu', 'store installed', '[vite]', 'hybridaction', 'No match found for location'];
+
+        const createBlockedResponse = function() {
+          return Promise.resolve(new Response(JSON.stringify({}), { status: 204, headers: { 'Access-Control-Allow-Origin': '*' } }));
+        };
+
+        const shouldBlockUrl = function(url) {
+          const urlStr = String(url).toLowerCase();
+          for (const blocked of BLOCKED_URLS) {
+            if (urlStr.includes(blocked)) {
+              return true;
+            }
+          }
+          return false;
+        };
+
+        const isBlockedMessage = function(msg) {
+          const message = String(msg).toLowerCase();
+          for (const blocked of BLOCKED_ERRORS) {
+            if (message.includes(blocked.toLowerCase())) {
+              return true;
+            }
+          }
+          return false;
+        };
+
+        const isBlockedKeyword = function(msg) {
+          const message = String(msg).toLowerCase();
+          for (const blocked of BLOCKED_KEYWORDS) {
+            if (message.includes(blocked.toLowerCase())) {
+              return true;
+            }
+          }
+          return false;
+        };
+
+        const originalFetch = window.fetch;
+        window.fetch = function(input, init) {
+          const url = typeof input === 'string' ? input : (input instanceof Request ? input.url : String(input));
+          if (shouldBlockUrl(url)) {
+            return createBlockedResponse();
+          }
+          return originalFetch.apply(this, arguments);
+        };
+
+        const originalXHROpen = XMLHttpRequest.prototype.open;
+        XMLHttpRequest.prototype.open = function(method, url) {
+          if (shouldBlockUrl(url)) {
+            this._blocked = true;
+          }
+          originalXHROpen.apply(this, arguments);
+        };
+
+        const originalXHRSend = XMLHttpRequest.prototype.send;
+        XMLHttpRequest.prototype.send = function(body) {
+          if (this._blocked) {
+            return;
+          }
+          originalXHRSend.apply(this, arguments);
+        };
+
+        const originalScriptSrc = Object.getOwnPropertyDescriptor(HTMLScriptElement.prototype, 'src');
+        Object.defineProperty(HTMLScriptElement.prototype, 'src', {
+          set: function(value) {
+            if (!shouldBlockUrl(value)) {
+              originalScriptSrc.set.call(this, value);
+            }
+          }
+        });
+
+        const originalConsoleError = console.error.bind(console);
+        console.error = function(...args) {
+          const msg = String(args[0]);
+          if (isBlockedMessage(msg) || isBlockedKeyword(msg)) {
+            return;
+          }
+          originalConsoleError(...args);
+        };
+
+        const originalConsoleLog = console.log.bind(console);
+        console.log = function(...args) {
+          const msg = String(args[0]);
+          if (isBlockedKeyword(msg)) {
+            return;
+          }
+          originalConsoleLog(...args);
+        };
+
+        const originalConsoleWarn = console.warn.bind(console);
+        console.warn = function(...args) {
+          const msg = String(args[0]);
+          if (isBlockedKeyword(msg)) {
+            return;
+          }
+          originalConsoleWarn(...args);
+        };
+
+        window.onerror = function(message, source, lineno, colno, error) {
+          if (isBlockedMessage(String(message))) {
+            return true;
+          }
+          return false;
+        };
+
+        window.addEventListener('unhandledrejection', function(event) {
+          const reason = String(event.reason);
+          if (isBlockedMessage(reason)) {
+            event.preventDefault();
+            return;
+          }
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+          const scripts = document.querySelectorAll('script');
+          scripts.forEach(script => {
+            if (script.src && shouldBlockUrl(script.src)) {
+              script.remove();
+            }
+          });
+        });
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

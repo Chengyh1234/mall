@@ -1,0 +1,197 @@
+/* 响应式工具类 */
+
+/* 容器类 */
+.responsive-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* 响应式网格系统 */
+.responsive-grid {
+  display: grid;
+  gap: 20px;
+}
+
+/* PC端：4列 */
+@media (min-width: 1024px) {
+  .responsive-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  
+  .responsive-container {
+    padding: 0 40px;
+  }
+}
+
+/* 平板端：2列 */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .responsive-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .responsive-container {
+    padding: 0 30px;
+  }
+}
+
+/* 移动端：1列 */
+@media (max-width: 767px) {
+  .responsive-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .responsive-container {
+    padding: 0 15px;
+  }
+}
+
+/* 响应式文本 */
+.responsive-text-lg {
+  font-size: 24px;
+}
+
+.responsive-text-md {
+  font-size: 18px;
+}
+
+.responsive-text-sm {
+  font-size: 14px;
+}
+
+@media (max-width: 767px) {
+  .responsive-text-lg {
+    font-size: 20px;
+  }
+  
+  .responsive-text-md {
+    font-size: 16px;
+  }
+  
+  .responsive-text-sm {
+    font-size: 12px;
+  }
+}
+
+/* 响应式间距 */
+.responsive-padding {
+  padding: 20px;
+}
+
+.responsive-margin {
+  margin: 20px;
+}
+
+@media (max-width: 767px) {
+  .responsive-padding {
+    padding: 15px;
+  }
+  
+  .responsive-margin {
+    margin: 15px;
+  }
+}
+
+/* 响应式按钮组 */
+.responsive-button-group {
+  display: flex;
+  gap: 10px;
+}
+
+@media (max-width: 767px) {
+  .responsive-button-group {
+    flex-direction: column;
+  }
+  
+  .responsive-button-group .el-button {
+    width: 100%;
+  }
+}
+
+/* 响应式图片 */
+.responsive-image {
+  width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+/* 响应式隐藏/显示 */
+.responsive-hide-mobile {
+  display: block;
+}
+
+.responsive-show-mobile {
+  display: none;
+}
+
+@media (max-width: 767px) {
+  .responsive-hide-mobile {
+    display: none;
+  }
+  
+  .responsive-show-mobile {
+    display: block;
+  }
+}
+
+/* 响应式表单 */
+.responsive-form {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+@media (max-width: 767px) {
+  .responsive-form {
+    max-width: 100%;
+  }
+}
+
+/* 响应式卡片 */
+.responsive-card {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 767px) {
+  .responsive-card {
+    padding: 15px;
+    margin-bottom: 15px;
+  }
+}
+
+/* 响应式导航 */
+.responsive-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 0;
+}
+
+@media (max-width: 767px) {
+  .responsive-nav {
+    flex-direction: column;
+    gap: 15px;
+    padding: 10px 0;
+  }
+}
+
+/* 响应式页脚 */
+.responsive-footer {
+  background: #333;
+  color: white;
+  text-align: center;
+  padding: 20px 0;
+  margin-top: 40px;
+}
+
+@media (max-width: 767px) {
+  .responsive-footer {
+    padding: 15px 0;
+    margin-top: 30px;
+  }
+}
