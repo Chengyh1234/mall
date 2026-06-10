@@ -29,12 +29,31 @@ public interface OrderMapper extends BaseMapper<Order> {
     List<Order> selectByUserId(@Param("userId") Long userId);
 
     /**
+     * 分页查询用户订单列表
+     *
+     * @param page   分页对象
+     * @param userId 用户ID
+     * @return 分页结果
+     */
+    IPage<Order> selectByUserIdPaged(Page<Order> page, @Param("userId") Long userId);
+
+    /**
      * 根据订单号查询订单
      *
      * @param orderNo 订单号
      * @return 订单实体
      */
     Order selectByOrderNo(@Param("orderNo") String orderNo);
+
+    /**
+     * 批量查询用户订单（用于批量付款/批量操作校验）
+     * 自动过滤 is_deleted = 0，仅返回属于该用户的订单
+     *
+     * @param ids    订单ID列表
+     * @param userId 用户ID
+     * @return 订单列表
+     */
+    List<Order> selectByIdsAndUserId(@Param("ids") List<Long> ids, @Param("userId") Long userId);
 
     /**
      * 根据用户ID和状态查询订单列表
@@ -46,12 +65,31 @@ public interface OrderMapper extends BaseMapper<Order> {
     List<Order> selectByUserIdAndStatus(@Param("userId") Long userId, @Param("status") Integer status);
 
     /**
+     * 分页查询用户订单列表（按状态筛选）
+     *
+     * @param page   分页对象
+     * @param userId 用户ID
+     * @param status 订单状态
+     * @return 分页结果
+     */
+    IPage<Order> selectByUserIdAndStatusPaged(Page<Order> page, @Param("userId") Long userId, @Param("status") Integer status);
+
+    /**
      * 查询用户订单数量
      *
      * @param userId 用户ID
      * @return 订单数量
      */
     int countByUserId(@Param("userId") Long userId);
+
+    /**
+     * 统计用户指定状态订单数量
+     *
+     * @param userId 用户ID
+     * @param status 订单状态
+     * @return 订单数量
+     */
+    int countByUserIdAndStatus(@Param("userId") Long userId, @Param("status") Integer status);
 
     /**
      * 根据状态查询订单数量
@@ -133,6 +171,50 @@ public interface OrderMapper extends BaseMapper<Order> {
     int countBySellerIdAndStatus(@Param("sellerId") Long sellerId, @Param("status") Integer status);
 
     /**
+     * 分页查询商家店铺订单列表（多条件筛选）
+     * 支持按状态、用户ID、订单号、支付/发货/收货时间范围筛选
+     *
+     * @param page      分页对象
+     * @param sellerId  商家用户ID
+     * @param status    订单状态（可选）
+     * @param userId    用户ID（可选）
+     * @param orderNo   订单号（可选，模糊匹配）
+     * @param payTimeStart    支付时间范围-起始（可选）
+     * @param payTimeEnd      支付时间范围-结束（可选）
+     * @param deliveryTimeStart 发货时间范围-起始（可选）
+     * @param deliveryTimeEnd   发货时间范围-结束（可选）
+     * @param receiveTimeStart 收货时间范围-起始（可选）
+     * @param receiveTimeEnd   收货时间范围-结束（可选）
+     * @return 分页结果
+     */
+    IPage<Order> selectBySellerIdWithFilters(Page<Order> page,
+                                             @Param("sellerId") Long sellerId,
+                                             @Param("status") Integer status,
+                                             @Param("userId") Long userId,
+                                             @Param("orderNo") String orderNo,
+                                             @Param("payTimeStart") LocalDateTime payTimeStart,
+                                             @Param("payTimeEnd") LocalDateTime payTimeEnd,
+                                             @Param("deliveryTimeStart") LocalDateTime deliveryTimeStart,
+                                             @Param("deliveryTimeEnd") LocalDateTime deliveryTimeEnd,
+                                             @Param("receiveTimeStart") LocalDateTime receiveTimeStart,
+                                             @Param("receiveTimeEnd") LocalDateTime receiveTimeEnd);
+
+    /**
+     * 统计商家店铺订单总数（多条件筛选）
+     * 与 selectBySellerIdWithFilters 条件完全一致，用于分页总记录数
+     */
+    int countBySellerIdWithFilters(@Param("sellerId") Long sellerId,
+                                   @Param("status") Integer status,
+                                   @Param("userId") Long userId,
+                                   @Param("orderNo") String orderNo,
+                                   @Param("payTimeStart") LocalDateTime payTimeStart,
+                                   @Param("payTimeEnd") LocalDateTime payTimeEnd,
+                                   @Param("deliveryTimeStart") LocalDateTime deliveryTimeStart,
+                                   @Param("deliveryTimeEnd") LocalDateTime deliveryTimeEnd,
+                                   @Param("receiveTimeStart") LocalDateTime receiveTimeStart,
+                                   @Param("receiveTimeEnd") LocalDateTime receiveTimeEnd);
+
+    /**
      * 根据订单号和商家用户ID查询订单
      * 用于校验订单是否属于该商家，通过 order_items → spu 关联
      *
@@ -149,4 +231,78 @@ public interface OrderMapper extends BaseMapper<Order> {
      * @return 过期订单列表
      */
     List<Order> selectExpiredUnpaidOrders(@Param("now") LocalDateTime now);
+
+    // ==================== 全局订单查询（运营管理员/超级管理员） ====================
+
+    /**
+     * 分页查询全部订单（运营管理员/超级管理员使用）
+     * 查询所有订单，按创建时间倒序排列
+     *
+     * @param page 分页对象
+     * @return 分页结果
+     */
+    IPage<Order> selectAllOrders(Page<Order> page);
+
+    /**
+     * 分页查询全部订单（按状态筛选）
+     *
+     * @param page   分页对象
+     * @param status 订单状态
+     * @return 分页结果
+     */
+    IPage<Order> selectAllOrdersByStatus(Page<Order> page, @Param("status") Integer status);
+
+    /**
+     * 统计全部订单总数
+     *
+     * @return 订单总数
+     */
+    int countAllOrders();
+
+    /**
+     * 统计指定状态的订单总数
+     *
+     * @param status 订单状态
+     * @return 订单总数
+     */
+    int countAllOrdersByStatus(@Param("status") Integer status);
+
+    /**
+     * 分页查询全部订单（多条件筛选）
+     * 支持按状态、用户ID、订单号、支付/发货/收货时间范围筛选
+     */
+    IPage<Order> selectAllOrdersWithFilters(Page<Order> page,
+                                            @Param("status") Integer status,
+                                            @Param("userId") Long userId,
+                                            @Param("orderNo") String orderNo,
+                                            @Param("payTimeStart") LocalDateTime payTimeStart,
+                                            @Param("payTimeEnd") LocalDateTime payTimeEnd,
+                                            @Param("deliveryTimeStart") LocalDateTime deliveryTimeStart,
+                                            @Param("deliveryTimeEnd") LocalDateTime deliveryTimeEnd,
+                                            @Param("receiveTimeStart") LocalDateTime receiveTimeStart,
+                                            @Param("receiveTimeEnd") LocalDateTime receiveTimeEnd);
+
+    /**
+     * 统计全部订单总数（多条件筛选）
+     * 与 selectAllOrdersWithFilters 条件完全一致
+     */
+    int countAllOrdersWithFilters(@Param("status") Integer status,
+                                  @Param("userId") Long userId,
+                                  @Param("orderNo") String orderNo,
+                                  @Param("payTimeStart") LocalDateTime payTimeStart,
+                                  @Param("payTimeEnd") LocalDateTime payTimeEnd,
+                                  @Param("deliveryTimeStart") LocalDateTime deliveryTimeStart,
+                                  @Param("deliveryTimeEnd") LocalDateTime deliveryTimeEnd,
+                                  @Param("receiveTimeStart") LocalDateTime receiveTimeStart,
+                                  @Param("receiveTimeEnd") LocalDateTime receiveTimeEnd);
+
+    // ==================== 管理员订单详情查询（不过滤 is_deleted） ====================
+
+    /**
+     * 管理员根据订单号查询订单详情（不过滤 is_deleted，可查看所有订单包括已删除的）
+     *
+     * @param orderNo 订单号
+     * @return 订单实体
+     */
+    Order selectByOrderNoForAdmin(@Param("orderNo") String orderNo);
 }

@@ -32,7 +32,7 @@ public class StoreDashboardController {
     private StoreService storeService;
 
     /**
-     * 获取销售 KPI 总览
+     * 获取销售 KPI 总览,只统计已完成的订单，即status=4
      * 返回今日、近7天、本月、本年四个时间维度的销售额和利润，用于仪表盘核心指标卡片
      *
      * @return KPI 总览数据
@@ -60,7 +60,7 @@ public class StoreDashboardController {
     }
 
     /**
-     * 获取销售趋势数据（折线图）
+     * 获取销售趋势数据（折线图）只统计已完成的订单，即status=4
      * 返回最近7天每天的销售额，dates 和 values 一一对应，无销售数据的日期值为 0
      *
      * @return 销售趋势数据
@@ -88,7 +88,7 @@ public class StoreDashboardController {
     }
 
     /**
-     * 获取商品销售排行
+     * 获取商品销售排行 只统计已完成的订单，即status=4
      * 按销售额降序排列，支持时间段切换，可用于条形图和南丁格尔玫瑰图
      *
      * @param period 时间段：today | last7Days | thisMonth | thisYear，默认 last7Days

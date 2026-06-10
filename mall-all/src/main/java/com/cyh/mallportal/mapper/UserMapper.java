@@ -22,6 +22,30 @@ public interface UserMapper extends BaseMapper<User> {
     User selectByUsername(@Param("username") String username);
 
     /**
+     * 统一账号查询：支持用户名/手机号/邮箱 三选一登录
+     *
+     * @param account 账号（用户名/手机号/邮箱）
+     * @return 用户信息
+     */
+    User selectByAccount(@Param("account") String account);
+
+    /**
+     * 根据手机号查询用户
+     *
+     * @param phone 手机号
+     * @return 用户信息
+     */
+    User selectByPhone(@Param("phone") String phone);
+
+    /**
+     * 根据邮箱查询用户
+     *
+     * @param email 邮箱
+     * @return 用户信息
+     */
+    User selectByEmail(@Param("email") String email);
+
+    /**
      * 根据用户ID查询角色列表
      *
      * @param userId 用户ID

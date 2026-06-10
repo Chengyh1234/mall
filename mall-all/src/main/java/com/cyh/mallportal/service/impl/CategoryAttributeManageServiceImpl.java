@@ -17,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -118,6 +119,7 @@ public class CategoryAttributeManageServiceImpl implements CategoryAttributeMana
         binding.setCategoryId(dto.getCategoryId());
         binding.setAttrId(dto.getAttrId());
         binding.setSort(dto.getSort() != null ? dto.getSort() : 0);
+        binding.setCreatedAt(LocalDateTime.now());
 
         categoryAttributeMapper.insert(binding);
         log.info("属性绑定成功, id={}", binding.getId());
@@ -139,6 +141,7 @@ public class CategoryAttributeManageServiceImpl implements CategoryAttributeMana
         CategoryAttribute update = new CategoryAttribute();
         update.setId(id);
         update.setSort(dto.getSort());
+        update.setUpdatedAt(LocalDateTime.now());
 
         int rows = categoryAttributeMapper.updateById(update);
         return rows > 0;

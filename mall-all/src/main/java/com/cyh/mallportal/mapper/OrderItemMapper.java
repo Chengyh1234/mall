@@ -26,6 +26,14 @@ public interface OrderItemMapper extends BaseMapper<OrderItem> {
     List<OrderItem> selectByOrderId(@Param("orderId") Long orderId);
 
     /**
+     * 批量查询订单明细（用于分页列表批量加载）
+     *
+     * @param orderIds 订单ID列表
+     * @return 订单明细列表
+     */
+    List<OrderItem> selectByOrderIds(@Param("orderIds") List<Long> orderIds);
+
+    /**
      * 根据订单号查询订单明细列表
      *
      * @param orderNo 订单号

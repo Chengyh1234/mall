@@ -94,7 +94,7 @@ public class SecurityConfig {
                         // 允许获取验证码无需认证
                         .requestMatchers(HttpMethod.GET, "/captcha").permitAll()
                         // 允许登录接口无需认证 允许 POST 请求到登录注册接口
-                        .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/register", "/auth/admin/login").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/register", "/auth/register/send-email-code", "/auth/admin/login", "/auth/login/send-email-code", "/auth/login/email-code", "/auth/reset-password/send-code", "/auth/reset-password/reset").permitAll()
                         // 允许静态资源访问
                         .requestMatchers("/uploads/images/**").permitAll()
                         // 允许所有GET请求无需登录（公开查询接口）

@@ -36,6 +36,20 @@ spring:
     redis:
       host: 192.168.31.140
       port: 6379
+ # ==================== 邮件配置 ====================
+  mail:
+    default-encoding:
+    host: smtp.qq.com
+    port: 587
+    username: 2265534937@qq.com
+    password: xwypdgkcdnmdeade
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+            required: true
 
 
 file:
@@ -48,6 +62,7 @@ file:
     stores-path: ./uploads/images/stores
     avatars-path: ./uploads/images/avatars
     banners-path: ./uploads/images/banners
+
 mall:
   order:
     pay-expire-minutes: 30

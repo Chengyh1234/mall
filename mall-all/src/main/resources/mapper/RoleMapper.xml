@@ -25,6 +25,16 @@
           AND r.status = 1
     </select>
 
+    <!-- 根据角色编码查询角色 -->
+    <select id="selectByCode" resultMap="BaseResultMap">
+        SELECT
+            id, name, code, description, status, created_at, updated_at
+        FROM roles
+        WHERE code = #{code}
+          AND status = 1
+        LIMIT 1
+    </select>
+
     <select id="selectPermissionIdsByRoleId" resultType="long">
         SELECT permission_id
         FROM role_permissions

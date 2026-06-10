@@ -28,26 +28,59 @@
         <result column="updated_at" property="updatedAt"/>
         <result column="cancel_reason" property="cancelReason"/>
         <result column="version" property="version"/>
+        <result column="is_deleted" property="isDeleted"/>
+        <result column="refund_reason" property="refundReason"/>
+        <result column="refund_amount" property="refundAmount"/>
+        <result column="refund_from_status" property="refundFromStatus"/>
+        <result column="refund_operator_id" property="refundOperatorId"/>
+        <result column="reject_reason" property="rejectReason"/>
+        <result column="rejected_at" property="rejectedAt"/>
     </resultMap>
 
     <select id="selectByUserId" resultMap="BaseResultMap">
-        SELECT * FROM orders WHERE user_id = #{userId} ORDER BY created_at DESC
+        SELECT * FROM orders WHERE user_id = #{userId} AND is_deleted = 0 ORDER BY created_at DESC
+    </select>
+
+    <!-- 分页查询用户订单列表（MyBatis-Plus 自动处理 LIMIT/OFFSET） -->
+    <select id="selectByUserIdPaged" resultMap="BaseResultMap">
+        SELECT * FROM orders WHERE user_id = #{userId} AND is_deleted = 0 ORDER BY created_at DESC
     </select>
 
     <select id="selectByOrderNo" resultMap="BaseResultMap">
-        SELECT * FROM orders WHERE order_no = #{orderNo}
+        SELECT * FROM orders WHERE order_no = #{orderNo} AND is_deleted = 0
+    </select>
+
+    <!-- 批量查询用户订单（自动过滤 is_deleted=0，用于批量付款校验） -->
+    <select id="selectByIdsAndUserId" resultMap="BaseResultMap">
+        SELECT * FROM orders
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        AND user_id = #{userId}
+        AND is_deleted = 0
+        ORDER BY created_at DESC
     </select>
 
     <select id="selectByUserIdAndStatus" resultMap="BaseResultMap">
-        SELECT * FROM orders WHERE user_id = #{userId} AND status = #{status} ORDER BY created_at DESC
+        SELECT * FROM orders WHERE user_id = #{userId} AND status = #{status} AND is_deleted = 0 ORDER BY created_at DESC
+    </select>
+
+    <!-- 分页查询用户订单列表（按状态筛选，MyBatis-Plus 自动处理 LIMIT/OFFSET） -->
+    <select id="selectByUserIdAndStatusPaged" resultMap="BaseResultMap">
+        SELECT * FROM orders WHERE user_id = #{userId} AND status = #{status} AND is_deleted = 0 ORDER BY created_at DESC
     </select>
 
     <select id="countByUserId" resultType="java.lang.Integer">
-        SELECT COUNT(*) FROM orders WHERE user_id = #{userId}
+        SELECT COUNT(*) FROM orders WHERE user_id = #{userId} AND is_deleted = 0
+    </select>
+
+    <select id="countByUserIdAndStatus" resultType="java.lang.Integer">
+        SELECT COUNT(*) FROM orders WHERE user_id = #{userId} AND status = #{status} AND is_deleted = 0
     </select>
 
     <select id="countByStatus" resultType="java.lang.Integer">
-        SELECT COUNT(*) FROM orders WHERE status = #{status}
+        SELECT COUNT(*) FROM orders WHERE status = #{status} AND is_deleted = 0
     </select>
 
     <!-- ==================== 商家销售仪表盘相关查询 ==================== -->
@@ -136,6 +169,81 @@
           AND o.status = #{status}
     </select>
 
+    <!-- 商家分页查询店铺订单列表（多条件筛选）
+         支持按状态、用户ID、订单号、支付时间范围、发货时间范围、收货时间范围筛选 -->
+    <select id="selectBySellerIdWithFilters" resultMap="BaseResultMap">
+        SELECT DISTINCT o.*
+        FROM orders o
+        INNER JOIN order_items oi ON o.id = oi.order_id
+        INNER JOIN spu s ON oi.spu_id = s.id
+        WHERE s.seller_id = #{sellerId}
+        <if test="status != null">
+            AND o.status = #{status}
+        </if>
+        <if test="userId != null">
+            AND o.user_id = #{userId}
+        </if>
+        <if test="orderNo != null and orderNo != ''">
+            AND o.order_no LIKE CONCAT('%', #{orderNo}, '%')
+        </if>
+        <if test="payTimeStart != null">
+            AND o.pay_time &gt;= #{payTimeStart}
+        </if>
+        <if test="payTimeEnd != null">
+            AND o.pay_time &lt;= #{payTimeEnd}
+        </if>
+        <if test="deliveryTimeStart != null">
+            AND o.delivery_time &gt;= #{deliveryTimeStart}
+        </if>
+        <if test="deliveryTimeEnd != null">
+            AND o.delivery_time &lt;= #{deliveryTimeEnd}
+        </if>
+        <if test="receiveTimeStart != null">
+            AND o.receive_time &gt;= #{receiveTimeStart}
+        </if>
+        <if test="receiveTimeEnd != null">
+            AND o.receive_time &lt;= #{receiveTimeEnd}
+        </if>
+        ORDER BY o.created_at DESC
+    </select>
+
+    <!-- 统计商家店铺订单总数（多条件筛选）
+         与 selectBySellerIdWithFilters 条件完全一致 -->
+    <select id="countBySellerIdWithFilters" resultType="int">
+        SELECT COUNT(DISTINCT o.id)
+        FROM orders o
+        INNER JOIN order_items oi ON o.id = oi.order_id
+        INNER JOIN spu s ON oi.spu_id = s.id
+        WHERE s.seller_id = #{sellerId}
+        <if test="status != null">
+            AND o.status = #{status}
+        </if>
+        <if test="userId != null">
+            AND o.user_id = #{userId}
+        </if>
+        <if test="orderNo != null and orderNo != ''">
+            AND o.order_no LIKE CONCAT('%', #{orderNo}, '%')
+        </if>
+        <if test="payTimeStart != null">
+            AND o.pay_time &gt;= #{payTimeStart}
+        </if>
+        <if test="payTimeEnd != null">
+            AND o.pay_time &lt;= #{payTimeEnd}
+        </if>
+        <if test="deliveryTimeStart != null">
+            AND o.delivery_time &gt;= #{deliveryTimeStart}
+        </if>
+        <if test="deliveryTimeEnd != null">
+            AND o.delivery_time &lt;= #{deliveryTimeEnd}
+        </if>
+        <if test="receiveTimeStart != null">
+            AND o.receive_time &gt;= #{receiveTimeStart}
+        </if>
+        <if test="receiveTimeEnd != null">
+            AND o.receive_time &lt;= #{receiveTimeEnd}
+        </if>
+    </select>
+
     <!-- 根据订单号和商家用户ID查询订单：校验订单是否属于该商家 -->
     <select id="selectByOrderNoAndSellerId" resultMap="BaseResultMap">
         SELECT DISTINCT o.*
@@ -146,9 +254,107 @@
           AND s.seller_id = #{sellerId}
     </select>
 
-    <!-- 查询过期未支付的订单 -->
+    <!-- 查询过期未支付的订单（仅查未逻辑删除的） -->
     <select id="selectExpiredUnpaidOrders" resultMap="BaseResultMap">
-        SELECT * FROM orders WHERE status = 1 AND expire_time &lt; #{now}
+        SELECT * FROM orders WHERE status = 1 AND is_deleted = 0 AND expire_time &lt; #{now}
+    </select>
+
+    <!-- ==================== 全局订单查询（运营管理员/超级管理员） ==================== -->
+
+    <!-- 分页查询全部订单（管理员查看全部，不过滤 is_deleted） -->
+    <select id="selectAllOrders" resultMap="BaseResultMap">
+        SELECT * FROM orders ORDER BY created_at DESC
+    </select>
+
+    <!-- 分页查询全部订单（按状态筛选）（管理员查看全部，不过滤 is_deleted） -->
+    <select id="selectAllOrdersByStatus" resultMap="BaseResultMap">
+        SELECT * FROM orders WHERE status = #{status} ORDER BY created_at DESC
+    </select>
+
+    <!-- 管理员分页查询全部订单（多条件筛选）
+         支持按状态、用户ID、订单号、支付/发货/收货时间范围筛选 -->
+    <select id="selectAllOrdersWithFilters" resultMap="BaseResultMap">
+        SELECT * FROM orders
+        WHERE 1=1
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+        <if test="userId != null">
+            AND user_id = #{userId}
+        </if>
+        <if test="orderNo != null and orderNo != ''">
+            AND order_no LIKE CONCAT('%', #{orderNo}, '%')
+        </if>
+        <if test="payTimeStart != null">
+            AND pay_time &gt;= #{payTimeStart}
+        </if>
+        <if test="payTimeEnd != null">
+            AND pay_time &lt;= #{payTimeEnd}
+        </if>
+        <if test="deliveryTimeStart != null">
+            AND delivery_time &gt;= #{deliveryTimeStart}
+        </if>
+        <if test="deliveryTimeEnd != null">
+            AND delivery_time &lt;= #{deliveryTimeEnd}
+        </if>
+        <if test="receiveTimeStart != null">
+            AND receive_time &gt;= #{receiveTimeStart}
+        </if>
+        <if test="receiveTimeEnd != null">
+            AND receive_time &lt;= #{receiveTimeEnd}
+        </if>
+        ORDER BY created_at DESC
+    </select>
+
+    <!-- 统计全部订单总数（管理员统计全部，不过滤 is_deleted） -->
+    <select id="countAllOrders" resultType="int">
+        SELECT COUNT(*) FROM orders
+    </select>
+
+    <!-- 统计指定状态的订单总数（管理员统计全部，不过滤 is_deleted） -->
+    <select id="countAllOrdersByStatus" resultType="int">
+        SELECT COUNT(*) FROM orders WHERE status = #{status}
+    </select>
+
+    <!-- 管理员统计全部订单总数（多条件筛选）
+         与 selectAllOrdersWithFilters 条件完全一致 -->
+    <select id="countAllOrdersWithFilters" resultType="int">
+        SELECT COUNT(*) FROM orders
+        WHERE 1=1
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+        <if test="userId != null">
+            AND user_id = #{userId}
+        </if>
+        <if test="orderNo != null and orderNo != ''">
+            AND order_no LIKE CONCAT('%', #{orderNo}, '%')
+        </if>
+        <if test="payTimeStart != null">
+            AND pay_time &gt;= #{payTimeStart}
+        </if>
+        <if test="payTimeEnd != null">
+            AND pay_time &lt;= #{payTimeEnd}
+        </if>
+        <if test="deliveryTimeStart != null">
+            AND delivery_time &gt;= #{deliveryTimeStart}
+        </if>
+        <if test="deliveryTimeEnd != null">
+            AND delivery_time &lt;= #{deliveryTimeEnd}
+        </if>
+        <if test="receiveTimeStart != null">
+            AND receive_time &gt;= #{receiveTimeStart}
+        </if>
+        <if test="receiveTimeEnd != null">
+            AND receive_time &lt;= #{receiveTimeEnd}
+        </if>
+    </select>
+
+    <!-- ==================== 管理员订单详情查询（不过滤 is_deleted） ==================== -->
+
+    <!-- 管理员根据订单号查询订单详情（不过滤 is_deleted，可查看所有订单包括已删除的） -->
+    <select id="selectByOrderNoForAdmin" resultMap="BaseResultMap">
+        SELECT * FROM orders WHERE order_no = #{orderNo}
     </select>
 
 </mapper>

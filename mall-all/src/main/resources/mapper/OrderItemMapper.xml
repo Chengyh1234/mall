@@ -22,6 +22,14 @@
         SELECT * FROM order_items WHERE order_id = #{orderId}
     </select>
 
+    <!-- 批量查询订单明细（用于分页列表批量加载） -->
+    <select id="selectByOrderIds" resultMap="BaseResultMap">
+        SELECT * FROM order_items WHERE order_id IN
+        <foreach collection="orderIds" item="orderId" open="(" separator="," close=")">
+            #{orderId}
+        </foreach>
+    </select>
+
     <select id="selectByOrderNo" resultMap="BaseResultMap">
         SELECT * FROM order_items WHERE order_no = #{orderNo}
     </select>
@@ -36,7 +44,7 @@
 
     <!-- ==================== 商家销售仪表盘相关查询 ==================== -->
 
-    <!-- 商品销售排行：按商品分组统计销售额和销量，用于条形图/南丁格尔玫瑰图 -->
+    <!-- 商品销售排行：按商品分组统计销售额和销量，用于条形图/南丁格尔玫瑰图（商家统计，不过滤 is_deleted） -->
     <select id="selectProductSalesRanking" resultType="java.util.Map">
         SELECT oi.product_name AS name,
                SUM(oi.total_amount) AS salesAmount,

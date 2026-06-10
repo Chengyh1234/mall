@@ -79,7 +79,7 @@ public class MyConstants {
     public static final String DEFAULT_LOGO_PATH = "./uploads/images/brands";
 
     /**
-     * 商品主图上传路径
+     * spu图片上传路径
      */
     public static final String SPU_IMAGE_PATH = "./uploads/images/spu";
 
@@ -141,6 +141,32 @@ public class MyConstants {
      * 设置为30分钟，平衡缓存命中率和数据新鲜度
      */
     public static final int SPU_CACHE_EXPIRE_MINUTES = 30;
+
+    // ==================== 邮箱验证码相关常量 ====================
+
+    /**
+     * 登录邮箱验证码 Redis Key 前缀
+     * 完整格式：email:login:code:{email}
+     */
+    public static final String EMAIL_LOGIN_CODE_PREFIX = "email:login:code:";
+
+    /**
+     * 注册邮箱验证码 Redis Key 前缀
+     * 完整格式：email:register:code:{email}
+     */
+    public static final String EMAIL_REGISTER_CODE_PREFIX = "email:register:code:";
+
+    /**
+     * 重置密码邮箱验证码 Redis Key 前缀
+     * 完整格式：email:reset:pwd:{email}
+     */
+    public static final String EMAIL_RESET_PWD_CODE_PREFIX = "email:reset:pwd:";
+
+    /**
+     * 邮箱验证码过期时间（秒）
+     * 默认5分钟：300秒
+     */
+    public static final long EMAIL_CODE_EXPIRATION = 300L;
 
     // ==================== Banner轮播图相关常量 ====================
 
