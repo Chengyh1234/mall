@@ -3,6 +3,8 @@ package com.cyh.mallportal.controller;
 import com.cyh.mallcommon.utils.Result;
 import com.cyh.mallportal.entity.LogisticsCompany;
 import com.cyh.mallportal.service.LogisticsCompanyService;
+import com.cyh.mallportal.vo.LogisticsCompanyAdminVo;
+import com.cyh.mallportal.vo.LogisticsCompanyVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -10,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 物流公司管理控制器
@@ -28,9 +31,12 @@ public class LogisticsCompanyController {
      * @return 物流公司列表
      */
     @GetMapping("/list")
-    public Result<List<LogisticsCompany>> getEnabledList() {
+    public Result<List<LogisticsCompanyVo>> getEnabledList() {
         List<LogisticsCompany> list = logisticsCompanyService.getEnabledList();
-        return Result.success(list);
+        List<LogisticsCompanyVo> voList = list.stream()
+                .map(LogisticsCompanyVo::fromLogisticsCompany)
+                .collect(Collectors.toList());
+        return Result.success(voList);
     }
 
     /**
@@ -40,10 +46,10 @@ public class LogisticsCompanyController {
      * @return 物流公司详情
      */
     @GetMapping("/detail/{id}")
-    public Result<LogisticsCompany> getById(@PathVariable Long id) {
+    public Result<LogisticsCompanyVo> getById(@PathVariable Long id) {
         LogisticsCompany company = logisticsCompanyService.getById(id);
         if (company != null) {
-            return Result.success(company);
+            return Result.success(LogisticsCompanyVo.fromLogisticsCompany(company));
         }
         return Result.error("物流公司不存在");
     }
@@ -55,10 +61,10 @@ public class LogisticsCompanyController {
      * @return 物流公司详情
      */
     @GetMapping("/code/{code}")
-    public Result<LogisticsCompany> getByCode(@PathVariable String code) {
+    public Result<LogisticsCompanyVo> getByCode(@PathVariable String code) {
         LogisticsCompany company = logisticsCompanyService.getByCode(code);
         if (company != null) {
-            return Result.success(company);
+            return Result.success(LogisticsCompanyVo.fromLogisticsCompany(company));
         }
         return Result.error("物流公司不存在");
     }
@@ -72,7 +78,7 @@ public class LogisticsCompanyController {
      * @return 分页结果
      */
     @GetMapping("/page")
-    @PreAuthorize("hasAuthority('system:logistics:query') or hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public Result<Map<String, Object>> getPage(@RequestParam(required = false) Integer status,
                                                @RequestParam(defaultValue = "1") Integer page,
                                                @RequestParam(defaultValue = "10") Integer size) {
@@ -80,7 +86,9 @@ public class LogisticsCompanyController {
         int total = logisticsCompanyService.count(status);
 
         Map<String, Object> data = new HashMap<>();
-        data.put("list", list);
+        data.put("list", list.stream()
+                .map(LogisticsCompanyAdminVo::fromLogisticsCompany)
+                .collect(Collectors.toList()));
         data.put("page", page);
         data.put("size", size);
         data.put("total", total);
@@ -95,7 +103,7 @@ public class LogisticsCompanyController {
      * @return 新增结果
      */
     @PostMapping("/add")
-    @PreAuthorize("hasAuthority('system:logistics:add') or hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public Result<Map<String, Object>> add(@RequestBody LogisticsCompany company) {
         // 参数校验
         if (company.getName() == null || company.getName().trim().isEmpty()) {
@@ -121,7 +129,7 @@ public class LogisticsCompanyController {
      * @return 更新结果
      */
     @PutMapping("/update")
-    @PreAuthorize("hasAuthority('system:logistics:edit') or hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public Result<Void> update(@RequestBody LogisticsCompany company) {
         if (company.getId() == null) {
             return Result.error("物流公司ID不能为空");
@@ -141,7 +149,7 @@ public class LogisticsCompanyController {
      * @return 删除结果
      */
     @DeleteMapping("/delete/{id}")
-    @PreAuthorize("hasAuthority('system:logistics:delete') or hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public Result<Void> delete(@PathVariable Long id) {
         boolean success = logisticsCompanyService.delete(id);
         if (success) {
@@ -158,7 +166,7 @@ public class LogisticsCompanyController {
      * @return 更新结果
      */
     @PutMapping("/status/{id}")
-    @PreAuthorize("hasAuthority('system:logistics:edit') or hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public Result<Void> updateStatus(@PathVariable Long id, @RequestParam Integer status) {
         if (status != 0 && status != 1) {
             return Result.error("状态值不正确");

@@ -1,11 +1,7 @@
 package com.cyh.mallportal.service;
 
 import com.cyh.mallportal.dto.SkuBatchCreateDto;
-import com.cyh.mallportal.dto.SkuSaleAttrBindDto;
 import com.cyh.mallportal.dto.SkuUpdateDto;
-import com.cyh.mallportal.entity.SkuSaleAttrValue;
-import com.cyh.mallportal.vo.SkuAttrVo;
-import com.cyh.mallportal.vo.SkuAvailableAttrVo;
 
 import java.util.List;
 import java.util.Map;
@@ -16,69 +12,30 @@ import java.util.Map;
  */
 public interface SkuAttrService {
 
-    /**
-     * 绑定SKU销售属性
-     * 商家为SKU绑定销售属性值（如颜色、内存、存储等）
-     *
-     * @param dto       绑定信息
-     * @param sellerId  当前商家ID
-     * @return 成功绑定的记录数
-     */
-    int bindSaleAttr(SkuSaleAttrBindDto dto, Long sellerId);
+    //    /**
+//     * 更新SKU销售属性绑定（已废弃）
+//     */
+//    boolean updateSaleAttr(Long skuId, List<Long> attrValueIds, Long sellerId);
 
-    /**
-     * 批量绑定SKU销售属性
-     *
-     * @param dtoList   绑定信息列表
-     * @param sellerId  当前商家ID
-     * @return 成功绑定的记录数
-     */
-    int batchBindSaleAttr(List<SkuSaleAttrBindDto> dtoList, Long sellerId);
+//    /**
+//     * 删除SKU销售属性绑定（已废弃）
+//     */
+//    boolean deleteSaleAttr(Long id, Long sellerId);
 
-    /**
-     * 更新SKU销售属性绑定
-     * 先删除原有绑定，再添加新的绑定
-     *
-     * @param skuId        SKU ID
-     * @param attrValueIds 新的属性值ID列表
-     * @param sellerId     当前商家ID
-     * @return 是否更新成功
-     */
-    boolean updateSaleAttr(Long skuId, List<Long> attrValueIds, Long sellerId);
+//    /**
+//     * 删除SKU的所有销售属性绑定（已废弃）
+//     */
+//    int deleteAllSaleAttrsBySkuId(Long skuId, Long sellerId);
 
-    /**
-     * 删除SKU销售属性绑定
-     *
-     * @param id        记录ID
-     * @param sellerId  当前商家ID
-     * @return 是否删除成功
-     */
-    boolean deleteSaleAttr(Long id, Long sellerId);
+    //    /**
+//     * 根据SKU ID获取销售属性列表（已废弃）
+//     */
+//    List<SkuSaleAttrValue> getSaleAttrsBySkuId(Long skuId);
 
-    /**
-     * 删除SKU的所有销售属性绑定
-     *
-     * @param skuId     SKU ID
-     * @param sellerId  当前商家ID
-     * @return 删除的记录数
-     */
-    int deleteAllSaleAttrsBySkuId(Long skuId, Long sellerId);
-
-    /**
-     * 根据SKU ID获取销售属性列表
-     *
-     * @param skuId SKU ID
-     * @return 销售属性值列表
-     */
-    List<SkuSaleAttrValue> getSaleAttrsBySkuId(Long skuId);
-
-    /**
-     * 获取SKU的销售属性详情
-     *
-     * @param skuId SKU ID
-     * @return SKU销售属性详情
-     */
-    SkuAttrVo getSkuAttrDetail(Long skuId);
+//    /**
+//     * 获取SKU的销售属性详情（已废弃）
+//     */
+//    SkuAttrVo getSkuAttrDetail(Long skuId);
 
     /**
      * 校验SKU属性组合是否合法
@@ -90,14 +47,10 @@ public interface SkuAttrService {
      */
     boolean validateAttrCombination(Long spuId, List<Long> attrValueIds);
 
-    /**
-     * 获取SKU可选择的销售属性值列表
-     * 根据SPU ID，获取该SPU选择的销售属性及可选属性值，供SKU创建时选择
-     *
-     * @param spuId SPU ID
-     * @return 可用属性列表
-     */
-    SkuAvailableAttrVo getAvailableAttrsBySpuId(Long spuId);
+    //    /**
+//     * 获取SKU可选择的销售属性值列表（已废弃）
+//     */
+//    SkuAvailableAttrVo getAvailableAttrsBySpuId(Long spuId);
 
     /**
      * 批量创建SKU并绑定销售属性（同SPU）

@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 商家SPU属性管理控制器
+ * 商家SPU属性管理控制器 已处理响应
  * 提供商家操作SPU基本属性和销售属性的功能
  * 权限：商家及以上角色（SELLER, ADMIN, SUPER_ADMIN）
  */
@@ -45,7 +45,7 @@ public class SpuAttrController {
      * @return 绑定结果
      */
     @PostMapping("/basic/bind")
-    @PreAuthorize("hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<Map<String, Object>> bindBasicAttr(@RequestBody @Validated SpuBasicAttrBindDto dto) {
         Long sellerId = getCurrentUserId();
         if (sellerId == null) {
@@ -69,7 +69,7 @@ public class SpuAttrController {
      * @return 批量绑定结果（含成功数和总数）
      */
     @PostMapping("/basic/batch-bind")
-    @PreAuthorize("hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<Map<String, Object>> batchBindBasicAttr(@RequestBody List<SpuBasicAttrBindDto> dtoList) {
         Long sellerId = getCurrentUserId();
         if (sellerId == null) {
@@ -91,7 +91,7 @@ public class SpuAttrController {
      * @return 更新结果
      */
     @PutMapping("/basic/update/{id}")
-    @PreAuthorize("hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<Void> updateBasicAttr(@PathVariable Long id, @RequestBody @Validated SpuBasicAttrBindDto dto) {
         Long sellerId = getCurrentUserId();
         if (sellerId == null) {
@@ -111,7 +111,7 @@ public class SpuAttrController {
      * @return 批量更新结果
      */
     @PutMapping("/basic/batch-update")
-    @PreAuthorize("hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<Map<String, Object>> batchUpdateBasicAttr(@RequestBody List<SpuBasicAttrBindDto> dtoList) {
         Long sellerId = getCurrentUserId();
         if (sellerId == null) {
@@ -136,7 +136,7 @@ public class SpuAttrController {
      * @return 删除结果
      */
     @DeleteMapping("/basic/delete/{id}")
-    @PreAuthorize("hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<Void> deleteBasicAttr(@PathVariable Long id) {
         Long sellerId = getCurrentUserId();
         if (sellerId == null) {
@@ -148,13 +148,13 @@ public class SpuAttrController {
     }
 
     /**
-     * 获取SPU的基本属性列表
+     * 获取SPU的基本属性列表 以及替换返回全部的基本属性和销售属性了
      *
      * @param spuId SPU ID
      * @return 基本属性值列表
      */
     @GetMapping("/basic/list/{spuId}")
-    @PreAuthorize("hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<List<SpuBasicAttrValue>> getBasicAttrsBySpuId(@PathVariable Long spuId) {
         List<SpuBasicAttrValue> list = spuAttrService.getBasicAttrsBySpuId(spuId);
         return Result.success(list);
@@ -170,7 +170,7 @@ public class SpuAttrController {
      * @return 绑定结果
      */
     @PostMapping("/sale/bind")
-    @PreAuthorize("hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<Map<String, Object>> bindSaleAttr(@RequestBody @Validated SpuSaleAttrBindDto dto) {
         Long sellerId = getCurrentUserId();
         if (sellerId == null) {
@@ -191,7 +191,7 @@ public class SpuAttrController {
      * @return 批量绑定结果
      */
     @PostMapping("/sale/batch-bind")
-    @PreAuthorize("hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<Map<String, Object>> batchBindSaleAttr(@RequestBody List<SpuSaleAttrBindDto> dtoList) {
         Long sellerId = getCurrentUserId();
         if (sellerId == null) {
@@ -214,7 +214,7 @@ public class SpuAttrController {
      * @return 更新结果
      */
     @PutMapping("/sale/update/{id}")
-    @PreAuthorize("hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<Void> updateSaleAttr(@PathVariable Long id, @RequestBody @Validated SpuSaleAttrBindDto dto) {
         Long sellerId = getCurrentUserId();
         if (sellerId == null) {
@@ -234,7 +234,7 @@ public class SpuAttrController {
      * @return 批量更新结果
      */
     @PutMapping("/sale/batch-update")
-    @PreAuthorize("hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<Map<String, Object>> batchUpdateSaleAttr(@RequestBody List<SpuSaleAttrBindDto> dtoList) {
         Long sellerId = getCurrentUserId();
         if (sellerId == null) {
@@ -259,7 +259,7 @@ public class SpuAttrController {
      * @return 删除结果
      */
     @DeleteMapping("/sale/delete/{id}")
-    @PreAuthorize("hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<Void> deleteSaleAttr(@PathVariable Long id) {
         Long sellerId = getCurrentUserId();
         if (sellerId == null) {
@@ -278,7 +278,7 @@ public class SpuAttrController {
      * @return 销售属性详情列表（包含属性值）
      */
     @GetMapping("/sale/list/{spuId}")
-    @PreAuthorize("hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<List<SpuAttrVo.SpuSaleAttrDetailVo>> getSaleAttrsBySpuId(@PathVariable Long spuId) {
         List<SpuAttrVo.SpuSaleAttrDetailVo> list = spuAttrService.getSaleAttrsWithValuesBySpuId(spuId);
         return Result.success(list);
@@ -294,7 +294,7 @@ public class SpuAttrController {
      * @return SPU属性完整信息
      */
     @GetMapping("/all/{spuId}")
-    @PreAuthorize("hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<SpuAttrVo> getAllAttrsBySpuId(@PathVariable Long spuId) {
         SpuAttrVo vo = spuAttrService.getAllAttrsBySpuId(spuId);
         return Result.success(vo);
@@ -315,14 +315,14 @@ public class SpuAttrController {
     }
 
     /**
-     * 获取SPU可绑定的属性列表
+     * 获取SPU可绑定的属性列表（没有进行使用）
      * 根据SPU的分类，显示分类下的所有属性，并标记哪些已绑定
      *
      * @param spuId SPU ID
      * @return 可用属性列表
      */
     @GetMapping("/available/{spuId}")
-    @PreAuthorize("hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<SpuAvailableAttrVo> getAvailableAttrs(@PathVariable Long spuId) {
         SpuAvailableAttrVo vo = spuAttrService.getAvailableAttrsBySpuId(spuId);
         return Result.success(vo);
@@ -335,15 +335,15 @@ public class SpuAttrController {
      * @param dto 完整属性绑定信息
      * @return 绑定结果
      */
-    @PostMapping("/bind-all")
-    @PreAuthorize("hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
-    public Result<Map<String, Object>> bindAllAttrs(@RequestBody @Validated SpuAttrFullBindDto dto) {
-        Long sellerId = getCurrentUserId();
-        if (sellerId == null) {
-            return Result.error("用户未登录");
-        }
-
-        Map<String, Object> result = spuAttrService.bindAllAttrs(dto, sellerId);
-        return Result.success("属性绑定完成", result);
-    }
+    //@PostMapping("/bind-all")
+    //@PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
+    //public Result<Map<String, Object>> bindAllAttrs(@RequestBody @Validated SpuAttrFullBindDto dto) {
+    //    Long sellerId = getCurrentUserId();
+    //    if (sellerId == null) {
+    //        return Result.error("用户未登录");
+    //    }
+    //
+    //    Map<String, Object> result = spuAttrService.bindAllAttrs(dto, sellerId);
+    //    return Result.success("属性绑定完成", result);
+    //}
 }

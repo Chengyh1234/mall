@@ -67,7 +67,6 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
             "/attribute/category/**",
             "/attribute/sales/**",
             "/attribute/basic/**",
-            "/attribute/spu/**",
             "/banner/active",
             "/brand/**",
             "/category/detail/**",
@@ -85,16 +84,17 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
             "/order/status-desc/**",
             "/order/pay-status-desc/**",
             "/sku/detail/**",
-            "/sku/list",
-            "/sku/page",
-            "/sku/min-price/**",
+            //"/sku/list",
+            //"/sku/page",
+            //"/sku/min-price/**",
             "/sku/total-stock/**",
             "/sku/list-with-attributes",
             "/sku/detail-with-attributes/**",
             "/spu/detail/**",
-            "/spu/list",
+            //"/spu/list",
             "/spu/page",
             "/spu/by-store/**",
+            "/spu/*/basic-attributes",
             "/store/detail/**",
             "/store/page"
     );
@@ -116,8 +116,11 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
      */
     @Override
     protected boolean shouldNotFilter(@NonNull HttpServletRequest request) {
+
         String path = request.getServletPath();
         String method = request.getMethod();
+
+
         //String requestURI = request.getRequestURI();
         //log.info("path: {}, method: {}, uri: {}", path, method, requestURI);
 
@@ -125,17 +128,14 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
         if (pathMatcher.match("/uploads/images/**", path)) {
             return true;
         }
-
         // 公开的 GET 路径
         if ("GET".equalsIgnoreCase(method)) {
             return PUBLIC_GET_PATHS.stream().anyMatch(p -> pathMatcher.match(p, path));
         }
-
         // 公开的 POST 路径
         if ("POST".equalsIgnoreCase(method)) {
             return PUBLIC_POST_PATHS.contains(path);
         }
-
         return false;
     }
 
@@ -159,10 +159,10 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
-
         // 1. 从请求头获取Token
         final String authHeader = request.getHeader(MyConstants.AUTH_HEADER);
         final String token;
+
 
         // 2. 检查Token是否存在且格式正确（Bearer xxx）
         if (authHeader == null || !authHeader.startsWith(MyConstants.BEARER_PREFIX)) {
@@ -186,7 +186,7 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
             log.warn("Token已过期或无效，token: {}", token.substring(0, Math.min(10, token.length())) + "...");
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             response.setContentType("application/json;charset=UTF-8");
-            Result<Object> error = Result.error(ErrorCode.LOGIN_EXPIRED.getHttpStatus(), ErrorCode.LOGIN_EXPIRED.getMessage());
+            Result<Object> error = Result.error(ErrorCode.LOGIN_EXPIRED.getBusinessCode(), ErrorCode.LOGIN_EXPIRED.getMessage());
             response.getWriter().write(JSONUtil.toJsonStr(error));
             return;
         }
@@ -214,6 +214,16 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
 
             // 构建User对象
             User user = buildUser(userInfo);
+
+            // 校验用户状态：被禁用的用户拒绝访问
+            if (user.getStatus() == null || user.getStatus() != 1) {
+                log.warn("被禁用的用户尝试访问: userId={}", user.getId());
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                response.setContentType("application/json;charset=UTF-8");
+                Result<Object> error = Result.error(ErrorCode.AUTH_FAILED.getBusinessCode(), "账号已被禁用，无法访问");
+                response.getWriter().write(JSONUtil.toJsonStr(error));
+                return;
+            }
 
             // 构建权限列表
             List<GrantedAuthority> authorities = buildAuthorities(userInfo);
@@ -272,7 +282,7 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
         user.setRealName((String) userInfo.get("realName"));
         user.setEmail((String) userInfo.get("email"));
         user.setPhone((String) userInfo.get("phone"));
-        user.setStatus(1);
+        user.setStatus(((Number) userInfo.get("status")).intValue()); // 从Redis读取真实状态，禁用用户status=0
 
         // 解析角色信息
         Object rolesObj = userInfo.get("roles");

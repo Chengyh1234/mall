@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 店铺管理员控制器
+ * 店铺管理员控制器-----------------暂时没有这个功能
  */
 @RestController
 @RequestMapping("/store-admin")
@@ -34,7 +34,7 @@ public class StoreAdminController {
      * 新增店铺管理员
      */
     @PostMapping("/add")
-    @PreAuthorize("hasAuthority('store:manage') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public Result<Map<String, Object>> add(@RequestBody StoreAdminDto storeAdminDto) {
         if (storeAdminDto.getStoreId() == null) {
             return Result.error("店铺ID不能为空");
@@ -71,7 +71,7 @@ public class StoreAdminController {
      * 更新店铺管理员
      */
     @PutMapping("/update")
-    @PreAuthorize("hasAuthority('store:manage') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public Result<Void> update(@RequestBody StoreAdminDto storeAdminDto) {
         if (storeAdminDto.getId() == null) {
             return Result.error("管理员ID不能为空");
@@ -115,7 +115,7 @@ public class StoreAdminController {
      * 删除店铺管理员
      */
     @DeleteMapping("/delete/{id}")
-    @PreAuthorize("hasAuthority('store:manage') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public Result<Void> delete(@PathVariable Long id) {
         StoreAdmin admin = storeAdminService.getById(id);
         if (admin == null) {
@@ -163,7 +163,7 @@ public class StoreAdminController {
      * 获取当前用户的管理员信息
      */
     @GetMapping("/my-admin")
-    @PreAuthorize("hasAuthority('store:manage') or hasRole('SUPER_ADMIN') or hasRole('SELLER')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SELLER')")
     public Result<StoreAdmin> getMyAdmin() {
         Long currentUserId = getCurrentUserId();
         if (currentUserId == null) {
@@ -180,7 +180,7 @@ public class StoreAdminController {
      * 更新管理员状态
      */
     @PutMapping("/status/{id}")
-    @PreAuthorize("hasAuthority('store:manage') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public Result<Void> updateStatus(@PathVariable Long id, @RequestParam Integer status) {
         StoreAdmin admin = storeAdminService.getById(id);
         if (admin == null) {

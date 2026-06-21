@@ -2,7 +2,7 @@ package com.cyh.mallportal.service;
 
 import com.cyh.mallportal.dto.AttributeDto;
 import com.cyh.mallportal.dto.AttributeValueDto;
-import com.cyh.mallportal.entity.AttributeValue;
+import com.cyh.mallportal.vo.AttrValueVo;
 import com.cyh.mallportal.vo.AttributeVo;
 
 import java.util.List;
@@ -92,5 +92,5 @@ public interface AttributeManageService {
      * @param attrId 属性ID
      * @return 属性值列表
      */
-    List<AttributeValue> listAttributeValues(Long attrId);
+    List<AttrValueVo> listAttributeValues(Long attrId);
 }

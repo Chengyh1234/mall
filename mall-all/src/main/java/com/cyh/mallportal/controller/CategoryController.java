@@ -7,6 +7,8 @@ import com.cyh.mallportal.dto.CategoryDto;
 import com.cyh.mallportal.entity.Category;
 import com.cyh.mallportal.service.CategoryService;
 import com.cyh.mallportal.service.FileService;
+import com.cyh.mallportal.vo.CategoryTreeVo;
+import com.cyh.mallportal.vo.CategoryVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.StringUtils;
@@ -18,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 分类管理控制器
+ * 分类管理控制器 已处理响应
  * 提供分类的增删改查及树形结构查询功能
  */
 @RestController
@@ -39,7 +41,7 @@ public class CategoryController {
      * @return 新增结果
      */
     @PostMapping("/add")
-    @PreAuthorize("hasAuthority('product:category') or hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public Result<Map<String, Object>> add(@RequestPart(value = "categoryDto") String categoryDtoString,
                                            @RequestPart(value = "iconFile", required = false) MultipartFile iconFile) {
         // 解析分类DTO
@@ -87,7 +89,7 @@ public class CategoryController {
      * @return 删除结果
      */
     @DeleteMapping("/delete/{id}")
-    @PreAuthorize("hasAuthority('product:category') or hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public Result<Void> delete(@PathVariable Long id) {
         // 获取分类信息（包含图标）
         Category category = categoryService.getById(id);
@@ -112,7 +114,7 @@ public class CategoryController {
      * @return 更新结果
      */
     @PutMapping("/update")
-    @PreAuthorize("hasAuthority('product:category') or hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public Result<Map<String, Object>> update(@RequestPart(value = "categoryDto") String categoryDtoString,
                                               @RequestPart(value = "iconFile", required = false) MultipartFile iconFile) {
         // 解析分类DTO
@@ -181,10 +183,10 @@ public class CategoryController {
      * @return 分类信息
      */
     @GetMapping("/detail/{id}")
-    public Result<Category> getById(@PathVariable Long id) {
+    public Result<CategoryVo> getById(@PathVariable Long id) {
         Category category = categoryService.getById(id);
         if (category != null) {
-            return Result.success(category);
+            return Result.success(toCategoryVo(category));
         }
         return Result.error("分类不存在");
     }
@@ -199,7 +201,7 @@ public class CategoryController {
      * @return 分类列表
      */
     @GetMapping("/list")
-    public Result<List<Category>> getList(@RequestParam(required = false) String name,
+    public Result<List<CategoryVo>> getList(@RequestParam(required = false) String name,
                                           @RequestParam(required = false) Long parentId,
                                           @RequestParam(required = false) Integer level,
                                           @RequestParam(required = false) Integer status) {
@@ -210,7 +212,7 @@ public class CategoryController {
         category.setStatus(status);
 
         List<Category> list = categoryService.getList(category);
-        return Result.success(list);
+        return Result.success(list.stream().map(this::toCategoryVo).toList());
     }
 
     /**
@@ -239,7 +241,7 @@ public class CategoryController {
 
         List<Category> list = categoryService.getPage(category, page, pageSize);
         Map<String, Object> data = new HashMap<>();
-        data.put("list", list);
+        data.put("list", list.stream().map(this::toCategoryVo).toList());
         data.put("page", page);
         data.put("pageSize", pageSize);
         return Result.success(data);
@@ -252,8 +254,8 @@ public class CategoryController {
      * @return 树形结构
      */
     @GetMapping("/tree")
-    public Result<List<Map<String, Object>>> getTree(@RequestParam(required = false) Long parentId) {
-        List<Map<String, Object>> tree = categoryService.getTreeWithChildren(parentId);
+    public Result<List<CategoryTreeVo>> getTree(@RequestParam(required = false) Long parentId) {
+        List<CategoryTreeVo> tree = categoryService.getTreeWithChildren(parentId);
         return Result.success(tree);
     }
 
@@ -263,9 +265,9 @@ public class CategoryController {
      * @return 一级分类列表
      */
     @GetMapping("/level1")
-    public Result<List<Category>> getLevel1() {
+    public Result<List<CategoryVo>> getLevel1() {
         List<Category> list = categoryService.getByLevel(1);
-        return Result.success(list);
+        return Result.success(list.stream().map(this::toCategoryVo).toList());
     }
 
     /**
@@ -275,9 +277,24 @@ public class CategoryController {
      * @return 子分类列表
      */
     @GetMapping("/children/{parentId}")
-    public Result<List<Category>> getChildren(@PathVariable Long parentId) {
+    public Result<List<CategoryVo>> getChildren(@PathVariable Long parentId) {
         List<Category> list = categoryService.getByParentId(parentId);
-        return Result.success(list);
+        return Result.success(list.stream().map(this::toCategoryVo).toList());
+    }
+
+    /**
+     * 将 Category 实体转换为 CategoryVo
+     */
+    private CategoryVo toCategoryVo(Category category) {
+        CategoryVo vo = new CategoryVo();
+        vo.setId(category.getId());
+        vo.setName(category.getName());
+        vo.setParentId(category.getParentId());
+        vo.setLevel(category.getLevel());
+        vo.setIcon(category.getIcon());
+        vo.setSort(category.getSort());
+        vo.setStatus(category.getStatus());
+        return vo;
     }
 
     /**

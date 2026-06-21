@@ -5,10 +5,9 @@ import com.cyh.mallportal.entity.*;
 import com.cyh.mallportal.mapper.*;
 import com.cyh.mallportal.service.SkuService;
 import com.cyh.mallportal.service.SpuService;
+import com.cyh.mallportal.vo.AdminVo;
+import com.cyh.mallportal.vo.SkuStoreVo;
 import com.cyh.mallportal.vo.SkuVo;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -35,83 +34,6 @@ public class SkuServiceImpl implements SkuService {
     private final SkuSaleAttrValueMapper skuSaleAttrValueMapper;
     private final SpuService spuService;
 
-
-    /**
-     * 新增SKU
-     *
-     * @param sku SKU实体
-     * @return SKU ID
-     */
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public Long add(Sku sku) {
-
-        if (sku.getStatus() == null) {
-            sku.setStatus(1);
-        }
-        if (sku.getStock() == null) {
-            sku.setStock(0);
-        }
-        if (sku.getWarnStock() == null) {
-            sku.setWarnStock(10);
-        }
-
-        sku.setCreatedAt(LocalDateTime.now());
-        sku.setUpdatedAt(LocalDateTime.now());
-
-        skuMapper.insert(sku);
-        log.info("新增SKU成功, ID: {}", sku.getId());
-
-        spuService.updateMinPriceForSpu(sku.getSpuId());
-
-        return sku.getId();
-    }
-
-    /**
-     * 批量新增SKU
-     *
-     * @param skus SKU列表
-     * @return 是否成功
-     */
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public boolean batchAdd(List<Sku> skus) {
-        log.info("批量新增SKU, 数量: {}", skus.size());
-
-        if (skus == null || skus.isEmpty()) {
-            log.warn("批量新增SKU为空");
-            return false;
-        }
-
-        LocalDateTime now = LocalDateTime.now();
-        for (Sku sku : skus) {
-            if (sku.getStatus() == null) {
-                sku.setStatus(1);
-            }
-            if (sku.getStock() == null) {
-                sku.setStock(0);
-            }
-            if (sku.getWarnStock() == null) {
-                sku.setWarnStock(10);
-            }
-            sku.setCreatedAt(now);
-            sku.setUpdatedAt(now);
-        }
-
-        // 使用循环插入实现批量新增
-        for (Sku sku : skus) {
-            skuMapper.insert(sku);
-        }
-
-        log.info("批量新增SKU成功");
-
-        Set<Long> spuIds = skus.stream().map(Sku::getSpuId).collect(Collectors.toSet());
-        for (Long spuId : spuIds) {
-            spuService.updateMinPriceForSpu(spuId);
-        }
-
-        return true;
-    }
 
     /**
      * 删除SKU（逻辑删除）
@@ -338,22 +260,22 @@ public class SkuServiceImpl implements SkuService {
      * @param pageSize 每页条数
      * @return SKU列表
      */
-    @Override
-    public List<Sku> getPage(Long spuId, Integer status, Integer page, Integer pageSize) {
-        LambdaQueryWrapper<Sku> wrapper = buildWrapper(spuId, status);
-        wrapper.orderByAsc(Sku::getId);
-
-        // 分页计算
-        int offset = (page - 1) * pageSize;
-        long totalLong = skuMapper.selectCount(wrapper);
-        int total = (int) totalLong;
-
-        List<Sku> allList = skuMapper.selectList(wrapper);
-        int fromIndex = Math.min(offset, total);
-        int toIndex = Math.min(offset + pageSize, total);
-
-        return allList.subList(fromIndex, toIndex);
-    }
+    //@Override
+    //public List<Sku> getPage(Long spuId, Integer status, Integer page, Integer pageSize) {
+    //    LambdaQueryWrapper<Sku> wrapper = buildWrapper(spuId, status);
+    //    wrapper.orderByAsc(Sku::getId);
+    //
+    //    // 分页计算
+    //    int offset = (page - 1) * pageSize;
+    //    long totalLong = skuMapper.selectCount(wrapper);
+    //    int total = (int) totalLong;
+    //
+    //    List<Sku> allList = skuMapper.selectList(wrapper);
+    //    int fromIndex = Math.min(offset, total);
+    //    int toIndex = Math.min(offset + pageSize, total);
+    //
+    //    return allList.subList(fromIndex, toIndex);
+    //}
 
     /**
      * 获取SKU总数
@@ -411,17 +333,17 @@ public class SkuServiceImpl implements SkuService {
      * @param spuId SPU ID
      * @return 最低价格
      */
-    @Override
-    public BigDecimal getMinPrice(Long spuId) {
-        LambdaQueryWrapper<Sku> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(Sku::getSpuId, spuId);
-        wrapper.eq(Sku::getStatus, 1);
-        wrapper.orderByAsc(Sku::getPrice);
-        wrapper.last("LIMIT 1");
-
-        Sku sku = skuMapper.selectOne(wrapper);
-        return sku != null ? sku.getPrice() : BigDecimal.ZERO;
-    }
+    //    @Override
+//    public BigDecimal getMinPrice(Long spuId) {
+//        LambdaQueryWrapper<Sku> wrapper = new LambdaQueryWrapper<>();
+//        wrapper.eq(Sku::getSpuId, spuId);
+//        wrapper.eq(Sku::getStatus, 1);
+//        wrapper.orderByAsc(Sku::getPrice);
+//        wrapper.last("LIMIT 1");
+//
+//        Sku sku = skuMapper.selectOne(wrapper);
+//        return sku != null ? sku.getPrice() : BigDecimal.ZERO;
+//    }
 
     /**
      * 获取SPU的库存总量
@@ -445,9 +367,10 @@ public class SkuServiceImpl implements SkuService {
 
     /**
      * 根据SPU ID获取SKU列表（包含销售属性）
+     * 公开接口，仅返回启用状态（status=1）的SKU
      *
      * @param spuId SPU ID
-     * @return SKU列表（包含销售属性）
+     * @return SKU列表（包含销售属性，公开字段）
      */
     @Override
     public List<SkuVo> getBySpuIdWithAttributes(Long spuId) {
@@ -459,7 +382,50 @@ public class SkuServiceImpl implements SkuService {
         }
 
         return skus.stream()
+                .filter(sku -> sku.getStatus() != null && sku.getStatus() == 1) // 仅返回启用状态的SKU
                 .map(this::convertToVo)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 商家端：根据SPU ID获取SKU列表（包含销售属性）
+     * 返回商家经营管理所需的完整字段，不限SKU上下架状态
+     *
+     * @param spuId SPU ID
+     * @return SKU列表（包含销售属性，商家端字段）
+     */
+    @Override
+    public List<SkuStoreVo> getStoreBySpuIdWithAttributes(Long spuId) {
+        log.info("商家端获取SPU的SKU列表（包含销售属性）, spuId: {}", spuId);
+
+        List<Sku> skus = getBySpuId(spuId);
+        if (skus == null || skus.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        return skus.stream()
+                .map(this::convertToStoreVo)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 管理员端：根据SPU ID获取SKU列表（包含销售属性）
+     * 返回管理员监管所需的全部字段，不限SKU上下架和删除状态
+     *
+     * @param spuId SPU ID
+     * @return SKU列表（包含销售属性，管理员端字段）
+     */
+    @Override
+    public List<AdminVo> getAdminBySpuIdWithAttributes(Long spuId) {
+        log.info("管理员端获取SPU的SKU列表（包含销售属性）, spuId: {}", spuId);
+
+        List<Sku> skus = getBySpuId(spuId);
+        if (skus == null || skus.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        return skus.stream()
+                .map(this::convertToAdminVo)
                 .collect(Collectors.toList());
     }
 
@@ -469,20 +435,20 @@ public class SkuServiceImpl implements SkuService {
      * @param id SKU ID
      * @return SKU详情（包含销售属性）
      */
-    @Override
-    public SkuVo getByIdWithAttributes(Long id) {
-        log.info("获取SKU详情（包含销售属性）, id: {}", id);
-
-        Sku sku = getById(id);
-        if (sku == null) {
-            return null;
-        }
-
-        return convertToVo(sku);
-    }
+    //@Override
+    //public SkuVo getByIdWithAttributes(Long id) {
+    //    log.info("获取SKU详情（包含销售属性）, id: {}", id);
+    //
+    //    Sku sku = getById(id);
+    //    if (sku == null) {
+    //        return null;
+    //    }
+    //
+    //    return convertToVo(sku);
+    //}
 
     /**
-     * 将SKU实体转换为VO（包含销售属性）
+     * 将SKU实体转换为公开VO（普通用户可见）
      */
     private SkuVo convertToVo(Sku sku) {
         SkuVo vo = SkuVo.builder()
@@ -490,15 +456,68 @@ public class SkuServiceImpl implements SkuService {
                 .spuId(sku.getSpuId())
                 .price(sku.getPrice())
                 .marketPrice(sku.getMarketPrice())
-                .costPrice(sku.getCostPrice())
-                .stock(sku.getStock())
-                .warnStock(sku.getWarnStock())
                 .image(sku.getImage())
                 .weight(sku.getWeight())
-                .status(sku.getStatus())
-                .createdAt(sku.getCreatedAt())
-                .updatedAt(sku.getUpdatedAt())
+                .inStock(sku.getStock() != null && sku.getStock() > 0)
                 .build();
+
+        // 获取销售属性
+        List<Map<String, Object>> attributes = getSkuSaleAttributes(sku.getId());
+        vo.setSaleAttributes(attributes);
+
+        return vo;
+    }
+
+    /**
+     * 将SKU实体转换为商家端VO
+     */
+    private SkuStoreVo convertToStoreVo(Sku sku) {
+        SkuStoreVo vo = new SkuStoreVo();
+        // 父类字段
+        vo.setId(sku.getId());
+        vo.setSpuId(sku.getSpuId());
+        vo.setPrice(sku.getPrice());
+        vo.setMarketPrice(sku.getMarketPrice());
+        vo.setImage(sku.getImage());
+        vo.setWeight(sku.getWeight());
+        vo.setInStock(sku.getStock() != null && sku.getStock() > 0);
+        // 商家字段
+        vo.setCostPrice(sku.getCostPrice());
+        vo.setStock(sku.getStock());
+        vo.setWarnStock(sku.getWarnStock());
+        vo.setStatus(sku.getStatus());
+        vo.setCreatedAt(sku.getCreatedAt());
+        vo.setUpdatedAt(sku.getUpdatedAt());
+
+        // 获取销售属性
+        List<Map<String, Object>> attributes = getSkuSaleAttributes(sku.getId());
+        vo.setSaleAttributes(attributes);
+
+        return vo;
+    }
+
+    /**
+     * 将SKU实体转换为管理员端VO
+     */
+    private AdminVo convertToAdminVo(Sku sku) {
+        AdminVo vo = new AdminVo();
+        // 父类字段（含商家字段）
+        vo.setId(sku.getId());
+        vo.setSpuId(sku.getSpuId());
+        vo.setPrice(sku.getPrice());
+        vo.setMarketPrice(sku.getMarketPrice());
+        vo.setImage(sku.getImage());
+        vo.setWeight(sku.getWeight());
+        vo.setInStock(sku.getStock() != null && sku.getStock() > 0);
+        vo.setCostPrice(sku.getCostPrice());
+        vo.setStock(sku.getStock());
+        vo.setWarnStock(sku.getWarnStock());
+        vo.setStatus(sku.getStatus());
+        vo.setCreatedAt(sku.getCreatedAt());
+        vo.setUpdatedAt(sku.getUpdatedAt());
+        // 管理员字段
+        vo.setFrozenStock(sku.getFrozenStock());
+        vo.setIsDeleted(sku.getIsDeleted());
 
         // 获取销售属性
         List<Map<String, Object>> attributes = getSkuSaleAttributes(sku.getId());

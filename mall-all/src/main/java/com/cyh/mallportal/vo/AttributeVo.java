@@ -1,6 +1,6 @@
 package com.cyh.mallportal.vo;
 
-import com.cyh.mallportal.entity.AttributeValue;
+import com.cyh.mallportal.vo.AttrValueVo;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -47,5 +47,5 @@ public class AttributeVo {
     /**
      * 该属性下的属性值列表
      */
-    private List<AttributeValue> values;
+    private List<AttrValueVo> values;
 }

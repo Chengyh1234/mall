@@ -74,8 +74,10 @@ public class SpuAvailableAttrVo implements Serializable {
         private List<Map<String, Object>> values;
 
         /**
-         * 当前绑定的值（如果已绑定）
+         * 当前绑定的值列表（如果已绑定）
+         * 基本属性：列表含 0 或 1 个元素（单个绑定值）
+         * 销售属性：列表含 0 到 N 个元素（可绑定多个值）
          */
-        private Map<String, Object> currentValue;
+        private List<Map<String, Object>> currentValues;
     }
 }

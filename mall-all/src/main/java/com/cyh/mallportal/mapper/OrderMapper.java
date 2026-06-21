@@ -325,4 +325,24 @@ public interface OrderMapper extends BaseMapper<Order> {
      * @return 订单实体
      */
     Order selectByOrderNoForAdmin(@Param("orderNo") String orderNo);
+
+    // ==================== 平台仪表盘统计（超级管理员） ====================
+
+    /**
+     * 统计今日订单数
+     * 统计当日 00:00:00 至今创建的订单总数
+     *
+     * @param todayStart 今日零点
+     * @return 今日订单数
+     */
+    Long countTodayOrders(@Param("todayStart") LocalDateTime todayStart);
+
+    /**
+     * 统计平台指定时间范围内已完成订单的销售总额
+     * 不区分商家，统计全部已完成订单（status=4）
+     *
+     * @param startTime 时间范围起点
+     * @return 销售总额
+     */
+    BigDecimal sumAdminCompletedSalesByTimeRange(@Param("startTime") LocalDateTime startTime);
 }

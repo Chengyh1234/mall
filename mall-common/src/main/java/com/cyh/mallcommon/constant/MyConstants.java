@@ -42,7 +42,7 @@ public class MyConstants {
     /**
      * 用户活跃Token映射Redis Key前缀
      * 完整格式：user:active_token:{userId}
-     * 用于通过userId快速找到其对应的token，便于权限变更时原地更新Redis缓存
+     * 用于通过userId快速找到其对应的token，便于权限变更时原地更新Redis缓存,即时踢下线或刷新权限缓存
      *
      * 用于：后台权限变更的索引
      */

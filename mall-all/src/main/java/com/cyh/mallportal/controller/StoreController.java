@@ -1,17 +1,17 @@
 package com.cyh.mallportal.controller;
 
-import cn.hutool.core.io.FileUtil;
-import com.alibaba.druid.util.StringUtils;
 import com.alibaba.fastjson2.JSON;
 import com.cyh.mallcommon.utils.Result;
 import com.cyh.mallcommon.constant.FileConstants;
 import com.cyh.mallportal.dto.StoreDto;
 import com.cyh.mallportal.entity.Store;
 import com.cyh.mallportal.entity.User;
+import com.cyh.mallportal.vo.StoreAdminVo;
 import com.cyh.mallportal.service.FileService;
 import com.cyh.mallportal.service.StoreService;
-import com.cyh.mallportal.vo.StoreDetailVO;
-import com.cyh.mallportal.vo.StoreVO;
+import com.cyh.mallportal.vo.StoreDetailVo;
+import com.cyh.mallportal.vo.StoreSellerVo;
+import com.cyh.mallportal.vo.StoreVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -19,14 +19,13 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
-import java.io.IOException;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
- * 店铺管理控制器
+ * 店铺管理控制器   已修改响应
  */
 @RestController
 @RequestMapping("/store")
@@ -42,7 +41,7 @@ public class StoreController {
      * 新增店铺
      */
     @PostMapping("/add")
-    @PreAuthorize("hasAuthority('store:manage') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<Map<String, Object>> add(@RequestPart(value = "storeDto") String storeDtoString,
                                            @RequestPart(value = "logoFile", required = false) MultipartFile logoFile,
                                            @RequestPart(value = "bannerFile", required = false) MultipartFile bannerFile) {
@@ -94,10 +93,10 @@ public class StoreController {
      * 更新店铺信息
      */
     @PutMapping("/update")
-    @PreAuthorize("hasAuthority('store:manage') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<Map<String, Object>> update(@RequestPart(value = "storeDto") String storeDtoString,
-                                               @RequestPart(value = "logoFile", required = false) MultipartFile logoFile,
-                                               @RequestPart(value = "bannerFile", required = false) MultipartFile bannerFile) {
+                                              @RequestPart(value = "logoFile", required = false) MultipartFile logoFile,
+                                              @RequestPart(value = "bannerFile", required = false) MultipartFile bannerFile) {
         StoreDto storeDto = JSON.parseObject(storeDtoString, StoreDto.class);
 
         if (storeDto.getId() == null) {
@@ -175,16 +174,33 @@ public class StoreController {
 
     /**
      * 获取店铺详情（公开）
-     * 返回 StoreDetailVO，包含店铺名称、Logo、横幅、描述、地址、创建时间，不含内部管理字段
+     * 返回 StoreDetailVo，包含店铺名称、Logo、横幅、描述、地址、创建时间，不含内部管理字段
      *
      * @param id 店铺ID
      * @return 店铺详情 VO
      */
     @GetMapping("/detail/{id}")
-    public Result<StoreDetailVO> getDetail(@PathVariable Long id) {
-        StoreDetailVO storeDetail = storeService.getDetailVO(id);
+    public Result<StoreDetailVo> getDetail(@PathVariable Long id) {
+        StoreDetailVo storeDetail = storeService.getDetailVO(id);
         if (storeDetail != null) {
             return Result.success(storeDetail);
+        }
+        return Result.error("店铺不存在");
+    }
+
+    /**
+     * 管理员获取店铺详情
+     * 返回 StoreAdminVo，包含店铺完整管理字段（含 sellerId、sort、status 等）
+     *
+     * @param id 店铺ID
+     * @return 店铺管理 VO
+     */
+    @GetMapping("/admin/detail/{id}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public Result<StoreAdminVo> getAdminDetail(@PathVariable Long id) {
+        Store store = storeService.getById(id);
+        if (store != null) {
+            return Result.success(StoreAdminVo.fromStore(store));
         }
         return Result.error("店铺不存在");
     }
@@ -193,22 +209,22 @@ public class StoreController {
      * 获取当前用户的店铺
      */
     @GetMapping("/my-store")
-    @PreAuthorize("hasAuthority('store:manage') or hasRole('SUPER_ADMIN') or hasRole('SELLER')")
-    public Result<Store> getMyStore() {
+    @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
+    public Result<StoreSellerVo> getMyStore() {
         Long currentUserId = getCurrentUserId();
         if (currentUserId == null) {
             return Result.error("用户未登录");
         }
         Store store = storeService.getBySellerId(currentUserId);
         if (store != null) {
-            return Result.success(store);
+            return Result.success(StoreSellerVo.fromStore(store));
         }
         return Result.error("您还没有店铺");
     }
 
     /**
      * 分页获取公开店铺列表（仅 status=1）
-     * 无需登录即可访问，返回 StoreVO（不包含敏感管理字段）
+     * 无需登录即可访问，返回 StoreVo（不包含敏感管理字段）
      *
      * @param keyword  搜索关键字（店铺名称模糊匹配，可选）
      * @param page     页码，默认第1页
@@ -219,7 +235,7 @@ public class StoreController {
     public Result<Map<String, Object>> getPage(@RequestParam(required = false) String keyword,
                                                @RequestParam(defaultValue = "1") Integer page,
                                                @RequestParam(defaultValue = "10") Integer pageSize) {
-        List<StoreVO> list = storeService.getPageVO(keyword, page, pageSize);
+        List<StoreVo> list = storeService.getPageVO(keyword, page, pageSize);
         int total = storeService.countPageVO(keyword);
 
         Map<String, Object> data = new HashMap<>();
@@ -244,7 +260,7 @@ public class StoreController {
      * @return 分页数据：{ list, page, pageSize, total }
      */
     @GetMapping("/admin/page")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public Result<Map<String, Object>> getAdminPage(@RequestParam(required = false) Long id,
                                                     @RequestParam(required = false) String keyword,
                                                     @RequestParam(required = false) Integer status,
@@ -256,7 +272,9 @@ public class StoreController {
         int total = storeService.countAdminPage(id, keyword, status, sellerId, phone);
 
         Map<String, Object> data = new HashMap<>();
-        data.put("list", list);
+        data.put("list", list.stream()
+                .map(StoreAdminVo::fromStore)
+                .collect(Collectors.toList()));
         data.put("page", page);
         data.put("pageSize", pageSize);
         data.put("total", total);
@@ -267,7 +285,7 @@ public class StoreController {
      * 更新店铺状态
      */
     @PutMapping("/status/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public Result<Void> updateStatus(@PathVariable Long id, @RequestParam Integer status) {
         boolean success = storeService.updateStatus(id, status);
         if (success) {
@@ -298,13 +316,6 @@ public class StoreController {
         fileService.deleteFile(bannerPath, FileConstants.STORE_BANNER);
     }
 
-    private Map<String, String> uploadImage(MultipartFile file) {
-        return fileService.uploadFile(file, FileConstants.STORE_IMAGES);
-    }
-
-    private void deleteImageFile(String imagePath) {
-        fileService.deleteFile(imagePath, FileConstants.STORE_IMAGES);
-    }
 
     /**
      * 获取当前登录用户的ID

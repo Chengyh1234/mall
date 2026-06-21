@@ -1,7 +1,8 @@
 package com.cyh.mallportal.service;
 
 import com.cyh.mallportal.entity.Spu;
-import com.cyh.mallportal.vo.SpuDetailVo;
+import com.cyh.mallportal.vo.*;
+import com.cyh.mallportal.vo.SpuVo;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -45,16 +46,16 @@ public interface SpuService {
      * @param spu 查询条件（支持id、categoryId、brandId、name、status）
      * @return 商品列表，按创建时间倒序排列
      */
-    List<Spu> getList(Spu spu);
+    //List<Spu> getList(Spu spu);
 
-    /**
+        /**
      * 分页查询商品
      * @param spu 查询条件（支持id、categoryId、brandId、name、status）
      * @param page 页码，默认第1页
      * @param pageSize 每页数量，默认10条
-     * @return 商品列表，按创建时间倒序排列
+     * @return 商品VO列表，按创建时间倒序排列
      */
-    List<Spu> getPage(Spu spu, Integer page, Integer pageSize);
+    List<SpuVo> getPage(Spu spu, Integer page, Integer pageSize);
 
     /**
      * 分页查询商品（支持分类及其子分类）
@@ -77,7 +78,7 @@ public interface SpuService {
      * @param pageSize 每页数量
      * @return 商品列表
      */
-    List<Spu> searchByKeyword(List<Long> categoryIds, String keyword, Long brandId, Integer page, Integer pageSize);
+    List<SpuVo> searchByKeyword(List<Long> categoryIds, String keyword, Long brandId, Integer page, Integer pageSize);
 
     /**
      * 统计搜索结果数量
@@ -95,7 +96,7 @@ public interface SpuService {
      * @param sellerId 商家ID
      * @return 商品列表
      */
-    List<Spu> getListBySellerId(Long sellerId);
+    //List<Spu> getListBySellerId(Long sellerId);
 
     /**
      * 根据商家ID分页获取商品列表
@@ -107,7 +108,7 @@ public interface SpuService {
      * @param pageSize 每页数量
      * @return 商品列表
      */
-    List<Spu> getPageBySellerId(Long sellerId, Integer status, String keyword, Integer page, Integer pageSize);
+    List<SpuSellerVo> getPageBySellerId(Long sellerId, Integer status, String keyword, Integer page, Integer pageSize);
 
     /**
      * 统计商家商品数量
@@ -128,12 +129,28 @@ public interface SpuService {
     Spu getByIdAndSellerId(Long id, Long sellerId);
 
     /**
-     * 获取商品详情（包含商家信息）
-     * 用于前端展示商品详情页
+     * 获取商品详情（公开）
+     * 返回 SpuVo 字段 + sellerId、sellerUsername、sellerAvatar
      * @param id 商品ID
-     * @return 商品详情VO，包含商品信息和商家信息
+     * @return 商品详情VO
      */
     SpuDetailVo getSpuDetailById(Long id);
+
+    /**
+     * 获取商家端商品管理详情
+     * 返回 SpuSellerVo 字段 + sellerUsername、sellerAvatar、sellerRealName、sellerPhone
+     * @param id 商品ID
+     * @return 商家端商品管理详情VO
+     */
+    SpuSellerDetailVo getSpuSellerDetailById(Long id);
+
+    /**
+     * 获取管理员端商品管理详情
+     * 返回 SpuAdminVo 字段 + sellerUsername、sellerAvatar、sellerRealName、sellerPhone
+     * @param id 商品ID
+     * @return 管理员端商品管理详情VO
+     */
+    SpuAdminDetailVo getSpuAdminDetailById(Long id);
 
     /**
      * 恢复被逻辑删除的商品（设置 is_deleted=0）
@@ -166,7 +183,7 @@ public interface SpuService {
      * @param pageSize 每页数量
      * @return 商品列表（含 categoryName、brandName）
      */
-    List<Spu> getPageAll(Integer status, String keyword, Integer page, Integer pageSize);
+    List<SpuAdminVo> getPageAll(Integer status, String keyword, Integer page, Integer pageSize);
 
     /**
      * 【运营管理员】统计全部商品数量
@@ -192,10 +209,10 @@ public interface SpuService {
      * @param pageSize   每页数量
      * @return 商品列表（含 categoryName、brandName）
      */
-    List<Spu> getPageByStoreId(Long storeId, String keyword, Long categoryId,
-                               BigDecimal minPrice, BigDecimal maxPrice,
-                               String sortBy, String sortOrder,
-                               Integer page, Integer pageSize);
+    List<SpuVo> getPageByStoreId(Long storeId, String keyword, Long categoryId,
+                                 BigDecimal minPrice, BigDecimal maxPrice,
+                                 String sortBy, String sortOrder,
+                                 Integer page, Integer pageSize);
 
     /**
      * 统计店铺下 SPU 总数（公开）

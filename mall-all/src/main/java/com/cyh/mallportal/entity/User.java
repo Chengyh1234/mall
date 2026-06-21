@@ -66,6 +66,8 @@ public class User implements Serializable, UserDetails {
         return authorities;
     }
 
+
+
     @Override
     public boolean isAccountNonExpired() {
         return true;
@@ -81,8 +83,12 @@ public class User implements Serializable, UserDetails {
         return true;
     }
 
+    /*
+    authenticationManager.authenticate()会检测isEnabled值，为false抛出 DisabledException
+     */
     @Override
     public boolean isEnabled() {
-        return status != null && status == 1;
+        //return status != null && status == 1;
+        return true;
     }
 }

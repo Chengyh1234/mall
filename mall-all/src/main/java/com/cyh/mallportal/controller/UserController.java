@@ -55,8 +55,7 @@ public class UserController {
             List<String> roles = roleMapper.selectByUserId(userId).stream()
                     .map(role -> role.getCode())
                     .toList();
-            List<String> authorities = userMapper.selectPermissionCodesByUserId(userId);
-            return Result.success(UserInfoVo.fromUser(user, roles, authorities));
+            return Result.success(UserInfoVo.fromUser(user, roles));
         }
         return Result.error("用户不存在");
     }
@@ -86,8 +85,7 @@ public class UserController {
         List<String> roles = roleMapper.selectByUserId(userId).stream()
                 .map(role -> role.getCode())
                 .toList();
-        List<String> authorities = userMapper.selectPermissionCodesByUserId(userId);
-        UserInfoVo userInfoVo = UserInfoVo.fromUser(user, roles, authorities);
+        UserInfoVo userInfoVo = UserInfoVo.fromUser(user, roles);
         return Result.success("更新成功", userInfoVo);
     }
 

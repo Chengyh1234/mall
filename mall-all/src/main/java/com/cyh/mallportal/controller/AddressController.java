@@ -5,6 +5,7 @@ import com.cyh.mallportal.dto.AddressDto;
 import com.cyh.mallportal.entity.Address;
 import com.cyh.mallportal.entity.User;
 import com.cyh.mallportal.service.AddressService;
+import com.cyh.mallportal.vo.AddressVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 收货地址管理控制器
@@ -56,14 +58,10 @@ public class AddressController {
             return Result.error("详细地址不能为空");
         }
 
-        try {
-            Long addressId = addressService.addAddress(userId, addressDto);
-            Map<String, Object> data = new HashMap<>();
-            data.put("id", addressId);
-            return Result.success("添加成功", data);
-        } catch (Exception e) {
-            return Result.error(e.getMessage());
-        }
+        Long addressId = addressService.addAddress(userId, addressDto);
+        Map<String, Object> data = new HashMap<>();
+        data.put("id", addressId);
+        return Result.success("添加成功", data);
     }
 
     /**
@@ -114,12 +112,12 @@ public class AddressController {
      */
     @GetMapping("/detail/{addressId}")
     @PreAuthorize("hasRole('USER')")
-    public Result<Address> getAddressById(@PathVariable Long addressId) {
+    public Result<AddressVo> getAddressById(@PathVariable Long addressId) {
         Long userId = getCurrentUserId();
 
         Address address = addressService.getAddressById(userId, addressId);
         if (address != null) {
-            return Result.success(address);
+            return Result.success(AddressVo.fromAddress(address));
         }
         return Result.error("地址不存在或不属于当前用户");
     }
@@ -131,11 +129,14 @@ public class AddressController {
      */
     @GetMapping("/list")
     @PreAuthorize("hasRole('USER')")
-    public Result<List<Address>> getAddressesByUserId() {
+    public Result<List<AddressVo>> getAddressesByUserId() {
         Long userId = getCurrentUserId();
 
         List<Address> addresses = addressService.getAddressesByUserId(userId);
-        return Result.success(addresses);
+        List<AddressVo> voList = addresses.stream()
+                .map(AddressVo::fromAddress)
+                .collect(Collectors.toList());
+        return Result.success(voList);
     }
 
     /**
@@ -145,12 +146,12 @@ public class AddressController {
      */
     @GetMapping("/default")
     @PreAuthorize("hasRole('USER')")
-    public Result<Address> getDefaultAddress() {
+    public Result<AddressVo> getDefaultAddress() {
         Long userId = getCurrentUserId();
 
         Address address = addressService.getDefaultAddress(userId);
         if (address != null) {
-            return Result.success(address);
+            return Result.success(AddressVo.fromAddress(address));
         }
         return Result.error("默认地址不存在");
     }

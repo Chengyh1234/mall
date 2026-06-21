@@ -9,6 +9,7 @@ import com.cyh.mallportal.entity.AttributeValue;
 import com.cyh.mallportal.mapper.AttributeMapper;
 import com.cyh.mallportal.mapper.AttributeValueMapper;
 import com.cyh.mallportal.service.AttributeManageService;
+import com.cyh.mallportal.vo.AttrValueVo;
 import com.cyh.mallportal.vo.AttributeVo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -124,7 +125,8 @@ public class AttributeManageServiceImpl implements AttributeManageService {
         List<AttributeVo> result = new ArrayList<>();
         for (Attribute attr : attributes) {
             AttributeVo vo = buildAttributeVo(attr);
-            vo.setValues(valueMap.getOrDefault(attr.getId(), new ArrayList<>()));
+            List<AttributeValue> attrValues = valueMap.getOrDefault(attr.getId(), new ArrayList<>());
+            vo.setValues(attrValues.stream().map(this::toAttrValueVo).collect(Collectors.toList()));
             result.add(vo);
         }
         return result;
@@ -146,7 +148,7 @@ public class AttributeManageServiceImpl implements AttributeManageService {
         );
 
         AttributeVo vo = buildAttributeVo(attribute);
-        vo.setValues(values);
+        vo.setValues(values.stream().map(this::toAttrValueVo).collect(Collectors.toList()));
         return vo;
     }
 
@@ -217,7 +219,7 @@ public class AttributeManageServiceImpl implements AttributeManageService {
     }
 
     @Override
-    public List<AttributeValue> listAttributeValues(Long attrId) {
+    public List<AttrValueVo> listAttributeValues(Long attrId) {
         log.info("查询属性值列表: attrId={}", attrId);
 
         // 检查所属属性是否存在
@@ -230,7 +232,7 @@ public class AttributeManageServiceImpl implements AttributeManageService {
                 new LambdaQueryWrapper<AttributeValue>()
                         .eq(AttributeValue::getAttrId, attrId)
                         .orderByAsc(AttributeValue::getSort)
-        );
+        ).stream().map(this::toAttrValueVo).collect(Collectors.toList());
     }
 
     // ==================== 私有方法 ====================
@@ -260,9 +262,6 @@ public class AttributeManageServiceImpl implements AttributeManageService {
 
     /**
      * 将 Attribute 实体转换为 AttributeVo
-     *
-     * @param attribute 属性实体
-     * @return 属性VO
      */
     private AttributeVo buildAttributeVo(Attribute attribute) {
         AttributeVo vo = new AttributeVo();
@@ -272,6 +271,18 @@ public class AttributeManageServiceImpl implements AttributeManageService {
         vo.setSort(attribute.getSort());
         vo.setCreatedAt(attribute.getCreatedAt());
         vo.setUpdatedAt(attribute.getUpdatedAt());
+        return vo;
+    }
+
+    /**
+     * 将 AttributeValue 实体转换为 AttrValueVo
+     */
+    private AttrValueVo toAttrValueVo(AttributeValue attrValue) {
+        AttrValueVo vo = new AttrValueVo();
+        vo.setValueId(attrValue.getId());
+        vo.setValue(attrValue.getValue());
+        vo.setImageUrl(attrValue.getImageUrl());
+        vo.setSort(attrValue.getSort());
         return vo;
     }
 }

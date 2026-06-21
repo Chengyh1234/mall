@@ -9,7 +9,8 @@ import com.cyh.mallportal.entity.*;
 import com.cyh.mallportal.mapper.*;
 import com.cyh.mallportal.service.SpuCacheService;
 import com.cyh.mallportal.service.SpuService;
-import com.cyh.mallportal.vo.SpuDetailVo;
+import com.cyh.mallportal.vo.*;
+import com.cyh.mallportal.vo.SpuVo;
 import lombok.extern.slf4j.Slf4j;
 
 import java.math.BigDecimal;
@@ -230,14 +231,14 @@ public class SpuServiceImpl implements SpuService {
      * @param spu 查询条件（支持id、categoryId、brandId、name、status）
      * @return 商品列表，按创建时间倒序排列
      */
-    @Override
-    public List<Spu> getList(Spu spu) {
-        // 构建查询条件
-        LambdaQueryWrapper<Spu> queryWrapper = buildQueryWrapper(spu);
-        // 按创建时间倒序排列
-        queryWrapper.orderByDesc(Spu::getCreatedAt);
-        return spuMapper.selectList(queryWrapper);
-    }
+    //@Override
+    //public List<Spu> getList(Spu spu) {
+    //    // 构建查询条件
+    //    LambdaQueryWrapper<Spu> queryWrapper = buildQueryWrapper(spu);
+    //    // 按创建时间倒序排列
+    //    queryWrapper.orderByDesc(Spu::getCreatedAt);
+    //    return spuMapper.selectList(queryWrapper);
+    //}
 
     /**
      * 分页查询商品（带缓存）
@@ -247,10 +248,10 @@ public class SpuServiceImpl implements SpuService {
      * @return 商品列表，按创建时间倒序排列
      */
     @Override
-    public List<Spu> getPage(Spu spu, Integer page, Integer pageSize) {
+    public List<SpuVo> getPage(Spu spu, Integer page, Integer pageSize) {
         int pageNum = page != null ? page : 1;
         int pageSizeNum = pageSize != null ? pageSize : 10;
-        
+
         // 生成缓存键
         String cacheKey = spuCacheService.generateCacheKey(
                 spu != null ? spu.getCategoryId() : null,
@@ -260,26 +261,31 @@ public class SpuServiceImpl implements SpuService {
                 pageNum,
                 pageSizeNum
         );
-        
+
         // 尝试从缓存获取
         List<Spu> cachedList = spuCacheService.getSpuList(cacheKey);
         if (cachedList != null) {
             log.debug("从缓存获取分页商品列表: {}", cacheKey);
-            return cachedList;
+            return cachedList.stream()
+                    .map(this::convertToSpuVO)
+                    .collect(Collectors.toList());
         }
-        
+
         // 缓存不存在，从数据库查询
         Page<Spu> pageParam = new Page<>(pageNum, pageSizeNum);
         LambdaQueryWrapper<Spu> queryWrapper = buildQueryWrapper(spu);
         queryWrapper.orderByDesc(Spu::getCreatedAt);
         IPage<Spu> result = spuMapper.selectPage(pageParam, queryWrapper);
         List<Spu> records = result.getRecords();
-        
-        // 将结果放入缓存
+
+        // 将结果放入缓存（缓存原始 Spu 实体）
         spuCacheService.setSpuList(cacheKey, records);
         log.debug("从数据库查询并缓存分页商品列表: {}", cacheKey);
-        
-        return records;
+
+        // 转换为 VO 返回
+        return records.stream()
+                .map(this::convertToSpuVO)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -369,7 +375,7 @@ public class SpuServiceImpl implements SpuService {
      * @return 商品列表
      */
     @Override
-    public List<Spu> searchByKeyword(List<Long> categoryIds, String keyword, Long brandId, Integer page, Integer pageSize) {
+    public List<SpuVo> searchByKeyword(List<Long> categoryIds, String keyword, Long brandId, Integer page, Integer pageSize) {
         int pageNum = page != null && page > 0 ? page : 1;
         int pageSizeNum = pageSize != null ? pageSize : 10;
         
@@ -383,7 +389,9 @@ public class SpuServiceImpl implements SpuService {
         List<Spu> cachedList = spuCacheService.getSpuList(cacheKey);
         if (cachedList != null) {
             log.debug("从缓存获取搜索商品列表: {}", cacheKey);
-            return cachedList;
+            return cachedList.stream()
+                    .map(this::convertToSpuVO)
+                    .collect(Collectors.toList());
         }
         
         // 缓存不存在，从数据库查询
@@ -391,11 +399,14 @@ public class SpuServiceImpl implements SpuService {
         int limit = pageSizeNum;
         List<Spu> records = spuMapper.searchByKeyword(categoryIds, keyword, brandId, offset, limit);
         
-        // 将结果放入缓存
+        // 将结果放入缓存（缓存原始 Spu 实体）
         spuCacheService.setSpuList(cacheKey, records);
         log.debug("从数据库查询并缓存搜索商品列表: {}", cacheKey);
         
-        return records;
+        // 转换为 VO 返回
+        return records.stream()
+                .map(this::convertToSpuVO)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -437,13 +448,13 @@ public class SpuServiceImpl implements SpuService {
      * @param sellerId 商家ID
      * @return 商品列表
      */
-    @Override
-    public List<Spu> getListBySellerId(Long sellerId) {
-        LambdaQueryWrapper<Spu> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(Spu::getSellerId, sellerId);
-        queryWrapper.orderByDesc(Spu::getCreatedAt);
-        return spuMapper.selectList(queryWrapper);
-    }
+    //@Override
+    //public List<Spu> getListBySellerId(Long sellerId) {
+    //    LambdaQueryWrapper<Spu> queryWrapper = new LambdaQueryWrapper<>();
+    //    queryWrapper.eq(Spu::getSellerId, sellerId);
+    //    queryWrapper.orderByDesc(Spu::getCreatedAt);
+    //    return spuMapper.selectList(queryWrapper);
+    //}
 
     /**
      * 根据商家ID分页获取商品列表
@@ -456,7 +467,7 @@ public class SpuServiceImpl implements SpuService {
      * @return 商品列表（含 categoryName、brandName）
      */
     @Override
-    public List<Spu> getPageBySellerId(Long sellerId, Integer status, String keyword, Integer page, Integer pageSize) {
+    public List<SpuSellerVo> getPageBySellerId(Long sellerId, Integer status, String keyword, Integer page, Integer pageSize) {
         Page<Spu> pageParam = new Page<>(page != null ? page : 1, pageSize != null ? pageSize : 10);
         LambdaQueryWrapper<Spu> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(Spu::getSellerId, sellerId);
@@ -473,7 +484,10 @@ public class SpuServiceImpl implements SpuService {
         // 收集所有分类ID和品牌ID，批量查询名称后回填到 Spu 的 transient 字段
         fillCategoryAndBrandNames(spuList);
 
-        return spuList;
+        // 转换为 VO
+        return spuList.stream()
+                .map(this::convertToSpuSellerVO)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -558,7 +572,7 @@ public class SpuServiceImpl implements SpuService {
      * @return 商品列表（含 categoryName、brandName）
      */
     @Override
-    public List<Spu> getPageAll(Integer status, String keyword, Integer page, Integer pageSize) {
+    public List<SpuAdminVo> getPageAll(Integer status, String keyword, Integer page, Integer pageSize) {
         Page<Spu> pageParam = new Page<>(page != null ? page : 1, pageSize != null ? pageSize : 10);
         LambdaQueryWrapper<Spu> queryWrapper = new LambdaQueryWrapper<>();
         // 不限制商家，运营管理员可查看全部商品
@@ -575,7 +589,10 @@ public class SpuServiceImpl implements SpuService {
         // 批量回填分类名称和品牌名称
         fillCategoryAndBrandNames(spuList);
 
-        return spuList;
+        // 转换为 VO
+        return spuList.stream()
+                .map(this::convertToSpuAdminVO)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -656,10 +673,10 @@ public class SpuServiceImpl implements SpuService {
     }
 
     /**
-     * 获取商品详情（包含商家信息）
-     * 用于前端展示商品详情页
+     * 获取商品详情（公开）
+     * 返回 SpuVo 字段 + sellerId、sellerUsername、sellerAvatar
      * @param id 商品ID
-     * @return 商品详情VO，包含商品信息和商家信息
+     * @return 商品详情VO
      */
     @Override
     public SpuDetailVo getSpuDetailById(Long id) {
@@ -667,10 +684,124 @@ public class SpuServiceImpl implements SpuService {
         if (spu == null) {
             return null;
         }
-        SpuDetailVo vo = new SpuDetailVo();
-        vo.setSpu(spu);
-        vo.setSellerId(spu.getSellerId());
+        // 回填分类名称和品牌名称
+        fillCategoryAndBrandNames(Collections.singletonList(spu));
 
+        SpuDetailVo vo = new SpuDetailVo();
+        // 拷贝 SpuVo 字段
+        vo.setId(spu.getId());
+        vo.setName(spu.getName());
+        vo.setCategoryId(spu.getCategoryId());
+        vo.setCategoryName(spu.getCategoryName());
+        vo.setBrandId(spu.getBrandId());
+        vo.setBrandName(spu.getBrandName());
+        vo.setDescription(spu.getDescription());
+        vo.setMainImage(spu.getMainImage());
+        vo.setImages(spu.getImages());
+        vo.setUnit(spu.getUnit());
+        vo.setKeywords(spu.getKeywords());
+        vo.setSales(spu.getSales());
+        vo.setMinPrice(spu.getMinPrice());
+
+        // 商家信息
+        vo.setSellerId(spu.getSellerId());
+        if (spu.getSellerId() != null) {
+            User seller = userMapper.selectById(spu.getSellerId());
+            if (seller != null) {
+                vo.setSellerUsername(seller.getUsername());
+                vo.setSellerAvatar(seller.getAvatar());
+            }
+        }
+        return vo;
+    }
+
+    /**
+     * 获取商家端商品管理详情
+     * 返回 SpuSellerVo 字段 + sellerUsername、sellerAvatar、sellerRealName、sellerPhone
+     * @param id 商品ID
+     * @return 商家端商品管理详情VO
+     */
+    @Override
+    public SpuSellerDetailVo getSpuSellerDetailById(Long id) {
+        Spu spu = spuMapper.selectById(id);
+        if (spu == null) {
+            return null;
+        }
+        // 回填分类名称和品牌名称
+        fillCategoryAndBrandNames(Collections.singletonList(spu));
+
+        SpuSellerDetailVo vo = new SpuSellerDetailVo();
+        // 拷贝 SpuSellerVo 字段
+        vo.setId(spu.getId());
+        vo.setName(spu.getName());
+        vo.setCategoryId(spu.getCategoryId());
+        vo.setCategoryName(spu.getCategoryName());
+        vo.setBrandId(spu.getBrandId());
+        vo.setBrandName(spu.getBrandName());
+        vo.setDescription(spu.getDescription());
+        vo.setMainImage(spu.getMainImage());
+        vo.setImages(spu.getImages());
+        vo.setUnit(spu.getUnit());
+        vo.setKeywords(spu.getKeywords());
+        vo.setSales(spu.getSales());
+        vo.setMinPrice(spu.getMinPrice());
+        vo.setSellerId(spu.getSellerId());
+        vo.setStoreId(spu.getStoreId());
+        vo.setStatus(spu.getStatus());
+        vo.setCreatedAt(spu.getCreatedAt());
+        vo.setUpdatedAt(spu.getUpdatedAt());
+
+        // 商家用户信息
+        if (spu.getSellerId() != null) {
+            User seller = userMapper.selectById(spu.getSellerId());
+            if (seller != null) {
+                vo.setSellerUsername(seller.getUsername());
+                vo.setSellerAvatar(seller.getAvatar());
+                vo.setSellerRealName(seller.getRealName());
+                vo.setSellerPhone(seller.getPhone());
+            }
+        }
+        return vo;
+    }
+
+    /**
+     * 获取管理员端商品管理详情
+     * 返回 SpuAdminVo 字段 + sellerUsername、sellerAvatar、sellerRealName、sellerPhone
+     * @param id 商品ID
+     * @return 管理员端商品管理详情VO
+     */
+    @Override
+    public SpuAdminDetailVo getSpuAdminDetailById(Long id) {
+        Spu spu = spuMapper.selectById(id);
+        if (spu == null) {
+            return null;
+        }
+        // 回填分类名称和品牌名称
+        fillCategoryAndBrandNames(Collections.singletonList(spu));
+
+        SpuAdminDetailVo vo = new SpuAdminDetailVo();
+        // 拷贝 SpuAdminVo 字段（含 SpuSellerVo 父类字段）
+        vo.setId(spu.getId());
+        vo.setName(spu.getName());
+        vo.setCategoryId(spu.getCategoryId());
+        vo.setCategoryName(spu.getCategoryName());
+        vo.setBrandId(spu.getBrandId());
+        vo.setBrandName(spu.getBrandName());
+        vo.setDescription(spu.getDescription());
+        vo.setMainImage(spu.getMainImage());
+        vo.setImages(spu.getImages());
+        vo.setUnit(spu.getUnit());
+        vo.setKeywords(spu.getKeywords());
+        vo.setSales(spu.getSales());
+        vo.setMinPrice(spu.getMinPrice());
+        vo.setSellerId(spu.getSellerId());
+        vo.setStoreId(spu.getStoreId());
+        vo.setStatus(spu.getStatus());
+        vo.setCreatedAt(spu.getCreatedAt());
+        vo.setUpdatedAt(spu.getUpdatedAt());
+        vo.setIsDeleted(spu.getIsDeleted());
+
+        // 商家用户信息
         if (spu.getSellerId() != null) {
             User seller = userMapper.selectById(spu.getSellerId());
             if (seller != null) {
@@ -699,10 +830,10 @@ public class SpuServiceImpl implements SpuService {
      * @return 商品列表（含 categoryName、brandName）
      */
     @Override
-    public List<Spu> getPageByStoreId(Long storeId, String keyword, Long categoryId,
-                                      BigDecimal minPrice, BigDecimal maxPrice,
-                                      String sortBy, String sortOrder,
-                                      Integer page, Integer pageSize) {
+    public List<SpuVo> getPageByStoreId(Long storeId, String keyword, Long categoryId,
+                                        BigDecimal minPrice, BigDecimal maxPrice,
+                                        String sortBy, String sortOrder,
+                                        Integer page, Integer pageSize) {
         Page<Spu> pageParam = new Page<>(page != null ? page : 1, pageSize != null ? pageSize : 10);
         LambdaQueryWrapper<Spu> queryWrapper = buildStoreSpuQuery(storeId, keyword, categoryId, minPrice, maxPrice);
 
@@ -722,7 +853,10 @@ public class SpuServiceImpl implements SpuService {
         // 回填分类名称和品牌名称
         fillCategoryAndBrandNames(spuList);
 
-        return spuList;
+        // 转换为 SpuVo
+        return spuList.stream()
+                .map(this::convertToSpuVO)
+                .collect(Collectors.toList());
     }
 
     /**
@@ -762,5 +896,88 @@ public class SpuServiceImpl implements SpuService {
             queryWrapper.le(Spu::getMinPrice, maxPrice);
         }
         return queryWrapper;
+    }
+
+    /**
+     * 将 Spu 实体转换为 SpuVo
+     */
+    private SpuVo convertToSpuVO(Spu spu) {
+        if (spu == null) {
+            return null;
+        }
+        SpuVo vo = new SpuVo();
+        vo.setId(spu.getId());
+        vo.setName(spu.getName());
+        vo.setCategoryId(spu.getCategoryId());
+        vo.setCategoryName(spu.getCategoryName());
+        vo.setBrandId(spu.getBrandId());
+        vo.setBrandName(spu.getBrandName());
+        vo.setDescription(spu.getDescription());
+        vo.setMainImage(spu.getMainImage());
+        vo.setImages(spu.getImages());
+        vo.setUnit(spu.getUnit());
+        vo.setKeywords(spu.getKeywords());
+        vo.setSales(spu.getSales());
+        vo.setMinPrice(spu.getMinPrice());
+        return vo;
+    }
+
+    /**
+     * 将 Spu 实体转换为 SpuSellerVo
+     */
+    private SpuSellerVo convertToSpuSellerVO(Spu spu) {
+        if (spu == null) {
+            return null;
+        }
+        SpuSellerVo vo = new SpuSellerVo();
+        vo.setId(spu.getId());
+        vo.setName(spu.getName());
+        vo.setCategoryId(spu.getCategoryId());
+        vo.setCategoryName(spu.getCategoryName());
+        vo.setBrandId(spu.getBrandId());
+        vo.setBrandName(spu.getBrandName());
+        vo.setDescription(spu.getDescription());
+        vo.setMainImage(spu.getMainImage());
+        vo.setImages(spu.getImages());
+        vo.setUnit(spu.getUnit());
+        vo.setKeywords(spu.getKeywords());
+        vo.setSales(spu.getSales());
+        vo.setMinPrice(spu.getMinPrice());
+        vo.setSellerId(spu.getSellerId());
+        vo.setStoreId(spu.getStoreId());
+        vo.setStatus(spu.getStatus());
+        vo.setCreatedAt(spu.getCreatedAt());
+        vo.setUpdatedAt(spu.getUpdatedAt());
+        return vo;
+    }
+
+    /**
+     * 将 Spu 实体转换为 SpuAdminVo
+     */
+    private SpuAdminVo convertToSpuAdminVO(Spu spu) {
+        if (spu == null) {
+            return null;
+        }
+        SpuAdminVo vo = new SpuAdminVo();
+        vo.setId(spu.getId());
+        vo.setName(spu.getName());
+        vo.setCategoryId(spu.getCategoryId());
+        vo.setCategoryName(spu.getCategoryName());
+        vo.setBrandId(spu.getBrandId());
+        vo.setBrandName(spu.getBrandName());
+        vo.setDescription(spu.getDescription());
+        vo.setMainImage(spu.getMainImage());
+        vo.setImages(spu.getImages());
+        vo.setUnit(spu.getUnit());
+        vo.setKeywords(spu.getKeywords());
+        vo.setSales(spu.getSales());
+        vo.setMinPrice(spu.getMinPrice());
+        vo.setSellerId(spu.getSellerId());
+        vo.setStoreId(spu.getStoreId());
+        vo.setStatus(spu.getStatus());
+        vo.setCreatedAt(spu.getCreatedAt());
+        vo.setUpdatedAt(spu.getUpdatedAt());
+        vo.setIsDeleted(spu.getIsDeleted());
+        return vo;
     }
 }

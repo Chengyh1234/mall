@@ -37,11 +37,11 @@
         <include refid="Base_Column_List" />
         FROM users
         WHERE deleted_at IS NULL
-          AND (
-              username = #{account}
-              OR phone = #{account}
-              OR email = #{account}
-          )
+        AND (
+        username = #{account}
+        OR phone = #{account}
+        OR email = #{account}
+        )
         LIMIT 1
     </select>
 
@@ -71,15 +71,6 @@
         INNER JOIN user_roles ur ON r.id = ur.role_id
         WHERE ur.user_id = #{userId}
           AND r.status = 1
-    </select>
-
-    <select id="selectPermissionCodesByUserId" resultType="string">
-        SELECT DISTINCT p.code
-        FROM permissions p
-        INNER JOIN role_permissions rp ON p.id = rp.permission_id
-        INNER JOIN user_roles ur ON rp.role_id = ur.role_id
-        WHERE ur.user_id = #{userId}
-          AND p.status = 1
     </select>
 
 </mapper>

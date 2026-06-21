@@ -27,7 +27,6 @@
         <result column="created_at" property="createdAt"/>
         <result column="updated_at" property="updatedAt"/>
         <result column="cancel_reason" property="cancelReason"/>
-        <result column="version" property="version"/>
         <result column="is_deleted" property="isDeleted"/>
         <result column="refund_reason" property="refundReason"/>
         <result column="refund_amount" property="refundAmount"/>
@@ -377,6 +376,21 @@
     <!-- 管理员根据订单号查询订单详情（不过滤 is_deleted，可查看所有订单包括已删除的） -->
     <select id="selectByOrderNoForAdmin" resultMap="BaseResultMap">
         SELECT * FROM orders WHERE order_no = #{orderNo}
+    </select>
+
+    <!-- ==================== 平台仪表盘统计（超级管理员） ==================== -->
+
+    <!-- 统计今日订单数 -->
+    <select id="countTodayOrders" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM orders WHERE created_at >= #{todayStart}
+    </select>
+
+    <!-- 统计平台指定时间范围内已完成订单的销售总额（不区分商家） -->
+    <select id="sumAdminCompletedSalesByTimeRange" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(pay_amount), 0)
+        FROM orders
+        WHERE status = 4
+          AND created_at >= #{startTime}
     </select>
 
 </mapper>

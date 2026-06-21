@@ -4,6 +4,7 @@ import com.cyh.mallcommon.utils.Result;
 import com.cyh.mallportal.entity.Store;
 import com.cyh.mallportal.entity.User;
 import com.cyh.mallportal.service.StoreService;
+import com.cyh.mallportal.vo.StoreApplyAdminVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -13,9 +14,10 @@ import org.springframework.web.bind.annotation.*;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
- * 开店申请控制器
+ * 开店申请控制器    已修改响应
  * 提供用户开店申请 和 管理员审核的接口
  */
 @RestController
@@ -38,16 +40,16 @@ public class StoreApplyController {
      */
     @PostMapping("/store/apply")
     @PreAuthorize("hasRole('USER')")
-    public Result<Store> apply(@RequestParam String name,
-                               @RequestParam(required = false) String description,
-                               @RequestParam(required = false) String phone,
-                               @RequestParam(required = false) String address) {
+    public Result<Void> apply(@RequestParam String name,
+                              @RequestParam(required = false) String description,
+                              @RequestParam(required = false) String phone,
+                              @RequestParam(required = false) String address) {
         Long userId = getCurrentUserId();
         if (userId == null) {
             return Result.error("用户未登录");
         }
-        Store store = storeService.apply(userId, name, description, phone, address);
-        return Result.success("开店申请已提交，请等待管理员审核", store);
+        storeService.apply(userId, name, description, phone, address);
+        return Result.success("开店申请已提交，请等待管理员审核", null);
     }
 
     /**
@@ -57,7 +59,7 @@ public class StoreApplyController {
      */
     @GetMapping("/store/apply/status")
     @PreAuthorize("hasRole('USER')")
-    public Result<Store> getMyApply() {
+    public Result<Map<String, Object>> getMyApply() {
         Long userId = getCurrentUserId();
         if (userId == null) {
             return Result.error("用户未登录");
@@ -66,7 +68,10 @@ public class StoreApplyController {
         if (store == null) {
             return Result.error("您还没有提交过开店申请");
         }
-        return Result.success(store);
+        Map<String, Object> data = new HashMap<>();
+        data.put("status", store.getStatus());
+        data.put("rejectReason", store.getRejectReason());
+        return Result.success(data);
     }
 
     /**
@@ -108,14 +113,16 @@ public class StoreApplyController {
      * @return 分页数据：{ list, page, pageSize, total }
      */
     @GetMapping("/admin/store/apply/pending")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public Result<Map<String, Object>> getPendingPage(@RequestParam(defaultValue = "1") Integer page,
                                                       @RequestParam(defaultValue = "10") Integer pageSize) {
         List<Store> list = storeService.getPendingPage(page, pageSize);
         int total = storeService.countPending();
 
         Map<String, Object> data = new HashMap<>();
-        data.put("list", list);
+        data.put("list", list.stream()
+                .map(StoreApplyAdminVo::fromStore)
+                .collect(Collectors.toList()));
         data.put("page", page);
         data.put("pageSize", pageSize);
         data.put("total", total);
@@ -130,7 +137,7 @@ public class StoreApplyController {
      * @return 操作结果
      */
     @PutMapping("/admin/store/apply/approve/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public Result<Void> approve(@PathVariable Long id) {
         storeService.approve(id);
         return Result.success("审核通过，店铺已启用", null);
@@ -145,7 +152,7 @@ public class StoreApplyController {
      * @return 操作结果
      */
     @PutMapping("/admin/store/apply/reject/{id}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public Result<Void> reject(@PathVariable Long id,
                                @RequestParam String rejectReason) {
         storeService.reject(id, rejectReason);

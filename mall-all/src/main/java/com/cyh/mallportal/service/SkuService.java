@@ -1,6 +1,8 @@
 package com.cyh.mallportal.service;
 
 import com.cyh.mallportal.entity.Sku;
+import com.cyh.mallportal.vo.AdminVo;
+import com.cyh.mallportal.vo.SkuStoreVo;
 import com.cyh.mallportal.vo.SkuVo;
 
 import java.math.BigDecimal;
@@ -11,22 +13,6 @@ import java.util.List;
  * 提供商品库存单元业务逻辑操作
  */
 public interface SkuService {
-
-    /**
-     * 新增SKU
-     *
-     * @param sku SKU实体
-     * @return SKU ID
-     */
-    Long add(Sku sku);
-
-    /**
-     * 批量新增SKU
-     *
-     * @param skus SKU列表
-     * @return 是否成功
-     */
-    boolean batchAdd(List<Sku> skus);
 
     /**
      * 删除SKU
@@ -110,7 +96,7 @@ public interface SkuService {
      * @param pageSize 每页条数
      * @return SKU列表
      */
-    List<Sku> getPage(Long spuId, Integer status, Integer page, Integer pageSize);
+    //List<Sku> getPage(Long spuId, Integer status, Integer page, Integer pageSize);
 
     /**
      * 获取SKU总数
@@ -137,13 +123,13 @@ public interface SkuService {
      */
     boolean disable(Long id);
 
-    /**
-     * 获取SPU的最低价格
-     *
-     * @param spuId SPU ID
-     * @return 最低价格
-     */
-    BigDecimal getMinPrice(Long spuId);
+    //    /**
+//     * 获取SPU的最低价格
+//     *
+//     * @param spuId SPU ID
+//     * @return 最低价格
+//     */
+//    BigDecimal getMinPrice(Long spuId);
 
     /**
      * 获取SPU的库存总量
@@ -157,9 +143,27 @@ public interface SkuService {
      * 根据SPU ID获取SKU列表（包含销售属性）
      *
      * @param spuId SPU ID
-     * @return SKU列表（包含销售属性）
+     * @return SKU列表（包含销售属性，公开字段）
      */
     List<SkuVo> getBySpuIdWithAttributes(Long spuId);
+
+    /**
+     * 商家端：根据SPU ID获取SKU列表（包含销售属性）
+     * 返回商家经营管理所需的完整字段
+     *
+     * @param spuId SPU ID
+     * @return SKU列表（包含销售属性，商家端字段）
+     */
+    List<SkuStoreVo> getStoreBySpuIdWithAttributes(Long spuId);
+
+    /**
+     * 管理员端：根据SPU ID获取SKU列表（包含销售属性）
+     * 返回管理员监管所需的全部字段
+     *
+     * @param spuId SPU ID
+     * @return SKU列表（包含销售属性，管理员端字段）
+     */
+    List<AdminVo> getAdminBySpuIdWithAttributes(Long spuId);
 
     /**
      * 根据ID获取SKU详情（包含销售属性）
@@ -167,5 +171,5 @@ public interface SkuService {
      * @param id SKU ID
      * @return SKU详情（包含销售属性）
      */
-    SkuVo getByIdWithAttributes(Long id);
+    //SkuVo getByIdWithAttributes(Long id);
 }

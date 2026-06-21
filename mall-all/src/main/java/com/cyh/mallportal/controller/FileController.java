@@ -31,7 +31,7 @@ public class FileController {
     private String basePath;
 
     @PostMapping("/upload")
-    @PreAuthorize("hasAuthority('product:add') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasAuthority('product:add') or hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Map<String, String>> uploadFile(@RequestParam("file") MultipartFile file,
                                                   @RequestParam(defaultValue = "common") String subDir) {
         Map<String, String> result = fileService.uploadFile(file, subDir);
@@ -42,7 +42,7 @@ public class FileController {
     }
 
     @PostMapping("/upload/image")
-    @PreAuthorize("hasAuthority('product:add') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasAuthority('product:add') or hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Map<String, String>> uploadImage(@RequestParam("file") MultipartFile file,
                                                     @RequestParam(defaultValue = "images") String subDir) {
         Map<String, String> result = fileService.uploadImage(file, subDir);
@@ -53,7 +53,7 @@ public class FileController {
     }
 
     @DeleteMapping("/delete")
-    @PreAuthorize("hasAuthority('product:delete') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasAuthority('product:delete') or hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Void> deleteFile(@RequestParam String relativePath,
                                    @RequestParam(defaultValue = "images") String subDir) {
         boolean success = fileService.deleteFile(relativePath, subDir);

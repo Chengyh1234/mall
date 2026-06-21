@@ -2,7 +2,6 @@ package com.cyh.mallportal.service;
 
 import com.cyh.mallportal.dto.OrderCreateDto;
 import com.cyh.mallportal.entity.Order;
-import com.cyh.mallportal.entity.OrderItem;
 import com.cyh.mallportal.vo.OrderListItemVo;
 import com.cyh.mallportal.vo.OrderStatusCountVo;
 import com.cyh.mallportal.vo.OrderVo;
@@ -62,44 +61,6 @@ public interface OrderService {
      * @return 订单VO
      */
     OrderVo getOrderByOrderNo(String orderNo);
-
-    /**
-     * 根据用户ID获取订单列表
-     *
-     * @param userId 用户ID
-     * @return 订单列表
-     */
-    List<Order> getOrdersByUserId(Long userId);
-
-    /**
-     * 分页获取用户订单列表（普通用户，自动过滤 is_deleted=0）
-     *
-     * @param userId   用户ID
-     * @param page     页码
-     * @param pageSize 每页数量
-     * @return 订单列表
-     */
-    List<Order> getOrdersByUserId(Long userId, Integer page, Integer pageSize);
-
-    /**
-     * 根据用户ID和状态获取订单列表
-     *
-     * @param userId 用户ID
-     * @param status 订单状态
-     * @return 订单列表
-     */
-    List<Order> getOrdersByUserIdAndStatus(Long userId, Integer status);
-
-    /**
-     * 分页获取用户订单列表（按状态筛选，自动过滤 is_deleted=0）
-     *
-     * @param userId   用户ID
-     * @param status   订单状态
-     * @param page     页码
-     * @param pageSize 每页数量
-     * @return 订单列表
-     */
-    List<Order> getOrdersByUserIdAndStatus(Long userId, Integer status, Integer page, Integer pageSize);
 
     /**
      * 分页获取用户订单列表（带商品明细，自动过滤 is_deleted=0）

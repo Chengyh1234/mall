@@ -7,6 +7,8 @@ import com.cyh.mallportal.dto.SkuDto;
 import com.cyh.mallportal.entity.Sku;
 import com.cyh.mallportal.service.FileService;
 import com.cyh.mallportal.service.SkuService;
+import com.cyh.mallportal.vo.AdminVo;
+import com.cyh.mallportal.vo.SkuStoreVo;
 import com.cyh.mallportal.vo.SkuVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,6 +20,13 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import com.cyh.mallportal.dto.SkuBatchCreateDto;
+import com.cyh.mallportal.dto.SkuUpdateDto;
+import com.cyh.mallportal.entity.User;
+import com.cyh.mallportal.service.SkuAttrService;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.validation.annotation.Validated;
 import java.util.stream.Collectors;
 
 /**
@@ -34,99 +43,8 @@ public class SkuController {
     @Autowired
     private FileService fileService;
 
-    /**
-     * 新增SKU（支持图片上传）
-     *
-     * @param skuDtoString SKU信息的JSON字符串
-     * @param imageFile    上传的SKU图片（非必填）
-     * @return 新增结果
-     */
-    @PostMapping("/add")
-    @PreAuthorize("hasAuthority('product:add') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
-    public Result<Map<String, Object>> add(@RequestPart(value = "skuDto") String skuDtoString,
-                                           @RequestPart(value = "imageFile", required = false) MultipartFile imageFile) {
-        // 解析SKU DTO
-        SkuDto skuDto = JSON.parseObject(skuDtoString, SkuDto.class);
-
-        // 参数校验
-        if (skuDto.getSpuId() == null) {
-            return Result.error("SPU ID不能为空");
-        }
-        if (skuDto.getPrice() == null || skuDto.getPrice().compareTo(BigDecimal.ZERO) <= 0) {
-            return Result.error("价格不能为空且必须大于0");
-        }
-
-        // 创建SKU实体
-        Sku sku = new Sku();
-        sku.setSpuId(skuDto.getSpuId());
-        sku.setPrice(skuDto.getPrice());
-        sku.setMarketPrice(skuDto.getMarketPrice());
-        sku.setCostPrice(skuDto.getCostPrice());
-        sku.setStock(skuDto.getStock() != null ? skuDto.getStock() : 0);
-        sku.setWarnStock(skuDto.getWarnStock() != null ? skuDto.getWarnStock() : 10);
-
-        sku.setWeight(skuDto.getWeight());
-        sku.setStatus(skuDto.getStatus() != null ? skuDto.getStatus() : 1);
-
-        // 处理图片上传
-        if (imageFile != null && !imageFile.isEmpty()) {
-            Map<String, String> imageInfo = uploadImage(imageFile);
-            if (imageInfo != null) {
-                sku.setImage(imageInfo.get("relativePath"));
-            } else {
-                return Result.error("图片上传失败");
-            }
-        } else if (skuDto.getImage() != null) {
-            sku.setImage(skuDto.getImage());
-        }
-
-        // 调用service新增SKU
-        Long id = skuService.add(sku);
-        if (id != null) {
-            Map<String, Object> data = new HashMap<>();
-            data.put("id", id);
-            data.put("image", sku.getImage());
-            return Result.success("添加成功", data);
-        }
-        return Result.error("添加失败");
-    }
-
-    /**
-     * 批量新增SKU
-     *
-     * @param spuId SPU ID
-     * @param skus  SKU列表的JSON字符串
-     * @return 新增结果
-     */
-    @PostMapping("/batch-add")
-    @PreAuthorize("hasAuthority('product:add') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
-    public Result<Void> batchAdd(@RequestParam Long spuId,
-                                 @RequestParam String skus) {
-        List<SkuDto> skuDtoList = JSON.parseArray(skus, SkuDto.class);
-
-        List<Sku> skusList = skuDtoList.stream()
-                .map(dto -> {
-                    Sku sku = new Sku();
-                    sku.setSpuId(spuId);
-                    sku.setPrice(dto.getPrice());
-                    sku.setMarketPrice(dto.getMarketPrice());
-                    sku.setCostPrice(dto.getCostPrice());
-                    sku.setStock(dto.getStock() != null ? dto.getStock() : 0);
-                    sku.setWarnStock(dto.getWarnStock() != null ? dto.getWarnStock() : 10);
-
-                    sku.setWeight(dto.getWeight());
-                    sku.setStatus(dto.getStatus() != null ? dto.getStatus() : 1);
-                    sku.setImage(dto.getImage());
-                    return sku;
-                })
-                .collect(Collectors.toList());
-
-        boolean success = skuService.batchAdd(skusList);
-        if (success) {
-            return Result.success("批量添加成功", null);
-        }
-        return Result.error("批量添加失败");
-    }
+    @Autowired
+    private SkuAttrService skuAttrService;
 
     /**
      * 删除SKU（逻辑删除）
@@ -135,7 +53,7 @@ public class SkuController {
      * @return 删除结果
      */
     @DeleteMapping("/delete/{id}")
-    @PreAuthorize("hasAuthority('product:delete') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasAuthority('product:delete') or hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Void> delete(@PathVariable Long id) {
         // 获取SKU信息（包含图片）
         Sku sku = skuService.getById(id);
@@ -158,7 +76,7 @@ public class SkuController {
      * @return 删除结果
      */
     @DeleteMapping("/delete-by-spu/{spuId}")
-    @PreAuthorize("hasAuthority('product:delete') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasAuthority('product:delete') or hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Void> deleteBySpuId(@PathVariable Long spuId) {
         // 获取所有SKU并删除图片
         List<Sku> skus = skuService.getBySpuId(spuId);
@@ -182,7 +100,7 @@ public class SkuController {
      * @return 删除结果
      */
     @DeleteMapping("/batch-delete")
-    @PreAuthorize("hasAuthority('product:delete') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasAuthority('product:delete') or hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Map<String, Object>> batchDelete(@RequestBody List<Long> ids) {
         if (ids == null || ids.isEmpty()) {
             return Result.error("SKU ID列表不能为空");
@@ -210,7 +128,7 @@ public class SkuController {
      * @return 更新结果
      */
     @PutMapping("/update")
-    @PreAuthorize("hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Map<String, Object>> update(@RequestPart(value = "skuDto") String skuDtoString,
                                               @RequestPart(value = "imageFile", required = false) MultipartFile imageFile) {
         // 解析SKU DTO
@@ -298,7 +216,7 @@ public class SkuController {
      * @return 启用结果
      */
     @PutMapping("/enable/{id}")
-    @PreAuthorize("hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Void> enable(@PathVariable Long id) {
         boolean success = skuService.enable(id);
         if (success) {
@@ -314,7 +232,7 @@ public class SkuController {
      * @return 禁用结果
      */
     @PutMapping("/disable/{id}")
-    @PreAuthorize("hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Void> disable(@PathVariable Long id) {
         boolean success = skuService.disable(id);
         if (success) {
@@ -331,7 +249,7 @@ public class SkuController {
      * @return 更新结果
      */
     @PutMapping("/update-stock")
-    @PreAuthorize("hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Void> updateStock(@RequestParam Long id,
                                     @RequestParam Integer stock) {
         boolean success = skuService.updateStock(id, stock);
@@ -349,7 +267,7 @@ public class SkuController {
      * @return 扣减结果
      */
     @PutMapping("/decrease-stock")
-    @PreAuthorize("hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Void> decreaseStock(@RequestParam Long id,
                                       @RequestParam Integer quantity) {
         boolean success = skuService.decreaseStock(id, quantity);
@@ -359,32 +277,32 @@ public class SkuController {
         return Result.error("扣减失败，库存不足");
     }
 
-    /**
-     * 根据ID获取SKU详情
-     *
-     * @param id SKU ID
-     * @return SKU信息
-     */
-    @GetMapping("/detail/{id}")
-    public Result<Sku> getById(@PathVariable Long id) {
-        Sku sku = skuService.getById(id);
-        if (sku != null) {
-            return Result.success(sku);
-        }
-        return Result.error("SKU不存在");
-    }
+    //    /**
+//     * 根据ID获取SKU详情
+//     *
+//     * @param id SKU ID
+//     * @return SKU信息
+//     */
+//    @GetMapping("/detail/{id}")
+//    public Result<Sku> getById(@PathVariable Long id) {
+//        Sku sku = skuService.getById(id);
+//        if (sku != null) {
+//            return Result.success(sku);
+//        }
+//        return Result.error("SKU不存在");
+//    }
 
-    /**
-     * 根据SPU ID获取SKU列表
-     *
-     * @param spuId SPU ID
-     * @return SKU列表
-     */
-    @GetMapping("/list")
-    public Result<List<Sku>> getBySpuId(@RequestParam Long spuId) {
-        List<Sku> list = skuService.getBySpuId(spuId);
-        return Result.success(list);
-    }
+    //    /**
+//     * 根据SPU ID获取SKU列表
+//     *
+//     * @param spuId SPU ID
+//     * @return SKU列表
+//     */
+//    @GetMapping("/list")
+//    public Result<List<Sku>> getBySpuId(@RequestParam Long spuId) {
+//        List<Sku> list = skuService.getBySpuId(spuId);
+//        return Result.success(list);
+//    }
 
     /**
      * 分页获取SKU列表==========暂时没有使用到
@@ -395,34 +313,34 @@ public class SkuController {
      * @param pageSize 每页条数
      * @return 分页结果
      */
-    @GetMapping("/page")
-    public Result<Map<String, Object>> getPage(@RequestParam(required = false) Long spuId,
-                                               @RequestParam(required = false) Integer status,
-                                               @RequestParam(defaultValue = "1") Integer page,
-                                               @RequestParam(defaultValue = "10") Integer pageSize) {
-        List<Sku> list = skuService.getPage(spuId, status, page, pageSize);
-        int total = skuService.count(spuId, status);
+    //@GetMapping("/page")
+    //public Result<Map<String, Object>> getPage(@RequestParam(required = false) Long spuId,
+    //                                           @RequestParam(required = false) Integer status,
+    //                                           @RequestParam(defaultValue = "1") Integer page,
+    //                                           @RequestParam(defaultValue = "10") Integer pageSize) {
+    //    List<Sku> list = skuService.getPage(spuId, status, page, pageSize);
+    //    int total = skuService.count(spuId, status);
+    //
+    //    Map<String, Object> data = new HashMap<>();
+    //    data.put("list", list);
+    //    data.put("page", page);
+    //    data.put("pageSize", pageSize);
+    //    data.put("total", total);
+    //
+    //    return Result.success(data);
+    //}
 
-        Map<String, Object> data = new HashMap<>();
-        data.put("list", list);
-        data.put("page", page);
-        data.put("pageSize", pageSize);
-        data.put("total", total);
-
-        return Result.success(data);
-    }
-
-    /**
-     * 获取SPU的最低价格==========暂时没有使用到
-     *
-     * @param spuId SPU ID
-     * @return 最低价格
-     */
-    @GetMapping("/min-price/{spuId}")
-    public Result<BigDecimal> getMinPrice(@PathVariable Long spuId) {
-        BigDecimal minPrice = skuService.getMinPrice(spuId);
-        return Result.success(minPrice);
-    }
+    //    /**
+//     * 获取SPU的最低价格==========暂时没有使用到
+//     *
+//     * @param spuId SPU ID
+//     * @return 最低价格
+//     */
+//    @GetMapping("/min-price/{spuId}")
+//    public Result<BigDecimal> getMinPrice(@PathVariable Long spuId) {
+//        BigDecimal minPrice = skuService.getMinPrice(spuId);
+//        return Result.success(minPrice);
+//    }
 
     /**
      * 获取SPU的库存总量
@@ -438,6 +356,7 @@ public class SkuController {
 
     /**
      * 根据SPU ID获取SKU列表（包含销售属性）
+     * 公开接口，仅返回启用状态的SKU，对外公开字段
      *
      * @param spuId SPU ID
      * @return SKU列表（包含销售属性）
@@ -449,18 +368,142 @@ public class SkuController {
     }
 
     /**
-     * 根据ID获取SKU详情（包含销售属性）
+     * 商家端：根据SPU ID获取SKU列表（包含销售属性）
+     * 返回商家经营管理所需的完整字段，不限SKU上下架状态
      *
-     * @param id SKU ID
-     * @return SKU详情（包含销售属性）
+     * @param spuId SPU ID
+     * @return SKU列表（包含销售属性，商家端字段）
      */
-    @GetMapping("/detail-with-attributes/{id}")
-    public Result<SkuVo> getByIdWithAttributes(@PathVariable Long id) {
-        SkuVo sku = skuService.getByIdWithAttributes(id);
-        if (sku != null) {
-            return Result.success(sku);
+    @GetMapping("/store/list-with-attributes")
+    @PreAuthorize("hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    public Result<List<SkuStoreVo>> getStoreBySpuIdWithAttributes(@RequestParam Long spuId) {
+        List<SkuStoreVo> list = skuService.getStoreBySpuIdWithAttributes(spuId);
+        return Result.success(list);
+    }
+
+    /**
+     * 管理员端：根据SPU ID获取SKU列表（包含销售属性）
+     * 返回管理员监管所需的全部字段，不限SKU上下架和删除状态
+     *
+     * @param spuId SPU ID
+     * @return SKU列表（包含销售属性，管理员端字段）
+     */
+    @GetMapping("/admin/list-with-attributes")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public Result<List<AdminVo>> getAdminBySpuIdWithAttributes(@RequestParam Long spuId) {
+        List<AdminVo> list = skuService.getAdminBySpuIdWithAttributes(spuId);
+        return Result.success(list);
+    }
+
+    ///**
+    // * 根据ID获取SKU详情（包含销售属性）-------其实也不需要
+    // *
+    // * @param id SKU ID
+    // * @return SKU详情（包含销售属性）
+    // */
+    //@GetMapping("/detail-with-attributes/{id}")
+    //public Result<SkuVo> getByIdWithAttributes(@PathVariable Long id) {
+    //    SkuVo sku = skuService.getByIdWithAttributes(id);
+    //    if (sku != null) {
+    //        return Result.success(sku);
+    //    }
+    //    return Result.error("SKU不存在");
+    //}
+
+    // ==================== SKU销售属性管理（从 SkuAttrController 合并） ====================
+
+    /**
+     * 创建SKU并绑定销售属性
+     * 一步完成单个SKU的新增 + 销售属性绑定
+     *
+     * @param dto 创建参数（含SKU信息 + 属性值ID列表）
+     * @return 创建结果（返回新SKU ID）
+     */
+    @PostMapping("/attr/create")
+    @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
+    public Result<Map<String, Object>> createSkuWithAttrs(@RequestBody @Validated SkuBatchCreateDto dto) {
+        Long sellerId = getCurrentUserId();
+        if (sellerId == null) {
+            return Result.error("用户未登录");
         }
-        return Result.error("SKU不存在");
+
+        Long skuId = skuAttrService.createSkuWithAttrs(dto, sellerId);
+        Map<String, Object> data = new HashMap<>();
+        data.put("skuId", skuId);
+        return Result.success("创建并绑定成功", data);
+    }
+
+    /**
+     * 批量创建SKU并绑定销售属性（同SPU）
+     * 所有SKU必须在同一个SPU下，且属性值组合不能与已有SKU重复
+     *
+     * @param dtoList 创建参数列表
+     * @return 创建结果（返回每个新SKU ID及其绑定的属性数量）
+     */
+    @PostMapping("/attr/batch-create")
+    @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
+    public Result<Map<String, Object>> batchCreateSkuWithAttrs(@RequestBody @Validated List<SkuBatchCreateDto> dtoList) {
+        Long sellerId = getCurrentUserId();
+        if (sellerId == null) {
+            return Result.error("用户未登录");
+        }
+
+        Map<Long, Integer> resultMap = skuAttrService.batchCreateSkuWithAttrs(dtoList, sellerId);
+        Map<String, Object> data = new HashMap<>();
+        data.put("createdCount", resultMap.size());
+        data.put("details", resultMap);
+        return Result.success("批量创建并绑定成功", data);
+    }
+
+    /**
+     * 更新SKU基本信息（不修改销售属性），能更新说明以及存在对应的销售属性
+     *
+     * @param dto 更新参数
+     * @return 更新结果
+     */
+    @PutMapping("/attr/update-combined")
+    @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
+    public Result<Void> updateSkuWithAttrs(@RequestBody @Validated SkuUpdateDto dto) {
+        Long sellerId = getCurrentUserId();
+        if (sellerId == null) {
+            return Result.error("用户未登录");
+        }
+
+        boolean success = skuAttrService.updateSkuWithAttrs(dto, sellerId);
+        return success ? Result.success("更新成功", null) : Result.error("更新失败");
+    }
+
+    /**
+     * 批量更新SKU基本信息（不修改销售属性）
+     *
+     * @param dtoList 更新参数列表
+     * @return 批量更新结果
+     */
+    @PutMapping("/attr/batch-update")
+    @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
+    public Result<Map<String, Object>> batchUpdateSkuWithAttrs(@RequestBody List<SkuUpdateDto> dtoList) {
+        Long sellerId = getCurrentUserId();
+        if (sellerId == null) {
+            return Result.error("用户未登录");
+        }
+
+        int successCount = skuAttrService.batchUpdateSkuWithAttrs(dtoList, sellerId);
+        Map<String, Object> data = new HashMap<>();
+        data.put("successCount", successCount);
+        data.put("totalCount", dtoList != null ? dtoList.size() : 0);
+        return Result.success("批量更新完成", data);
+    }
+
+    /**
+     * 获取当前登录用户ID
+     */
+    private Long getCurrentUserId() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null && authentication.getPrincipal() instanceof User) {
+            User user = (User) authentication.getPrincipal();
+            return user.getId();
+        }
+        return null;
     }
 
     private Map<String, String> uploadImage(MultipartFile file) {

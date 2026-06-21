@@ -2,7 +2,7 @@ package com.cyh.mallportal.mapper;
 
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.cyh.mallportal.entity.Store;
-import com.cyh.mallportal.vo.StoreVO;
+import com.cyh.mallportal.vo.StoreVo;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -54,7 +54,7 @@ public interface StoreMapper extends BaseMapper<Store> {
     int countPage(@Param("keyword") String keyword, @Param("status") Integer status);
 
     /**
-     * 分页查询公开店铺列表（仅 status=1），返回 StoreVO
+     * 分页查询公开店铺列表（仅 status=1），返回 StoreVo
      * 用于无需权限的店铺展示页面
      *
      * @param keyword 搜索关键字（店铺名称模糊匹配）
@@ -62,7 +62,7 @@ public interface StoreMapper extends BaseMapper<Store> {
      * @param limit   每页数量
      * @return 店铺 VO 列表
      */
-    List<StoreVO> selectPageVO(@Param("keyword") String keyword,
+    List<StoreVo> selectPageVO(@Param("keyword") String keyword,
                                @Param("offset") Integer offset,
                                @Param("limit") Integer limit);
 

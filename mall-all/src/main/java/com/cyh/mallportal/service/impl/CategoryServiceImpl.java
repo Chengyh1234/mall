@@ -9,6 +9,7 @@ import com.cyh.mallportal.mapper.CategoryMapper;
 import com.cyh.mallportal.mapper.SpuMapper;
 import com.cyh.mallportal.service.CategoryCacheService;
 import com.cyh.mallportal.service.CategoryService;
+import com.cyh.mallportal.vo.CategoryTreeVo;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,7 +17,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 分类Service实现类
@@ -280,49 +282,46 @@ public class CategoryServiceImpl implements CategoryService {
         for (Category category : categories) {
             List<Category> children = getTree(category.getId());
             if (!children.isEmpty()) {
-                Map<String, Object> map = new HashMap<>();
+                // children 已递归填充，直接使用
             }
         }
         return categories;
     }
 
     @Override
-    public List<Map<String, Object>> getTreeWithChildren(Long parentId) {
+    public List<CategoryTreeVo> getTreeWithChildren(Long parentId) {
         // 尝试从缓存获取
-        List<Map<String, Object>> cached = categoryCacheService.getTreeWithChildren(parentId);
+        List<CategoryTreeVo> cached = categoryCacheService.getTreeWithChildren(parentId);
         if (cached != null) {
             log.debug("从缓存获取分类树成功，父分类ID: {}", parentId);
             return cached;
         }
-        
+
         // 缓存不存在，从数据库查询并构建树
         if (parentId == null) {
             parentId = 0L;
         }
         List<Category> categories = getByParentId(parentId);
-        List<Map<String, Object>> result = new ArrayList<>();
+        List<CategoryTreeVo> result = new ArrayList<>();
 
         for (Category category : categories) {
-            Map<String, Object> map = new HashMap<>();
-            map.put("id", category.getId());
-            map.put("name", category.getName());
-            map.put("parentId", category.getParentId());
-            map.put("level", category.getLevel());
-            map.put("icon", category.getIcon());
-            map.put("sort", category.getSort());
-            map.put("status", category.getStatus());
+            CategoryTreeVo vo = new CategoryTreeVo();
+            vo.setId(category.getId());
+            vo.setName(category.getName());
+            vo.setParentId(category.getParentId());
+            vo.setIcon(category.getIcon());
 
-            List<Map<String, Object>> children = getTreeWithChildren(category.getId());
+            List<CategoryTreeVo> children = getTreeWithChildren(category.getId());
             if (!children.isEmpty()) {
-                map.put("children", children);
+                vo.setChildren(children);
             }
-            result.add(map);
+            result.add(vo);
         }
-        
+
         // 将结果放入缓存
         categoryCacheService.setTreeWithChildren(parentId, result);
         log.debug("从数据库查询分类树并缓存，父分类ID: {}", parentId);
-        
+
         return result;
     }
 

@@ -1,9 +1,9 @@
 package com.cyh.mallportal.service;
 
 import com.cyh.mallportal.entity.Category;
+import com.cyh.mallportal.vo.CategoryTreeVo;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * 分类Service接口
@@ -99,7 +99,7 @@ public interface CategoryService {
      * @param parentId 父分类ID
      * @return 树形结构列表
      */
-    List<Map<String, Object>> getTreeWithChildren(Long parentId);
+    List<CategoryTreeVo> getTreeWithChildren(Long parentId);
 
     /**
      * 获取指定分类ID及其所有子分类的ID列表

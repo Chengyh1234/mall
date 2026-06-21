@@ -3,7 +3,8 @@ package com.cyh.mallportal.controller;
 import com.cyh.mallportal.entity.Banner;
 import com.cyh.mallportal.service.BannerService;
 import com.cyh.mallportal.service.FileService;
-import com.cyh.mallportal.vo.BannerVO;
+import com.cyh.mallportal.vo.BannerAdminVo;
+import com.cyh.mallportal.vo.BannerVo;
 import com.cyh.mallcommon.utils.Result;
 import com.cyh.mallcommon.constant.FileConstants;
 import lombok.extern.slf4j.Slf4j;
@@ -12,8 +13,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -49,7 +48,7 @@ public class BannerController {
      * @return 新增结果
      */
     @PostMapping("/add")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public Result<Map<String, Object>> add(@RequestParam("title") String title,
                                            @RequestParam(value = "linkUrl", required = false) String linkUrl,
                                            @RequestParam("imageFile") MultipartFile imageFile) {
@@ -94,7 +93,7 @@ public class BannerController {
      * @return 更新结果
      */
     @PutMapping("/update")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public Result<Map<String, Object>> update(@RequestParam("id") Long id,
                                               @RequestParam("title") String title,
                                               @RequestParam(value = "linkUrl", required = false) String linkUrl,
@@ -156,7 +155,7 @@ public class BannerController {
      * @return 删除结果
      */
     @DeleteMapping("/delete/{id}")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public Result<Void> delete(@PathVariable Long id) {
         if (id == null) {
             return Result.error("轮播图ID不能为空");
@@ -186,7 +185,7 @@ public class BannerController {
      * @return 操作结果
      */
     @PutMapping("/enable/{id}")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public Result<Void> enable(@PathVariable Long id) {
         if (id == null) {
             return Result.error("轮播图ID不能为空");
@@ -208,7 +207,7 @@ public class BannerController {
      * @return 操作结果
      */
     @PutMapping("/disable/{id}")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public Result<Void> disable(@PathVariable Long id) {
         if (id == null) {
             return Result.error("轮播图ID不能为空");
@@ -231,10 +230,13 @@ public class BannerController {
      * @return 轮播图列表
      */
     @GetMapping("/list")
-    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
-    public Result<List<Banner>> getList(@RequestParam(value = "status", required = false) Integer status) {
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public Result<List<BannerAdminVo>> getList(@RequestParam(value = "status", required = false) Integer status) {
         List<Banner> list = bannerService.getList(status);
-        return Result.success(list);
+        List<BannerAdminVo> voList = list.stream()
+                .map(BannerAdminVo::fromBanner)
+                .collect(Collectors.toList());
+        return Result.success(voList);
     }
 
     /**
@@ -245,10 +247,10 @@ public class BannerController {
      * @return 启用的轮播图列表
      */
     @GetMapping("/active")
-    public Result<List<BannerVO>> getActiveList() {
+    public Result<List<BannerVo>> getActiveList() {
         List<Banner> banners = bannerService.getActiveList();
-        List<BannerVO> voList = banners.stream()
-                .map(BannerVO::fromBanner)
+        List<BannerVo> voList = banners.stream()
+                .map(BannerVo::fromBanner)
                 .collect(Collectors.toList());
         return Result.success(voList);
     }

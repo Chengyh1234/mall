@@ -19,8 +19,8 @@
         <result column="updated_at" property="updatedAt" />
     </resultMap>
 
-    <!-- 公开页面店铺展示所用 resultMap，仅映射 StoreVO 所需字段（id, name, logo, description） -->
-    <resultMap id="StoreVOResultMap" type="com.cyh.mallportal.vo.StoreVO">
+    <!-- 公开页面店铺展示所用 resultMap，仅映射 StoreVo 所需字段（id, name, logo, description） -->
+    <resultMap id="StoreVOResultMap" type="com.cyh.mallportal.vo.StoreVo">
         <id column="id" property="id" />
         <result column="name" property="name" />
         <result column="logo" property="logo" />
@@ -77,7 +77,7 @@
         </if>
     </select>
 
-    <!-- 分页查询公开店铺列表（仅 status=1），返回 StoreVO -->
+    <!-- 分页查询公开店铺列表（仅 status=1），返回 StoreVo -->
     <select id="selectPageVO" resultMap="StoreVOResultMap">
         SELECT
         <include refid="StoreVO_Column_List" />

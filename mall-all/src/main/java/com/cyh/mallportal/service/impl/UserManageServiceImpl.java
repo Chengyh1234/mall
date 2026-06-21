@@ -3,6 +3,7 @@ package com.cyh.mallportal.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.cyh.mallcommon.constant.MyConstants;
 import com.cyh.mallcommon.exception.BusinessException;
 import com.cyh.mallportal.entity.Role;
 import com.cyh.mallportal.entity.Store;
@@ -13,21 +14,22 @@ import com.cyh.mallportal.mapper.StoreMapper;
 import com.cyh.mallportal.mapper.UserMapper;
 import com.cyh.mallportal.mapper.UserRoleMapper;
 import com.cyh.mallportal.service.UserManageService;
+import com.cyh.mallportal.vo.PromoteToSellerVo;
+import com.cyh.mallportal.vo.UserManageVo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 用户管理 Service 实现类（后台管理用）
  *
- * 提供运营管理员和超级管理员对用户的管理功能
+ * 提供超级管理员对用户的管理功能
  */
 @Slf4j
 @Service
@@ -38,6 +40,7 @@ public class UserManageServiceImpl implements UserManageService {
     private final UserRoleMapper userRoleMapper;
     private final RoleMapper roleMapper;
     private final StoreMapper storeMapper;
+    private final RedisTemplate<String, Object> redisTemplate;
 
     /**
      * 商家角色的编码（从数据库 roles 表获取）
@@ -46,7 +49,7 @@ public class UserManageServiceImpl implements UserManageService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Map<String, Object> promoteToSeller(Long userId) {
+    public PromoteToSellerVo promoteToSeller(Long userId) {
         log.info("将用户升级为商家: userId={}", userId);
 
         // 1. 校验用户是否存在
@@ -99,13 +102,13 @@ public class UserManageServiceImpl implements UserManageService {
         }
 
         // 6. 返回结果
-        Map<String, Object> result = new HashMap<>();
-        result.put("userId", userId);
-        result.put("roleId", sellerRole.getId());
-        result.put("roleCode", sellerRole.getCode());
-        result.put("roleName", sellerRole.getName());
-        result.put("storeId", storeId);
-        return result;
+        PromoteToSellerVo vo = new PromoteToSellerVo();
+        vo.setUserId(userId);
+        vo.setRoleId(sellerRole.getId());
+        vo.setRoleCode(sellerRole.getCode());
+        vo.setRoleName(sellerRole.getName());
+        vo.setStoreId(storeId);
+        return vo;
     }
 
     /**
@@ -113,9 +116,9 @@ public class UserManageServiceImpl implements UserManageService {
      * 支持按用户名/手机号/邮箱模糊搜索，结果附带用户角色信息
      */
     @Override
-    public IPage<User> pageUsers(Integer page, Integer pageSize, String keyword,
-                                 Integer status, String roleCode,
-                                 LocalDateTime registerStartTime, LocalDateTime registerEndTime) {
+    public IPage<UserManageVo> pageUsers(Integer page, Integer pageSize, String keyword,
+                                          Integer status, String roleCode,
+                                          LocalDateTime registerStartTime, LocalDateTime registerEndTime) {
         // 1. 构建分页对象
         Page<User> pageObj = new Page<>(page != null ? page : 1, pageSize != null ? pageSize : 10);
 
@@ -160,44 +163,78 @@ public class UserManageServiceImpl implements UserManageService {
         // 8. 执行分页查询
         IPage<User> userPage = userMapper.selectPage(pageObj, queryWrapper);
 
-        // 9. 为每个用户加载角色信息（清除password）
-        for (User user : userPage.getRecords()) {
-            user.setPassword(null);
-            List<Role> roles = roleMapper.selectByUserId(user.getId());
-            user.setRoles(roles);
-        }
+        // 9. 转换为 UserManageVo
+        Page<UserManageVo> voPage = new Page<>(userPage.getCurrent(), userPage.getSize(), userPage.getTotal());
+        List<UserManageVo> voList = userPage.getRecords().stream()
+                .map(user -> {
+                    List<Role> roles = roleMapper.selectByUserId(user.getId());
+                    List<String> roleCodes = roles.stream().map(Role::getCode).toList();
+                    return UserManageVo.fromUser(user, roleCodes);
+                })
+                .toList();
+        voPage.setRecords(voList);
 
-        return userPage;
+        return voPage;
     }
 
     /**
-     * 启用或禁用用户
-     * status=1 启用，status=0 禁用
-     * 禁用后用户无法登录系统（Spring Security 根据 isEnabled() 判断）
+     * 启用用户
+     * 将用户状态设为 1-启用，用户可正常登录
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void setUserStatus(Long userId, Integer status) {
+    public void enableUser(Long userId) {
         // 1. 校验用户是否存在
         User user = userMapper.selectById(userId);
         if (user == null) {
             throw new BusinessException("用户不存在");
         }
 
-        // 2. 校验状态值合法性
-        if (status != 0 && status != 1) {
-            throw new BusinessException("状态值无效，仅支持 1-启用 0-禁用");
+        // 2. 如果已是启用状态则提示
+        if (user.getStatus() != null && user.getStatus().equals(1)) {
+            throw new BusinessException("该用户已是启用状态");
         }
 
-        // 3. 如果已是目标状态则提示
-        if (user.getStatus() != null && user.getStatus().equals(status)) {
-            String msg = status == 1 ? "该用户已是启用状态" : "该用户已是禁用状态";
-            throw new BusinessException(msg);
-        }
-
-        // 4. 更新用户状态
-        user.setStatus(status);
+        // 3. 更新用户状态
+        user.setStatus(1);
         userMapper.updateById(user);
-        log.info("用户状态已更新: userId={}, newStatus={}", userId, status);
+
+        log.info("用户已启用: userId={}", userId);
+    }
+
+    /**
+     * 禁用用户
+     * 将用户状态设为 0-禁用，禁用后用户无法登录系统，
+     * 同时清除 Redis 中的 Token 缓存使其立即下线
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void disableUser(Long userId) {
+        // 1. 校验用户是否存在
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException("用户不存在");
+        }
+
+        // 2. 如果已是禁用状态则提示
+        if (user.getStatus() != null && user.getStatus().equals(0)) {
+            throw new BusinessException("该用户已是禁用状态");
+        }
+
+        // 3. 更新用户状态
+        user.setStatus(0);
+        userMapper.updateById(user);
+
+        // 4. 清除 Redis 中的 Token 缓存使其立即下线
+        String activeToken = (String) redisTemplate.opsForValue().get(
+                MyConstants.USER_ACTIVE_TOKEN_PREFIX + userId);
+        if (activeToken != null) {
+            redisTemplate.delete(MyConstants.TOKEN_PREFIX + activeToken);
+            redisTemplate.delete(MyConstants.USER_CURRENT_SESSION_PREFIX + userId);
+            redisTemplate.delete(MyConstants.USER_ACTIVE_TOKEN_PREFIX + userId);
+            log.info("用户被禁用，已清除登录缓存: userId={}", userId);
+        }
+
+        log.info("用户已禁用: userId={}", userId);
     }
 }

@@ -42,13 +42,12 @@
   - [5.1 创建订单](#51-创建订单)
   - [5.2 从购物车结算创建订单](#52-从购物车结算创建订单)
   - [5.3 获取订单详情](#53-获取订单详情)
-  - [5.4 获取订单列表](#54-获取订单列表)
-  - [5.5 获取订单列表（带商品明细）](#55-获取订单列表带商品明细)
-  - [5.6 商家分页查询店铺订单列表](#56-商家分页查询店铺订单列表)
-  - [5.7 管理员分页查询全部订单列表](#57-管理员分页查询全部订单列表)
-  - [5.8 管理员查询订单详情](#58-管理员查询订单详情)
-  - [5.9 商家查询订单详情](#59-商家查询订单详情)
-  - [5.10 获取用户各状态订单数量](#510-获取用户各状态订单数量)
+  - [5.4 获取订单列表（带商品明细）](#54-获取订单列表带商品明细)
+  - [5.5 商家分页查询店铺订单列表](#55-商家分页查询店铺订单列表)
+  - [5.6 管理员分页查询全部订单列表](#56-管理员分页查询全部订单列表)
+  - [5.7 管理员查询订单详情](#57-管理员查询订单详情)
+  - [5.8 商家查询订单详情](#58-商家查询订单详情)
+  - [5.9 获取用户各状态订单数量](#59-获取用户各状态订单数量)
   - [5.11 取消订单](#511-取消订单)
   - [5.12 支付订单](#512-支付订单)
   - [5.13 批量付款](#513-批量付款)
@@ -89,13 +88,16 @@
   - [8.4 上架商品](#84-上架商品)
   - [8.5 下架商品](#85-下架商品)
   - [8.6 恢复商品](#86-恢复商品)
-  - [8.7 获取商品详情](#87-获取商品详情)
-  - [8.8 获取商品列表](#88-获取商品列表)
-  - [8.9 根据商家ID获取商品列表](#89-根据商家id获取商品列表)
-  - [8.10 根据商家ID分页获取商品列表](#810-根据商家id分页获取商品列表)
-  - [8.11 【运营管理员】分页获取全部商品列表](#811-运营管理员分页获取全部商品列表)
-  - [8.12 分页获取商品列表](#812-分页获取商品列表)
-  - [8.13 根据店铺ID分页查询 SPU 列表](#813-根据店铺id分页查询-spu-列表)
+  - [8.7 获取商品详情（公开）](#87-获取商品详情公开)
+  - [8.8 商家端获取商品管理详情](#88-商家端获取商品管理详情)
+  - [8.9 管理员端获取商品管理详情](#89-管理员端获取商品管理详情)
+  - [8.10 获取商品列表](#810-获取商品列表)
+  - [8.11 根据商家ID获取商品列表](#811-根据商家id获取商品列表)
+  - [8.12 根据商家ID分页获取商品列表](#812-根据商家id分页获取商品列表)
+  - [8.13 【超级管理员】分页获取全部商品列表](#813-超级管理员分页获取全部商品列表)
+  - [8.14 分页获取商品列表](#814-分页获取商品列表)
+  - [8.15 根据店铺ID分页查询 SPU 列表](#815-根据店铺id分页查询-spu-列表)
+  - [8.16 根据SPU ID获取基本属性及属性值](#816-根据spu-id获取基本属性及属性值)
 - [九、SKU模块 (Sku)](#九sku模块-sku)
   - [9.1 新增SKU](#91-新增sku)
   - [9.2 批量新增SKU](#92-批量新增sku)
@@ -112,7 +114,9 @@
   - [9.13 获取SPU最低价](#913-获取spu最低价)
   - [9.14 获取SPU总库存](#914-获取spu总库存)
   - [9.15 获取SKU列表（含属性）](#915-获取sku列表含属性)
-  - [9.16 获取SKU详情（含属性）](#916-获取sku详情含属性)
+  - [9.16 商家端获取SKU列表（含属性）](#916-商家端获取sku列表含属性)
+  - [9.17 管理员端获取SKU列表（含属性）](#917-管理员端获取sku列表含属性)
+  - [9.18 ~~获取SKU详情（含属性）~~（已废弃）](#918-获取sku详情含属性已废弃)
 - [十、品牌模块 (Brand)](#十品牌模块-brand)
   - [10.1 新增品牌](#101-新增品牌)
   - [10.2 更新品牌](#102-更新品牌)
@@ -138,9 +142,6 @@
   - [12.2 获取销售属性](#122-获取销售属性)
   - [12.3 获取基本属性](#123-获取基本属性)
   - [12.4 获取指定类型属性](#124-获取指定类型属性)
-  - [12.5 获取SPU基本属性](#125-获取spu基本属性)
-  - [12.6 获取SPU销售属性](#126-获取spu销售属性)
-  - [12.7 获取SPU所有属性](#127-获取spu所有属性)
 - [十三、商家SPU属性管理模块 (SpuAttr)](#十三商家spu属性管理模块-spuattr)
   - [13.1 绑定SPU基本属性](#131-绑定spu基本属性)
   - [13.2 批量绑定SPU基本属性](#132-批量绑定spu基本属性)
@@ -160,13 +161,13 @@
 - [十四、商家SKU属性管理模块 (SkuAttr)](#十四商家sku属性管理模块-skuattr)
   - [14.1 绑定SKU销售属性](#141-绑定sku销售属性)
   - [14.2 批量绑定SKU销售属性](#142-批量绑定sku销售属性)
-  - [14.3 更新SKU销售属性绑定](#143-更新sku销售属性绑定)
-  - [14.4 删除SKU销售属性绑定](#144-删除sku销售属性绑定)
-  - [14.5 删除SKU所有销售属性绑定](#145-删除sku所有销售属性绑定)
-  - [14.6 获取SKU销售属性列表](#146-获取sku销售属性列表)
-  - [14.7 获取SKU销售属性详情](#147-获取sku销售属性详情)
-  - [14.8 获取SKU可绑定的销售属性列表](#148-获取sku可绑定的销售属性列表)
-  - [14.9 校验SKU属性组合](#149-校验sku属性组合)
+  - [14.3 ~~更新SKU销售属性绑定~~（已废弃）](#143-更新sku销售属性绑定已废弃)
+  - [14.4 ~~删除SKU销售属性绑定~~（已废弃）](#144-删除sku销售属性绑定已废弃)
+  - [14.5 ~~删除SKU所有销售属性绑定~~（已废弃）](#145-删除sku所有销售属性绑定已废弃)
+  - [14.6 ~~获取SKU销售属性列表~~（已废弃）](#146-获取sku销售属性列表已废弃)
+  - [14.7 ~~获取SKU销售属性详情~~（已废弃）](#147-获取sku销售属性详情已废弃)
+  - [14.8 ~~获取SKU可绑定的销售属性列表~~（已废弃）](#148-获取sku可绑定的销售属性列表已废弃)
+  - [14.9 ~~校验SKU属性组合~~（已废弃）](#149-校验sku属性组合已废弃)
   - [14.10 创建SKU并绑定销售属性](#1410-创建sku并绑定销售属性)
   - [14.11 批量创建SKU并绑定销售属性（同SPU）](#1411-批量创建sku并绑定销售属性同spu)
   - [14.12 更新SKU基本信息（不修改销售属性）](#1412-更新sku基本信息不修改销售属性)
@@ -175,12 +176,13 @@
   - [15.1 新增店铺](#151-新增店铺)
   - [15.2 更新店铺信息](#152-更新店铺信息)
   - [15.3 获取店铺详情](#153-获取店铺详情)
-  - [15.4 获取当前用户的店铺](#154-获取当前用户的店铺)
-  - [15.5 分页获取公开店铺列表](#155-分页获取公开店铺列表)
-  - [15.6 管理员分页查询店铺列表](#156-管理员分页查询店铺列表)
-  - [15.7 更新店铺状态](#157-更新店铺状态)
-  - [15.8 提交开店申请](#158-提交开店申请)
-  - [15.9 查看开店申请状态](#159-查看开店申请状态)
+  - [15.4 管理员获取店铺详情](#154-管理员获取店铺详情)
+  - [15.5 获取当前用户的店铺](#155-获取当前用户的店铺)
+  - [15.6 分页获取公开店铺列表](#156-分页获取公开店铺列表)
+  - [15.7 管理员分页查询店铺列表](#157-管理员分页查询店铺列表)
+  - [15.8 更新店铺状态](#158-更新店铺状态)
+  - [15.9 提交开店申请](#159-提交开店申请)
+  - [15.10 查看开店申请状态](#1510-查看开店申请状态)
   - [15.10 重新提交开店申请](#1510-重新提交开店申请)
   - [15.11 管理员分页查询待审核列表](#1511-管理员分页查询待审核列表)
   - [15.12 管理员审核通过](#1512-管理员审核通过)
@@ -225,7 +227,11 @@
 - [二十一、用户管理模块 (UserManage)](#二十一用户管理模块-usermanage)
   - [21.1 将普通用户升级为商家](#211-将普通用户升级为商家)
   - [21.2 分页查询用户列表](#212-分页查询用户列表)
-  - [21.3 启用或禁用用户](#213-启用或禁用用户)
+  - [21.3 启用用户](#213-启用用户)
+  - [21.4 禁用用户](#214-禁用用户)
+- [二十二、管理员仪表盘模块 (AdminDashboard)](#二十二管理员仪表盘模块-admindashboard)
+  - [22.1 获取平台运营概览](#221-获取平台运营概览)
+  - [22.2 获取平台销售额统计](#222-获取平台销售额统计)
 
 ---
 
@@ -360,8 +366,8 @@
 **接口路径：** `/auth/admin/login`
 **HTTP方法：** POST
 **权限：** 公开
-**角色限制：** 仅允许拥有 `ADMIN` 或 `SUPER_ADMIN` 角色的账号登录
-**功能说明：** 运营管理员和超级管理员登录获取Token
+**角色限制：** 仅允许拥有 `SUPER_ADMIN` 角色的账号登录
+**功能说明：** 超级管理员登录获取Token
 
 #### 请求参数 (Request Body)
 
@@ -423,7 +429,7 @@
 | 验证码已过期，请重新获取 | 验证码已超过5分钟有效期 |
 | 验证码错误 | 输入的验证码与图片不匹配 |
 | 用户名或密码错误 | 登录凭证不正确 |
-| 该账号无管理员权限，请使用普通用户登录入口 | 账号未拥有 ADMIN 或 SUPER_ADMIN 角色 |
+| 该账号无管理员权限，请使用普通用户登录入口 | 账号未拥有 SUPER_ADMIN 角色 |
 
 ---
 
@@ -1225,7 +1231,6 @@
 | 参数名 | 类型 | 说明 | 示例 |
 |--------|------|------|------|
 | id | Long | 地址ID | `1` |
-| userId | Long | 用户ID | `1` |
 | receiverName | String | 收货人姓名 | `张三` |
 | receiverPhone | String | 收货人电话 | `13800138000` |
 | province | String | 省份 | `广东省` |
@@ -1233,7 +1238,7 @@
 | district | String | 区县 | `南山区` |
 | detailAddress | String | 详细地址 | `科技园路88号` |
 | zipCode | String | 邮编 | `518000` |
-| isDefault | Integer | 是否默认 | `1` |
+| isDefault | Integer | 是否默认：1-是 0-否 | `1` |
 
 #### 响应示例
 ```json
@@ -1242,7 +1247,6 @@
     "msg": "操作成功",
     "data": {
         "id": 1,
-        "userId": 1,
         "receiverName": "张三",
         "receiverPhone": "13800138000",
         "province": "广东省",
@@ -1281,9 +1285,19 @@
 
 #### 响应参数 (Response)
 
-| 参数名 | 类型 | 说明 |
-|--------|------|------|
-| List | Array | 地址列表 |
+`data` 数组中每个元素的结构：
+
+| 参数名 | 类型 | 说明 | 示例 |
+|--------|------|------|------|
+| id | Long | 地址ID | `1` |
+| receiverName | String | 收货人姓名 | `张三` |
+| receiverPhone | String | 收货人电话 | `13800138000` |
+| province | String | 省份 | `广东省` |
+| city | String | 城市 | `深圳市` |
+| district | String | 区县 | `南山区` |
+| detailAddress | String | 详细地址 | `科技园路88号` |
+| zipCode | String | 邮编 | `518000` |
+| isDefault | Integer | 是否默认：1-是 0-否 | `1` |
 
 #### 响应示例
 ```json
@@ -1299,6 +1313,7 @@
             "city": "深圳市",
             "district": "南山区",
             "detailAddress": "科技园路88号",
+            "zipCode": "518000",
             "isDefault": 1
         }
     ]
@@ -1314,6 +1329,20 @@
 **权限：** 需角色 USER (hasRole('USER'))
 **功能说明：** 获取当前用户的默认收货地址
 
+#### 响应参数 (Response)
+
+| 参数名 | 类型 | 说明 | 示例 |
+|--------|------|------|------|
+| id | Long | 地址ID | `1` |
+| receiverName | String | 收货人姓名 | `张三` |
+| receiverPhone | String | 收货人电话 | `13800138000` |
+| province | String | 省份 | `广东省` |
+| city | String | 城市 | `深圳市` |
+| district | String | 区县 | `南山区` |
+| detailAddress | String | 详细地址 | `科技园路88号` |
+| zipCode | String | 邮编 | `518000` |
+| isDefault | Integer | 是否默认：1-是 0-否 | `1` |
+
 #### 响应示例
 ```json
 {
@@ -1327,6 +1356,7 @@
         "city": "深圳市",
         "district": "南山区",
         "detailAddress": "科技园路88号",
+        "zipCode": "518000",
         "isDefault": 1
     }
 }
@@ -1791,7 +1821,7 @@
 > - **角色查询差异**：
 >   | 身份 | 过滤 is_deleted? | 接口路径 |
 >   |:-----|:-----------------|:---------|
->   | 普通用户 (USER) | ✅ 是，仅可见 `is_deleted=0` | `/order/list`, `/order/detail/{orderNo}` |
+> | 普通用户 (USER) | ✅ 是，仅可见 `is_deleted=0` | `/order/detail/{orderNo}` |
 >   | 商家 (SELLER) | ❌ 否，可见全部 | `/order/seller/list`, `/order/seller/detail/{orderNo}` |
 >   | 管理员 (ADMIN) | ❌ 否，可见全部 | `/order/admin/list`, `/order/admin/detail/{orderNo}` |
 > - 新增字段：`refund_reason`（退款原因）、`refund_amount`（退款金额）、`refund_from_status`（退款来源状态），与 `cancel_reason` 解耦
@@ -2053,57 +2083,6 @@
 
 ---
 
-### 5.4 获取订单列表
-
-**接口路径：** `/order/list`
-**HTTP方法：** GET
-**权限：** 需角色 USER (hasRole('USER'))
-**功能说明：** 分页获取当前用户的订单列表（仅限普通用户），自动过滤 `is_deleted=0` 的订单。
-
-#### 请求参数 (Query)
-
-| 参数名 | 类型 | 必填 | 说明 | 示例 |
-|--------|------|------|------|------|
-| status | Integer | 否 | 订单状态筛选 | `1` |
-| page | Integer | 否 | 页码（默认1） | `1` |
-| pageSize | Integer | 否 | 每页数量（默认10） | `10` |
-
-#### 响应参数 (Response)
-
-| 参数名 | 类型 | 说明 | 示例 |
-|--------|------|------|------|
-| list | Array | 订单列表 | |
-| page | Integer | 当前页码 | `1` |
-| pageSize | Integer | 每页数量 | `10` |
-| total | Integer | 总数量 | `50` |
-
-#### 响应示例
-```json
-{
-    "code": 200,
-    "msg": "操作成功",
-    "data": {
-        "list": [
-            {
-                "id": 1,
-                "orderNo": "ORD202605150001",
-                "totalAmount": 9998.00,
-                "payAmount": 9898.00,
-                "status": 2,
-                "statusDesc": "待发货",
-                "itemCount": 2,
-                "createdAt": "2026-05-15 10:00:00"
-            }
-        ],
-        "page": 1,
-        "pageSize": 10,
-        "total": 50
-    }
-}
-```
-
----
-
 ### 5.5 获取订单列表（带商品明细）
 
 **接口路径：** `/order/list-with-items`
@@ -2194,7 +2173,7 @@
 
 **接口路径：** `/order/seller/list`
 **HTTP方法：** GET
-**权限：** SELLER / STORE_ADMIN / ADMIN / SUPER_ADMIN
+**权限：** SELLER / STORE_ADMIN / SUPER_ADMIN
 **功能说明：** 商家分页查询名下店铺的订单（带商品明细），返回 `OrderListItemVo`。数据关联链路：orders → order_items → spu.seller_id。支持按状态、用户ID、订单号、支付/发货/收货时间等多条件筛选。
 
 #### 请求参数 (Query)
@@ -2299,12 +2278,12 @@
 
 ---
 
-### 5.7 管理员分页查询全部订单列表
+### 5.6 管理员分页查询全部订单列表
 
 **接口路径：** `/order/admin/list`
 **HTTP方法：** GET
-**权限：** 需角色 ADMIN 或 SUPER_ADMIN
-**功能说明：** 运营管理员/超级管理员分页查询平台所有订单，支持按状态、用户ID、订单号、支付时间、发货时间、收货时间等多条件筛选，按创建时间倒序排列。不过滤 `is_deleted`，管理员可查看所有订单（含用户已删除的）。
+**权限：** 需角色 SUPER_ADMIN
+**功能说明：** 超级管理员分页查询平台所有订单，支持按状态、用户ID、订单号、支付时间、发货时间、收货时间等多条件筛选，按创建时间倒序排列。不过滤 `is_deleted`，管理员可查看所有订单（含用户已删除的）。
 
 #### 请求参数
 
@@ -2328,6 +2307,38 @@ GET /order/admin/list?status=2&userId=1&orderNo=2026&page=1&pageSize=10
 GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:59:59&page=1&pageSize=10
 ```
 
+#### 响应参数 (Response)
+
+`data.list[]` 数组中每个元素的结构：
+
+| 参数名 | 类型 | 说明 | 示例 |
+|--------|------|------|------|
+| id | Long | 订单ID | `1` |
+| orderNo | String | 订单号 | `20260515001` |
+| userId | Long | 用户ID | `1` |
+| status | Integer | 订单状态：1-待付款 2-待发货 3-待收货 4-已完成 5-已取消 6-退款中 7-已退款 8-已拒绝 | `2` |
+| payStatus | Integer | 支付状态：0-未支付 1-已支付 2-已退款 | `1` |
+| totalAmount | BigDecimal | 订单总金额 | `9998.00` |
+| payAmount | BigDecimal | 实付金额 | `9898.00` |
+| discountAmount | BigDecimal | 优惠金额 | `100.00` |
+| freightAmount | BigDecimal | 运费 | `0.00` |
+| payTime | String | 支付时间 (yyyy-MM-dd HH:mm:ss) | `2026-05-15 10:00:00` |
+| expireTime | String | 支付截止时间 | `2026-05-16 10:00:00` |
+| receiverName | String | 收货人 | `张三` |
+| receiverPhone | String | 收货人电话 | `13800138000` |
+| receiverAddress | String | 收货地址 | `北京市朝阳区` |
+| remark | String | 备注 | `请尽快发货` |
+| createdAt | String | 下单时间 (yyyy-MM-dd HH:mm:ss) | `2026-05-15 10:00:00` |
+| cancelReason | String | 取消原因 | `商品缺货` |
+| refundAmount | BigDecimal | 退款金额 | `9898.00` |
+| refundReason | String | 退款原因 | `商品质量问题` |
+| rejectReason | String | 拒绝原因 | `证据不足` |
+| rejectedAt | String | 拒绝时间 | `2026-05-16 10:00:00` |
+| deliveryCompany | String | 物流公司 | `顺丰快递` |
+| deliveryNo | String | 物流单号 | `SF123456789` |
+| deliveryTime | String | 发货时间 | `2026-05-16 10:00:00` |
+| receiveTime | String | 收货时间 | `2026-05-18 10:00:00` |
+
 #### 成功响应示例
 ```json
 {
@@ -2339,14 +2350,28 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
                 "id": 1,
                 "orderNo": "20260515001",
                 "userId": 1,
-                "totalAmount": 9998.00,
-                "payAmount": 9898.00,
                 "status": 2,
                 "payStatus": 1,
+                "totalAmount": 9998.00,
+                "payAmount": 9898.00,
+                "discountAmount": 100.00,
+                "freightAmount": 0.00,
+                "payTime": "2026-05-15 10:00:00",
+                "expireTime": "2026-05-16 10:00:00",
                 "receiverName": "张三",
                 "receiverPhone": "13800138000",
                 "receiverAddress": "北京市朝阳区",
-                "createdAt": "2026-05-15 10:00:00"
+                "remark": "请尽快发货",
+                "createdAt": "2026-05-15 10:00:00",
+                "cancelReason": null,
+                "refundAmount": null,
+                "refundReason": null,
+                "rejectReason": null,
+                "rejectedAt": null,
+                "deliveryCompany": null,
+                "deliveryNo": null,
+                "deliveryTime": null,
+                "receiveTime": null
             }
         ],
         "page": 1,
@@ -2369,7 +2394,7 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
 
 | 错误信息 | 说明 |
 |---------|------|
-| 权限不足 | 当前用户不具备 ADMIN 或 SUPER_ADMIN 角色 |
+| 权限不足 | 当前用户不具备 SUPER_ADMIN 角色 |
 
 ---
 
@@ -2377,7 +2402,7 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
 
 **接口路径：** `/order/admin/detail/{orderNo}`
 **HTTP方法：** GET
-**权限：** 需角色 ADMIN 或 SUPER_ADMIN
+**权限：** 需角色 SUPER_ADMIN
 **功能说明：** 管理员根据订单号查询订单详情（含订单项和发货记录）。不过滤 `is_deleted`，管理员可查看所有订单，包括用户已删除的订单。
 
 #### 路径参数
@@ -2459,7 +2484,7 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
 | 错误信息 | 说明 |
 |---------|------|
 | 订单不存在 | 订单号无效或不存在 |
-| 权限不足 | 当前用户不具备 ADMIN 或 SUPER_ADMIN 角色 |
+| 权限不足 | 当前用户不具备 SUPER_ADMIN 角色 |
 
 ---
 
@@ -2754,7 +2779,7 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
 
 **接口路径：** `/order/deliver/{orderId}`
 **HTTP方法：** PUT
-**权限：** hasAuthority('order:deliver') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER')
+**权限：** hasAuthority('order:deliver') or hasRole('SUPER_ADMIN') or hasRole('SELLER')
 **功能说明：** 订单发货（创建发货记录）
 
 #### 路径参数
@@ -2970,7 +2995,7 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
 
 **接口路径：** `/order/admin/cancel/{orderId}`
 **HTTP方法：** PUT
-**权限：** 需角色 ADMIN 或 SUPER_ADMIN
+**权限：** 需角色 SUPER_ADMIN
 **功能说明：** 管理员强制取消订单（可取消任意状态的订单），释放库存并记录取消原因为运营操作。
 
 #### 路径参数
@@ -3008,7 +3033,7 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
 | 错误信息 | 说明 |
 |---------|------|
 | 订单不存在 | 订单ID无效或不存在 |
-| 权限不足 | 当前用户不具备 ADMIN 或 SUPER_ADMIN 角色 |
+| 权限不足 | 当前用户不具备 SUPER_ADMIN 角色 |
 
 ---
 
@@ -3016,7 +3041,7 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
 
 **接口路径：** `/order/admin/adjust/{orderId}`
 **HTTP方法：** PUT
-**权限：** 需角色 ADMIN 或 SUPER_ADMIN
+**权限：** 需角色 SUPER_ADMIN
 **功能说明：** 调整订单金额（仅限待付款订单），可修改运费、优惠金额和实付金额。
 
 #### 路径参数
@@ -3057,7 +3082,7 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
 |---------|------|
 | 实付金额不能为空 | 未提供 payAmount 参数 |
 | 金额调整失败，仅限待付款订单 | 当前订单状态不允许调整金额 |
-| 权限不足 | 当前用户不具备 ADMIN 或 SUPER_ADMIN 角色 |
+| 权限不足 | 当前用户不具备 SUPER_ADMIN 角色 |
 
 ---
 
@@ -3153,7 +3178,7 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
 
 **接口路径：** `/order/refund/approve/{orderId}`
 **HTTP方法：** PUT
-**权限：** 需角色 SELLER / STORE_ADMIN / ADMIN / SUPER_ADMIN
+**权限：** 需角色 SELLER / STORE_ADMIN / SUPER_ADMIN
 **功能说明：** 管理员审核通过退款申请。将订单状态 `status` 置为 7（已退款），支付状态 `pay_status` 置为 2（已退款），记录操作人ID到 `refund_operator_id`，同时回滚库存。
 
 #### 路径参数
@@ -3192,7 +3217,7 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
 
 **接口路径：** `/order/refund/reject/{orderId}`
 **HTTP方法：** PUT
-**权限：** 需角色 SELLER / STORE_ADMIN / ADMIN / SUPER_ADMIN
+**权限：** 需角色 SELLER / STORE_ADMIN / SUPER_ADMIN
 **功能说明：** 管理员拒接退款申请。将订单状态 `status` 置为 8（已拒绝），记录拒绝原因到 `reject_reason`、拒绝时间到 `rejected_at`、操作人ID到 `refund_operator_id`。
 
 #### 路径参数
@@ -3334,7 +3359,7 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
 
 **接口路径：** `/delivery/create`
 **HTTP方法：** POST
-**权限：** hasAuthority('order:delivery:add') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER')
+**权限：** hasAuthority('order:delivery:add') or hasRole('SUPER_ADMIN') or hasRole('SELLER')
 **功能说明：** 创建发货记录（支持一个订单多次发货）
 
 #### 请求参数 (Request Body)
@@ -3397,7 +3422,7 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
 
 **接口路径：** `/delivery/sign`
 **HTTP方法：** PUT
-**权限：** hasAuthority('order:delivery:edit') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER')
+**权限：** hasAuthority('order:delivery:edit') or hasRole('SUPER_ADMIN') or hasRole('SELLER')
 **功能说明：** 标记发货记录为已签收
 
 #### 请求参数 (Request Body)
@@ -3437,7 +3462,7 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
 
 **接口路径：** `/delivery/exception`
 **HTTP方法：** PUT
-**权限：** hasAuthority('order:delivery:edit') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER')
+**权限：** hasAuthority('order:delivery:edit') or hasRole('SUPER_ADMIN') or hasRole('SELLER')
 **功能说明：** 标记发货记录为物流异常
 
 #### 请求参数 (Request Body)
@@ -3589,7 +3614,7 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
 
 **接口路径：** `/delivery/status/{deliveryStatus}`
 **HTTP方法：** GET
-**权限：** hasAuthority('order:delivery:query') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER')
+**权限：** hasAuthority('order:delivery:query') or hasRole('SUPER_ADMIN') or hasRole('SELLER')
 **功能说明：** 根据发货状态查询发货记录
 
 #### 路径参数
@@ -3666,7 +3691,10 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
 |--------|------|------|------|
 | List | Array | 物流公司列表 | |
 
-#### LogisticsCompany 实体返回字段
+> **公开接口返回 `LogisticsCompanyVo`，仅包含以下字段：**
+> `id`, `name`, `code`, `logo`, `phone`
+>
+> **排除的字段：** `website`(官网), `sort`(排序), `status`(状态), `createdAt`(创建时间), `updatedAt`(更新时间)
 
 | 参数名 | 类型 | 说明 | 示例 |
 |--------|------|------|------|
@@ -3674,9 +3702,7 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
 | name | String | 物流公司名称 | `顺丰速运` |
 | code | String | 物流公司代码 | `SF` |
 | logo | String | Logo URL | `/uploads/logistics/sf.png` |
-| website | String | 官网 | `https://www.sf-express.com` |
 | phone | String | 客服电话 | `95338` |
-| sort | Integer | 排序 | `1` |
 
 #### 响应示例
 ```json
@@ -3689,9 +3715,7 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
             "name": "顺丰速运",
             "code": "SF",
             "logo": "/uploads/logistics/sf.png",
-            "website": "https://www.sf-express.com",
-            "phone": "95338",
-            "sort": 1
+            "phone": "95338"
         }
     ]
 }
@@ -3705,6 +3729,8 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
 **HTTP方法：** GET
 **权限：** 公开
 **功能说明：** 根据ID获取物流公司详情
+
+> 返回 `LogisticsCompanyVo`，字段同 [7.1](#71-获取启用的物流公司列表)
 
 #### 路径参数
 
@@ -3722,10 +3748,7 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
         "name": "顺丰速运",
         "code": "SF",
         "logo": "/uploads/logistics/sf.png",
-        "website": "https://www.sf-express.com",
-        "phone": "95338",
-        "sort": 1,
-        "status": 1
+        "phone": "95338"
     }
 }
 ```
@@ -3754,6 +3777,8 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
 **权限：** 公开
 **功能说明：** 根据物流公司代码获取物流公司
 
+> 返回 `LogisticsCompanyVo`，字段同 [7.1](#71-获取启用的物流公司列表)
+
 #### 路径参数
 
 | 参数名 | 类型 | 必填 | 说明 | 示例 |
@@ -3768,7 +3793,9 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
     "data": {
         "id": 1,
         "name": "顺丰速运",
-        "code": "SF"
+        "code": "SF",
+        "logo": "/uploads/logistics/sf.png",
+        "phone": "95338"
     }
 }
 ```
@@ -3794,7 +3821,7 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
 
 **接口路径：** `/logistics/page`
 **HTTP方法：** GET
-**权限：** hasAuthority('system:logistics:query') or hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**权限：** hasAuthority('system:logistics:query') or hasRole('SUPER_ADMIN')
 **功能说明：** 分页获取物流公司列表（管理后台用）
 
 #### 请求参数 (Query)
@@ -3810,10 +3837,13 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
 
 | 参数名 | 类型 | 说明 | 示例 |
 |--------|------|------|------|
-| list | Array | 物流公司列表 | |
+| list | Array | 物流公司列表（管理VO，含完整管理字段） | |
 | page | Integer | 当前页码 | `1` |
 | pageSize | Integer | 每页数量 | `10` |
 | total | Integer | 总数量 | `10` |
+
+> **管理接口返回 `LogisticsCompanyAdminVo`，包含以下完整字段：**
+> `id`, `name`, `code`, `logo`, `website`, `phone`, `sort`, `status`, `createdAt`, `updatedAt`
 
 #### 响应示例
 ```json
@@ -3826,8 +3856,13 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
                 "id": 1,
                 "name": "顺丰速运",
                 "code": "SF",
+                "logo": "/uploads/logistics/sf.png",
+                "website": "https://www.sf-express.com",
+                "phone": "95338",
+                "sort": 1,
                 "status": 1,
-                "sort": 1
+                "createdAt": "2026-01-01T00:00:00",
+                "updatedAt": "2026-06-01T00:00:00"
             }
         ],
         "page": 1,
@@ -3843,7 +3878,7 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
 
 **接口路径：** `/logistics/add`
 **HTTP方法：** POST
-**权限：** hasAuthority('system:logistics:add') or hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**权限：** hasAuthority('system:logistics:add') or hasRole('SUPER_ADMIN')
 **功能说明：** 新增物流公司
 
 #### 请求参数 (Request Body)
@@ -3897,7 +3932,7 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
 
 **接口路径：** `/logistics/update`
 **HTTP方法：** PUT
-**权限：** hasAuthority('system:logistics:edit') or hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**权限：** hasAuthority('system:logistics:edit') or hasRole('SUPER_ADMIN')
 **功能说明：** 更新物流公司信息
 
 #### 请求参数 (Request Body)
@@ -3943,7 +3978,7 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
 
 **接口路径：** `/logistics/delete/{id}`
 **HTTP方法：** DELETE
-**权限：** hasAuthority('system:logistics:delete') or hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**权限：** hasAuthority('system:logistics:delete') or hasRole('SUPER_ADMIN')
 **功能说明：** 删除物流公司
 
 #### 路径参数
@@ -3982,7 +4017,7 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
 
 **接口路径：** `/logistics/status/{id}`
 **HTTP方法：** PUT
-**权限：** hasAuthority('system:logistics:edit') or hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**权限：** hasAuthority('system:logistics:edit') or hasRole('SUPER_ADMIN')
 **功能说明：** 设置物流公司的启用/禁用状态
 
 #### 路径参数
@@ -4036,7 +4071,7 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
 
 **接口路径：** `/spu/add`
 **HTTP方法：** POST
-**权限：** hasAuthority('product:add') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER')
+**权限：** hasAuthority('product:add') or hasRole('SUPER_ADMIN') or hasRole('SELLER')
 **Content-Type：** multipart/form-data
 **功能说明：** 新增商品（店铺ID由系统根据当前登录商家自动获取，无需前端传入；自动绑定当前商家ID，**强制设为下架状态，需添加启用SKU后方可上架**）
 
@@ -4112,7 +4147,7 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
 
 **接口路径：** `/spu/update`
 **HTTP方法：** PUT
-**权限：** hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER')
+**权限：** hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('SELLER')
 **Content-Type：** multipart/form-data
 **功能说明：** 更新商品信息（商家只能修改自己的商品）
 
@@ -4185,7 +4220,7 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
 
 **接口路径：** `/spu/delete/{id}`
 **HTTP方法：** DELETE
-**权限：** hasAuthority('product:delete') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')
+**权限：** hasAuthority('product:delete') or hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')
 **功能说明：** 逻辑删除商品（设置 is_deleted=1，商品进入回收站，图片保留以支持恢复）
 
 #### 路径参数
@@ -4227,7 +4262,7 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
 
 **接口路径：** `/spu/on-shelf/{id}`
 **HTTP方法：** PUT
-**权限：** hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')
+**权限：** hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')
 **功能说明：** 手动上架商品（设置 status=1）。**上架前会校验SPU下是否存在启用状态的SKU，不存在则返回错误。** 注意：SPU状态已由SKU增删改自动管理，一般情况下无需手动调用此接口。
 
 **错误响应：**
@@ -4276,7 +4311,7 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
 
 **接口路径：** `/spu/off-shelf/{id}`
 **HTTP方法：** PUT
-**权限：** hasAuthority('product:offShelf') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')
+**权限：** hasAuthority('product:offShelf') or hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')
 **功能说明：** 手动下架商品（设置 status=0）。注意：删除/禁用所有启用SKU时，SPU会自动下架。
 
 #### 路径参数
@@ -4318,7 +4353,7 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
 
 **接口路径：** `/spu/restore/{id}`
 **HTTP方法：** PUT
-**权限：** hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')
+**权限：** hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')
 **功能说明：** 恢复被逻辑删除的商品（设置 is_deleted=0，从回收站恢复到之前状态）
 
 #### 路径参数
@@ -4355,12 +4390,12 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
 
 ---
 
-### 8.7 获取商品详情
+### 8.7 获取商品详情（公开）
 
 **接口路径：** `/spu/detail/{id}`
 **HTTP方法：** GET
 **权限：** 公开
-**功能说明：** 获取商品详情（含商家信息）。**上架商品（status=1）公开可见；下架商品仅商品所属商家、管理员或超级管理员可查看。**
+**功能说明：** 获取商品详情，**仅返回上架商品（status=1）**。返回 `SpuVO` 字段 + `sellerId`、`sellerUsername`、`sellerAvatar`。
 
 #### 路径参数
 
@@ -4372,22 +4407,92 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
 
 | 参数名 | 类型 | 说明 | 示例 |
 |--------|------|------|------|
-| spu | Object | 商品SPU信息 | 见下方spu对象 |
-| spu.id | Long | 商品ID | `1` |
-| spu.sellerId | Long | 商家ID | `123` |
-| spu.name | String | 商品名称 | `小米手机14` |
-| spu.categoryId | Long | 分类ID | `1` |
-| spu.brandId | Long | 品牌ID | `1` |
-| spu.description | String | 商品描述 | `高性能旗舰手机` |
-| spu.mainImage | String | 主图 | `/uploads/product/xm14.jpg` |
-| spu.images | String | 图片集JSON | `["/uploads/xm14_1.jpg"]` |
-| spu.unit | String | 单位 | `台` |
-| spu.keywords | String | 关键词 | `手机,小米,旗舰` |
-| spu.sales | Integer | 销量 | `1000` |
-| spu.minPrice | BigDecimal | 最低SKU售价 | `3999.00` |
-| spu.status | Integer | 状态 | `1` |
-| spu.createdAt | DateTime | 创建时间 | `2026-05-15 10:00:00` |
-| sellerId | Long | 商家ID（冗余字段） | `123` |
+| id | Long | 商品ID | `1` |
+| name | String | 商品名称 | `小米手机14` |
+| categoryId | Long | 分类ID | `1` |
+| categoryName | String | 分类名称 | `手机` |
+| brandId | Long | 品牌ID | `1` |
+| brandName | String | 品牌名称 | `小米` |
+| description | String | 商品描述 | `高性能旗舰手机` |
+| mainImage | String | 主图 | `/uploads/product/xm14.jpg` |
+| images | String | 图片集JSON | `["/uploads/xm14_1.jpg"]` |
+| unit | String | 单位 | `台` |
+| keywords | String | 关键词 | `手机,小米,旗舰` |
+| sales | Integer | 销量 | `1000` |
+| minPrice | BigDecimal | 最低SKU售价 | `3999.00` |
+| sellerId | Long | 商家ID | `123` |
+| sellerUsername | String | 商家用户名 | `seller01` |
+| sellerAvatar | String | 商家头像 | `/uploads/avatars/seller.jpg` |
+
+#### 响应示例
+```json
+{
+    "code": 200,
+    "msg": "操作成功",
+    "data": {
+        "id": 1,
+        "name": "小米手机14",
+        "categoryId": 1,
+        "categoryName": "手机",
+        "brandId": 1,
+        "brandName": "小米",
+        "description": "高性能旗舰手机",
+        "mainImage": "/uploads/product/xm14.jpg",
+        "images": "[\"/uploads/xm14_1.jpg\",\"2026/05/15/b.jpg\"]",
+        "unit": "台",
+        "keywords": "手机,小米,旗舰",
+        "sales": 1000,
+        "minPrice": 3999.00,
+        "sellerId": 123,
+        "sellerUsername": "seller01",
+        "sellerAvatar": "/uploads/avatars/seller.jpg"
+    }
+}
+```
+
+---
+
+### 8.8 商家端获取商品管理详情
+
+**接口路径：** `/spu/manage-detail/seller/{id}`
+**HTTP方法：** GET
+**权限：** `SELLER` / `STORE_ADMIN`
+**功能说明：** 商家获取自己的商品管理详情，**不限上下架状态**。返回 `SpuSellerVO` 字段 + `sellerUsername`、`sellerAvatar`、`sellerRealName`、`sellerPhone`。
+
+#### 路径参数
+
+| 参数名 | 类型 | 必填 | 说明 | 示例 |
+|--------|------|------|------|------|
+| id | Long | 是 | 商品ID | `1` |
+
+#### 请求头 (Headers)
+
+| 参数名 | 类型 | 必填 | 说明 | 示例 |
+|--------|------|------|------|------|
+| Authorization | String | 是 | Bearer Token | `Bearer eyJhbGciOiJIUzI1NiJ9...` |
+
+#### 响应参数 (Response)
+
+| 参数名 | 类型 | 说明 | 示例 |
+|--------|------|------|------|
+| id | Long | 商品ID | `1` |
+| name | String | 商品名称 | `小米手机14` |
+| categoryId | Long | 分类ID | `1` |
+| categoryName | String | 分类名称 | `手机` |
+| brandId | Long | 品牌ID | `1` |
+| brandName | String | 品牌名称 | `小米` |
+| description | String | 商品描述 | `高性能旗舰手机` |
+| mainImage | String | 主图 | `/uploads/product/xm14.jpg` |
+| images | String | 图片集JSON | `["/uploads/xm14_1.jpg"]` |
+| unit | String | 单位 | `台` |
+| keywords | String | 关键词 | `手机,小米,旗舰` |
+| sales | Integer | 销量 | `1000` |
+| minPrice | BigDecimal | 最低SKU售价 | `3999.00` |
+| sellerId | Long | 商家ID | `123` |
+| storeId | Long | 店铺ID | `1` |
+| status | Integer | 状态（0-下架, 1-上架） | `1` |
+| createdAt | DateTime | 创建时间 | `2026-05-15 10:00:00` |
+| updatedAt | DateTime | 更新时间 | `2026-06-18 12:00:00` |
 | sellerUsername | String | 商家用户名 | `seller01` |
 | sellerAvatar | String | 商家头像 | `/uploads/avatars/seller.jpg` |
 | sellerRealName | String | 商家真实姓名 | `张三` |
@@ -4399,23 +4504,24 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
     "code": 200,
     "msg": "操作成功",
     "data": {
-        "spu": {
-            "id": 1,
-            "sellerId": 123,
-            "name": "小米手机14",
-            "categoryId": 1,
-            "brandId": 1,
-            "description": "高性能旗舰手机",
-            "mainImage": "/uploads/product/xm14.jpg",
-            "images": "[\"/uploads/xm14_1.jpg\",\"2026/05/15/b.jpg\"]",
-            "unit": "台",
-            "keywords": "手机,小米,旗舰",
-            "sales": 1000,
-            "minPrice": 3999.00,
-            "status": 1,
-            "createdAt": "2026-05-15 10:00:00"
-        },
+        "id": 1,
+        "name": "小米手机14",
+        "categoryId": 1,
+        "categoryName": "手机",
+        "brandId": 1,
+        "brandName": "小米",
+        "description": "高性能旗舰手机",
+        "mainImage": "/uploads/product/xm14.jpg",
+        "images": "[\"/uploads/xm14_1.jpg\",\"2026/05/15/b.jpg\"]",
+        "unit": "台",
+        "keywords": "手机,小米,旗舰",
+        "sales": 1000,
+        "minPrice": 3999.00,
         "sellerId": 123,
+        "storeId": 1,
+        "status": 1,
+        "createdAt": "2026-05-15 10:00:00",
+        "updatedAt": "2026-06-18 12:00:00",
         "sellerUsername": "seller01",
         "sellerAvatar": "/uploads/avatars/seller.jpg",
         "sellerRealName": "张三",
@@ -4424,9 +4530,108 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
 }
 ```
 
+#### 错误响应
+
+| HTTP状态码 | 错误信息 | 说明 |
+|-----------|---------|------|
+| 401 | 未登录/登录已过期 | 未携带 Token 或 Token 无效 |
+| 403 | 无权访问 | 当前用户角色无权访问（非商家） |
+| 200 | 无权查看此商品 | 已登录但非商品所属商家 |
+| 200 | 商品不存在 | 指定ID的商品未找到 |
+
 ---
 
-### 8.8 获取商品列表
+### 8.9 管理员端获取商品管理详情
+
+**接口路径：** `/spu/manage-detail/admin/{id}`
+**HTTP方法：** GET
+**权限：** `SUPER_ADMIN`
+**功能说明：** 管理员获取任意商品的管理详情，**不限上下架状态**。返回 `SpuAdminVO` 字段 + `sellerUsername`、`sellerAvatar`、`sellerRealName`、`sellerPhone`。
+
+#### 路径参数
+
+| 参数名 | 类型 | 必填 | 说明 | 示例 |
+|--------|------|------|------|------|
+| id | Long | 是 | 商品ID | `1` |
+
+#### 请求头 (Headers)
+
+| 参数名 | 类型 | 必填 | 说明 | 示例 |
+|--------|------|------|------|------|
+| Authorization | String | 是 | Bearer Token | `Bearer eyJhbGciOiJIUzI1NiJ9...` |
+
+#### 响应参数 (Response)
+
+| 参数名 | 类型 | 说明 | 示例 |
+|--------|------|------|------|
+| id | Long | 商品ID | `1` |
+| name | String | 商品名称 | `小米手机14` |
+| categoryId | Long | 分类ID | `1` |
+| categoryName | String | 分类名称 | `手机` |
+| brandId | Long | 品牌ID | `1` |
+| brandName | String | 品牌名称 | `小米` |
+| description | String | 商品描述 | `高性能旗舰手机` |
+| mainImage | String | 主图 | `/uploads/product/xm14.jpg` |
+| images | String | 图片集JSON | `["/uploads/xm14_1.jpg"]` |
+| unit | String | 单位 | `台` |
+| keywords | String | 关键词 | `手机,小米,旗舰` |
+| sales | Integer | 销量 | `1000` |
+| minPrice | BigDecimal | 最低SKU售价 | `3999.00` |
+| sellerId | Long | 商家ID | `123` |
+| storeId | Long | 店铺ID | `1` |
+| status | Integer | 状态（0-下架, 1-上架） | `1` |
+| isDeleted | Integer | 逻辑删除（0-未删除, 1-已删除） | `0` |
+| createdAt | DateTime | 创建时间 | `2026-05-15 10:00:00` |
+| updatedAt | DateTime | 更新时间 | `2026-06-18 12:00:00` |
+| sellerUsername | String | 商家用户名 | `seller01` |
+| sellerAvatar | String | 商家头像 | `/uploads/avatars/seller.jpg` |
+| sellerRealName | String | 商家真实姓名 | `张三` |
+| sellerPhone | String | 商家手机号 | `13800138001` |
+
+#### 响应示例
+```json
+{
+    "code": 200,
+    "msg": "操作成功",
+    "data": {
+        "id": 1,
+        "name": "小米手机14",
+        "categoryId": 1,
+        "categoryName": "手机",
+        "brandId": 1,
+        "brandName": "小米",
+        "description": "高性能旗舰手机",
+        "mainImage": "/uploads/product/xm14.jpg",
+        "images": "[\"/uploads/xm14_1.jpg\",\"2026/05/15/b.jpg\"]",
+        "unit": "台",
+        "keywords": "手机,小米,旗舰",
+        "sales": 1000,
+        "minPrice": 3999.00,
+        "sellerId": 123,
+        "storeId": 1,
+        "status": 1,
+        "isDeleted": 0,
+        "createdAt": "2026-05-15 10:00:00",
+        "updatedAt": "2026-06-18 12:00:00",
+        "sellerUsername": "seller01",
+        "sellerAvatar": "/uploads/avatars/seller.jpg",
+        "sellerRealName": "张三",
+        "sellerPhone": "13800138001"
+    }
+}
+```
+
+#### 错误响应
+
+| HTTP状态码 | 错误信息 | 说明 |
+|-----------|---------|------|
+| 401 | 未登录/登录已过期 | 未携带 Token 或 Token 无效 |
+| 403 | 无权访问 | 当前用户角色无权访问（非管理员） |
+| 200 | 商品不存在 | 指定ID的商品未找到 |
+
+---
+
+### 8.10 获取商品列表
 
 **接口路径：** `/spu/list`
 **HTTP方法：** GET
@@ -4462,11 +4667,11 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
 
 ---
 
-### 8.9 根据商家ID获取商品列表
+### 8.11 根据商家ID获取商品列表
 
 **接口路径：** `/spu/list-by-seller/{sellerId}`
 **HTTP方法：** GET
-**权限：** hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN')
+**权限：** hasRole('SELLER') or hasRole('SUPER_ADMIN')
 **功能说明：** 根据商家ID获取商品列表（不分页），仅限商家及以上角色访问
 
 #### 路径参数
@@ -4497,11 +4702,11 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
 
 ---
 
-### 8.10 根据商家ID分页获取商品列表
+### 8.12 根据商家ID分页获取商品列表
 
 **接口路径：** `/spu/page-by-seller/{sellerId}`
 **HTTP方法：** GET
-**权限：** hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')
+**权限：** hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')
 **功能说明：** 根据商家ID分页获取商品列表，支持按状态筛选和商品名称搜索，仅限商家及以上角色访问
 
 #### 路径参数
@@ -4594,12 +4799,12 @@ list 数组内每个元素的字段：
 
 ---
 
-### 8.11 【运营管理员】分页获取全部商品列表
+### 8.13 【超级管理员】分页获取全部商品列表
 
 **接口路径：** `/spu/page-all`
 **HTTP方法：** GET
-**权限：** hasRole('ADMIN') or hasRole('SUPER_ADMIN')
-**功能说明：** 运营管理员分页获取全平台全部商品（含上架和下架），不限商家，支持按状态筛选和商品名称搜索
+**权限：** hasRole('SUPER_ADMIN')
+**功能说明：** 超级管理员分页获取全平台全部商品（含上架和下架），不限商家，支持按状态筛选和商品名称搜索
 
 #### 请求参数 (Query)
 
@@ -4683,7 +4888,7 @@ list 数组内每个元素的字段：
 
 ---
 
-### 8.12 分页获取商品列表
+### 8.14 分页获取商品列表
 
 **接口路径：** `/spu/page`
 **HTTP方法：** GET
@@ -4736,7 +4941,7 @@ list 数组内每个元素的字段：
 
 ---
 
-### 8.13 根据店铺ID分页查询 SPU 列表
+### 8.15 根据店铺ID分页查询 SPU 列表
 
 **接口路径：** `/spu/by-store/{storeId}/page`
 **HTTP方法：** GET
@@ -4766,21 +4971,20 @@ list 数组内每个元素的字段：
 
 | 参数名 | 类型 | 说明 |
 |--------|------|------|
-| list | Array | SPU 列表 |
+| list | Array | SPU 列表（SpuVO） |
 | ├ id | Long | 商品SPU ID |
 | ├ name | String | 商品名称 |
 | ├ categoryId | Long | 分类ID |
+| ├ categoryName | String | 分类名称（回填） |
 | ├ brandId | Long | 品牌ID |
-| ├ storeId | Long | 店铺ID |
+| ├ brandName | String | 品牌名称（回填） |
 | ├ description | String | 商品描述 |
 | ├ mainImage | String | 主图路径 |
+| ├ images | String | 图片集JSON |
 | ├ unit | String | 单位 |
+| ├ keywords | String | 关键词 |
 | ├ sales | Integer | 销量 |
 | ├ minPrice | BigDecimal | 最低SKU售价 |
-| ├ status | Integer | 状态（始终为1，仅返回上架商品） |
-| ├ createdAt | DateTime | 创建时间 |
-| ├ categoryName | String | 分类名称（回填） |
-| ├ brandName | String | 品牌名称（回填） |
 | page | Integer | 当前页码 |
 | pageSize | Integer | 每页数量 |
 | total | Integer | 总数量 |
@@ -4797,17 +5001,16 @@ list 数组内每个元素的字段：
                 "id": 1,
                 "name": "小米14手机",
                 "categoryId": 10,
+                "categoryName": "手机",
                 "brandId": 5,
-                "storeId": 1,
+                "brandName": "小米",
                 "description": "小米最新旗舰手机",
                 "mainImage": "2026/06/10/uuid_xiaomi14.jpg",
+                "images": "[\"2026/06/10/uuid_xiaomi14_1.jpg\"]",
                 "unit": "台",
+                "keywords": "手机,小米,旗舰",
                 "sales": 1000,
-                "minPrice": 3999.00,
-                "status": 1,
-                "categoryName": "手机",
-                "brandName": "小米",
-                "createdAt": "2026-06-01 10:00:00"
+                "minPrice": 3999.00
             }
         ],
         "page": 1,
@@ -4815,6 +5018,48 @@ list 数组内每个元素的字段：
         "total": 50,
         "storeId": 1
     }
+}
+```
+
+---
+
+### 8.16 根据SPU ID获取基本属性及属性值
+
+**接口路径：** `/spu/{spuId}/basic-attributes`
+**HTTP方法：** GET
+**权限：** 公开
+**功能说明：** 根据SPU ID获取该SPU已选的基本属性及其值。手动输入值优先于预定义值。
+
+> 返回 `SpuBasicAttrVo`，包含：`attrId`(属性ID)、`attrName`(属性名称)、`valueId`(属性值ID，手动输入时为null)、`value`(属性值内容)、`imageUrl`(属性值图片)
+
+#### 路径参数
+
+| 参数名 | 类型 | 必填 | 说明 | 示例 |
+|--------|------|------|------|------|
+| spuId | Long | 是 | SPU ID | `1` |
+
+#### 响应示例
+
+```json
+{
+    "code": 200,
+    "msg": "操作成功",
+    "data": [
+        {
+            "attrId": 6,
+            "attrName": "屏幕尺寸",
+            "valueId": 11,
+            "value": "6.73英寸",
+            "imageUrl": null
+        },
+        {
+            "attrId": 7,
+            "attrName": "电池容量",
+            "valueId": null,
+            "value": "5000mAh",
+            "imageUrl": null
+        }
+    ]
 }
 ```
 
@@ -4829,121 +5074,13 @@ list 数组内每个元素的字段：
 > | `frozenStock` | 冻结库存（已下单未支付） |
 > | 可售库存 | `stock - frozenStock` |
 
-### 9.1 新增SKU
-
-**接口路径：** `/sku/add`
-**HTTP方法：** POST
-**权限：** hasAuthority('product:add') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER')
-**Content-Type：** multipart/form-data
-**功能说明：** 新增SKU。**同时会自动更新SPU的最低售价(minPrice)和上架状态（新建启用SKU会将SPU自动上架）。**
-
-#### 请求参数 (Form Data)
-
-| 参数名 | 类型 | 必填 | 说明 | 示例 |
-|--------|------|------|------|------|
-| skuDto | String | 是 | SKU信息JSON字符串 | `{"spuId":1,"price":4999.00,...}` |
-| imageFile | File | 否 | SKU图片文件 | |
-
-#### skuDto 参数详情
-
-| 参数名 | 类型 | 必填 | 说明 | 示例 |
-|--------|------|------|------|------|
-| id | Long | 否 | SKU ID（修改时必填） | `1` |
-| spuId | Long | 是 | SPU ID | `1` |
-| price | BigDecimal | 是 | 价格 | `4999.00` |
-| marketPrice | BigDecimal | 否 | 市场价 | `5999.00` |
-| costPrice | BigDecimal | 否 | 成本价 | `4000.00` |
-| stock | Integer | 是 | 库存 | `100` |
-| warnStock | Integer | 否 | 预警库存 | `10` |
-| weight | BigDecimal | 否 | 重量(kg) | `0.5` |
-| status | Integer | 否 | 状态（1-启用 0-禁用） | `1` |
-| image | String | 否 | 图片路径（已有图片） | `/uploads/sku/xm14.jpg` |
-
-#### 响应参数 (Response)
-
-| 参数名 | 类型 | 说明 | 示例 |
-|--------|------|------|------|
-| id | Long | SKU ID | `1` |
-| spuId | Long | SPU ID | `1` |
-| image | String | 图片路径 | `/uploads/sku/xm14.jpg` |
-
-#### 响应示例
-```json
-{
-    "code": 200,
-    "msg": "添加成功",
-    "data": {
-        "id": 1,
-        "spuId": 1,
-        "image": "/uploads/sku/xm14.jpg"
-    }
-}
-```
-
-#### 错误返回示例
-```json
-{
-    "code": 500,
-    "msg": "SPU ID不能为空",
-    "data": null
-}
-```
-
-**错误信息说明：**
-
-| 错误信息 | 说明 |
-|---------|------|
-| SPU ID不能为空 | 请求参数中spuId为空 |
-| 价格不能为空且必须大于0 | 请求参数中price为空或小于等于0 |
-| 图片上传失败 | 图片上传过程中发生错误 |
-| 添加失败 | SKU保存失败 |
-
----
-
-### 9.2 批量新增SKU
-
-**接口路径：** `/sku/batch-add`
-**HTTP方法：** POST
-**权限：** hasAuthority('product:add') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER')
-**功能说明：** 批量新增SKU。**同时会自动更新各SPU的最低售价(minPrice)和上架状态。**
-
-#### 请求参数 (Request Body)
-
-| 参数名 | 类型 | 必填 | 说明 | 示例 |
-|--------|------|------|------|------|
-| spuId | Long | 是 | SPU ID | `1` |
-| skus | String | 是 | SKU列表JSON字符串 | `[{"price":4999.00,...},...]` |
-
-#### skus 子对象 (skuDto)
-
-| 参数名 | 类型 | 必填 | 说明 | 示例 |
-|--------|------|------|------|------|
-| price | BigDecimal | 是 | 价格 | `4999.00` |
-| marketPrice | BigDecimal | 否 | 市场价 | `5999.00` |
-| costPrice | BigDecimal | 否 | 成本价 | `4000.00` |
-| stock | Integer | 是 | 库存 | `100` |
-| warnStock | Integer | 否 | 预警库存 | `10` |
-| specs | String | 否 | 规格JSON | `{"颜色":"黑色","内存":"256GB"}` |
-| weight | BigDecimal | 否 | 重量(kg) | `0.5` |
-| status | Integer | 否 | 状态（1-启用 0-禁用） | `1` |
-| image | String | 否 | 图片路径 | `/uploads/sku/xm14.jpg` |
-
-#### 响应示例
-```json
-{
-    "code": 200,
-    "msg": "批量添加成功",
-    "data": null
-}
-```
-
 ---
 
 ### 9.3 更新SKU
 
 **接口路径：** `/sku/update`
 **HTTP方法：** PUT
-**权限：** hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER')
+**权限：** hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('SELLER')
 **功能说明：** 更新SKU信息。**同时会自动更新SPU的最低售价(minPrice)和上架状态（禁用全部启用SKU会导致SPU自动下架）。**
 
 #### 请求参数 (Request Body)
@@ -4977,7 +5114,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/sku/delete/{id}`
 **HTTP方法：** DELETE
-**权限：** hasAuthority('product:delete') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER')
+**权限：** hasAuthority('product:delete') or hasRole('SUPER_ADMIN') or hasRole('SELLER')
 **功能说明：** **逻辑删除SKU**（设置 is_deleted=1），**保留SKU对应的销售属性**（sku_sale_attr_values表记录保持不变）。**同时会自动更新SPU的最低售价(minPrice)和上架状态（删除唯一启用SKU会导致SPU自动下架）。**
 
 #### 路径参数
@@ -5001,7 +5138,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/sku/delete-by-spu/{spuId}`
 **HTTP方法：** DELETE
-**权限：** hasAuthority('product:delete') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')
+**权限：** hasAuthority('product:delete') or hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')
 **功能说明：** **逻辑删除SPU下所有SKU**（设置 is_deleted=1），**保留各SKU对应的销售属性**（sku_sale_attr_values表记录保持不变）
 
 #### 路径参数
@@ -5025,7 +5162,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/sku/enable/{id}`
 **HTTP方法：** PUT
-**权限：** hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')
+**权限：** hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')
 **功能说明：** 启用SKU（设置 status=1）
 
 #### 路径参数
@@ -5049,7 +5186,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/sku/disable/{id}`
 **HTTP方法：** PUT
-**权限：** hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')
+**权限：** hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')
 **功能说明：** 禁用SKU（设置 status=0）
 
 #### 路径参数
@@ -5073,7 +5210,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/sku/update-stock`
 **HTTP方法：** PUT
-**权限：** hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER')
+**权限：** hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('SELLER')
 **功能说明：** 更新SKU库存
 
 #### 请求参数 (Request Body)
@@ -5098,7 +5235,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/sku/decrease-stock`
 **HTTP方法：** PUT
-**权限：** hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER')
+**权限：** hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('SELLER')
 **功能说明：** 扣减SKU库存（用于订单创建）
 
 #### 请求参数 (Request Body)
@@ -5290,8 +5427,9 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/sku/list-with-attributes`
 **HTTP方法：** GET
-**权限：** 公开
-**功能说明：** 获取SKU列表，包含销售属性信息
+**权限：** 公开（无需登录）
+**角色隔离说明：** 返回 `SkuVo`（公开字段），仅包含普通用户购买决策所需信息
+**功能说明：** 获取SKU列表，包含销售属性信息。仅返回启用状态（status=1）的SKU
 
 #### 请求参数 (Query)
 
@@ -5308,9 +5446,11 @@ list 数组内每个元素的字段：
         {
             "id": 1,
             "spuId": 1,
-    
             "price": 4999.00,
-            "stock": 100,
+            "marketPrice": 5999.00,
+            "image": "/images/sku/xxx.jpg",
+            "weight": 0.50,
+            "inStock": true,
             "saleAttributes": [
                 {"attrId": 1, "attrName": "颜色", "valueId": 10, "value": "黑色", "imageUrl": null}
             ]
@@ -5321,48 +5461,116 @@ list 数组内每个元素的字段：
 
 ---
 
-### 9.16 获取SKU详情（含属性）
+### 9.16 商家端获取SKU列表（含属性）
 
-**接口路径：** `/sku/detail-with-attributes/{id}`
+**接口路径：** `/sku/store/list-with-attributes`
 **HTTP方法：** GET
-**权限：** 公开
-**功能说明：** 获取SKU详情，包含完整的销售属性信息
+**权限：** 需角色 SELLER 或 STORE_ADMIN (`hasRole('SELLER') or hasRole('STORE_ADMIN')`)
+**角色隔离说明：** 返回 `SkuStoreVo`（继承 `SkuVo`），包含商家经营管理所需的完整字段
+**功能说明：** 商家端获取SKU列表，包含销售属性。不限SKU上下架状态，展示全部SKU
 
-#### 路径参数
+#### 请求参数 (Query)
 
 | 参数名 | 类型 | 必填 | 说明 | 示例 |
 |--------|------|------|------|------|
-| id | Long | 是 | SKU ID | `1` |
+| spuId | Long | 是 | SPU ID | `1` |
 
 #### 响应示例
 ```json
 {
     "code": 200,
     "msg": "操作成功",
-    "data": {
-        "id": 1,
-        "spuId": 1,
-
-        "price": 4999.00,
-        "marketPrice": 5999.00,
-        "stock": 100,
-        "specs": "{\"颜色\":\"黑色\",\"内存\":\"256GB\"}",
-        "saleAttributes": [
-            {"attrId": 1, "attrName": "颜色", "valueId": 10, "value": "黑色"}
-        ]
-    }
+    "data": [
+        {
+            "id": 1,
+            "spuId": 1,
+            "price": 4999.00,
+            "marketPrice": 5999.00,
+            "image": "/images/sku/xxx.jpg",
+            "weight": 0.50,
+            "costPrice": 3000.00,
+            "stock": 100,
+            "warnStock": 10,
+            "status": 1,
+            "createdAt": "2026-06-19T10:00:00",
+            "updatedAt": "2026-06-19T10:00:00",
+            "saleAttributes": [
+                {"attrId": 1, "attrName": "颜色", "valueId": 10, "value": "黑色", "imageUrl": null}
+            ]
+        }
+    ]
 }
 ```
 
 ---
 
+### 9.17 管理员端获取SKU列表（含属性）
+
+**接口路径：** `/sku/admin/list-with-attributes`
+**HTTP方法：** GET
+**权限：** 需角色 SUPER_ADMIN (`hasRole('SUPER_ADMIN')`)
+**角色隔离说明：** 返回 `AdminVo`（继承 `SkuStoreVo`），包含管理员监管所需的全部字段
+**功能说明：** 管理员端获取SKU列表，包含销售属性。不限SKU上下架和删除状态
+
+#### 请求参数 (Query)
+
+| 参数名 | 类型 | 必填 | 说明 | 示例 |
+|--------|------|------|------|------|
+| spuId | Long | 是 | SPU ID | `1` |
+
+#### 响应示例
+```json
+{
+    "code": 200,
+    "msg": "操作成功",
+    "data": [
+        {
+            "id": 1,
+            "spuId": 1,
+            "price": 4999.00,
+            "marketPrice": 5999.00,
+            "image": "/images/sku/xxx.jpg",
+            "weight": 0.50,
+            "costPrice": 3000.00,
+            "stock": 100,
+            "warnStock": 10,
+            "status": 1,
+            "createdAt": "2026-06-19T10:00:00",
+            "updatedAt": "2026-06-19T10:00:00",
+            "frozenStock": 5,
+            "isDeleted": false,
+            "saleAttributes": [
+                {"attrId": 1, "attrName": "颜色", "valueId": 10, "value": "黑色", "imageUrl": null}
+            ]
+        }
+    ]
+}
+```
+
+---
+
+### 9.18 ~~获取SKU详情（含属性）~~（已废弃）
+
+**接口路径：** ~~`/sku/detail-with-attributes/{id}`~~
+**HTTP方法：** GET
+**状态：** 此接口代码已注释，不再对外提供
+**功能说明：** ~~获取SKU详情，包含完整的销售属性信息~~
+
+---
+
 ## 十、品牌模块 (Brand)
+
+> **品牌 VO 字段说明：**
+> 所有公开接口均返回 `BrandVo`，仅包含以下字段：
+> `id`, `name`, `logo`, `description`, `website`
+>
+> **排除的字段：** `sort`(排序号), `status`(状态), `isDeleted`(逻辑删除), `createdAt`(创建时间), `updatedAt`(更新时间) — 内部管理字段不对外暴露
 
 ### 10.1 新增品牌
 
 **接口路径：** `/brand/add`
 **HTTP方法：** POST
-**权限：** hasAuthority('product:add') or hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**权限：** hasAuthority('product:add') or hasRole('SUPER_ADMIN')
 **Content-Type：** multipart/form-data
 **功能说明：** 新增品牌（支持Logo上传）
 
@@ -5427,7 +5635,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/brand/update`
 **HTTP方法：** PUT
-**权限：** hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**权限：** hasAuthority('product:edit') or hasRole('SUPER_ADMIN')
 **Content-Type：** multipart/form-data
 **功能说明：** 更新品牌信息（支持Logo上传）
 
@@ -5488,7 +5696,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/brand/delete/{id}`
 **HTTP方法：** DELETE
-**权限：** hasAuthority('product:delete') or hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**权限：** hasAuthority('product:delete') or hasRole('SUPER_ADMIN')
 **功能说明：** 删除品牌（软删除）
 
 **缓存说明：** 删除成功后清除所有品牌缓存（brand:*）
@@ -5550,9 +5758,6 @@ list 数组内每个元素的字段：
 | logo | String | Logo路径 | `/uploads/logos/xiaomi.png` |
 | description | String | 品牌描述 | `小米科技有限责任公司` |
 | website | String | 官网地址 | `https://www.mi.com` |
-| sort | Integer | 排序 | `1` |
-| status | Integer | 状态 | `1` |
-| createdAt | DateTime | 创建时间 | `2026-05-15 10:00:00` |
 
 #### 响应示例
 ```json
@@ -5564,10 +5769,7 @@ list 数组内每个元素的字段：
         "name": "小米",
         "logo": "2026/05/15/uuid_logo.jpg",
         "description": "小米科技有限责任公司",
-        "website": "https://www.mi.com",
-        "sort": 1,
-        "status": 1,
-        "createdAt": "2026-05-15 10:00:00"
+        "website": "https://www.mi.com"
     }
 }
 ```
@@ -5609,9 +5811,15 @@ list 数组内每个元素的字段：
 
 #### 响应参数 (Response)
 
+`data` 数组中每个元素的字段与 `BrandVo` 一致：
+
 | 参数名 | 类型 | 说明 | 示例 |
 |--------|------|------|------|
-| List | Array | 品牌列表 | |
+| id | Long | 品牌ID | `1` |
+| name | String | 品牌名称 | `小米` |
+| logo | String | Logo路径 | `2026/05/15/uuid_logo.jpg` |
+| description | String | 品牌描述 | `小米科技有限责任公司` |
+| website | String | 官网地址 | `https://www.mi.com` |
 
 #### 响应示例
 ```json
@@ -5623,8 +5831,8 @@ list 数组内每个元素的字段：
             "id": 1,
             "name": "小米",
             "logo": "2026/05/15/uuid_logo.jpg",
-            "sort": 1,
-            "status": 1
+            "description": "小米科技有限责任公司",
+            "website": "https://www.mi.com"
         }
     ]
 }
@@ -5672,8 +5880,8 @@ list 数组内每个元素的字段：
                 "id": 1,
                 "name": "小米",
                 "logo": "2026/05/15/uuid_logo.jpg",
-                "sort": 1,
-                "status": 1
+                "description": "小米科技有限责任公司",
+                "website": "https://www.mi.com"
             }
         ],
         "total": 50,
@@ -5711,7 +5919,8 @@ list 数组内每个元素的字段：
             "id": 1,
             "name": "小米",
             "logo": "2026/05/15/uuid_logo.jpg",
-            "status": 1
+            "description": "小米科技有限责任公司",
+            "website": "https://www.mi.com"
         }
     ]
 }
@@ -5758,7 +5967,9 @@ list 数组内每个元素的字段：
         {
             "id": 1,
             "name": "小米",
-            "logo": "/uploads/logos/xiaomi.png"
+            "logo": "/uploads/logos/xiaomi.png",
+            "description": "小米科技有限责任公司",
+            "website": "https://www.mi.com"
         }
     ]
 }
@@ -5800,13 +6011,15 @@ list 数组内每个元素的字段：
             "id": 1,
             "name": "小米",
             "logo": "2026/05/15/uuid_logo.jpg",
-            "sort": 1
+            "description": "小米科技有限责任公司",
+            "website": "https://www.mi.com"
         },
         {
             "id": 2,
             "name": "华为",
             "logo": "/uploads/logos/huawei.png",
-            "sort": 2
+            "description": "华为技术有限公司",
+            "website": "https://www.huawei.com"
         }
     ]
 }
@@ -5820,7 +6033,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/category/add`
 **HTTP方法：** POST
-**权限：** hasAuthority('product:category') or hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**权限：** hasAuthority('product:category') or hasRole('SUPER_ADMIN')
 **Content-Type：** multipart/form-data
 **功能说明：** 新增分类（支持图标上传）
 
@@ -5885,7 +6098,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/category/update`
 **HTTP方法：** PUT
-**权限：** hasAuthority('product:category') or hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**权限：** hasAuthority('product:category') or hasRole('SUPER_ADMIN')
 **Content-Type：** multipart/form-data
 **功能说明：** 更新分类信息（支持图标上传）
 
@@ -5942,7 +6155,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/category/delete/{id}`
 **HTTP方法：** DELETE
-**权限：** hasAuthority('product:category') or hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**权限：** hasAuthority('product:category') or hasRole('SUPER_ADMIN')
 **功能说明：** 删除分类（级联删除子分类，同时删除图标）
 
 #### 路径参数
@@ -6001,7 +6214,6 @@ list 数组内每个元素的字段：
 | sort | Integer | 排序 | `1` |
 | icon | String | 图标路径 | `/uploads/icons/phone.png` |
 | status | Integer | 状态 | `1` |
-| createdAt | DateTime | 创建时间 | `2026-05-15 10:00:00` |
 
 #### 响应示例
 ```json
@@ -6015,8 +6227,7 @@ list 数组内每个元素的字段：
         "level": 1,
         "sort": 1,
         "icon": "/uploads/icons/phone.png",
-        "status": 1,
-        "createdAt": "2026-05-15 10:00:00"
+        "status": 1
     }
 }
 ```
@@ -6056,9 +6267,17 @@ list 数组内每个元素的字段：
 
 #### 响应参数 (Response)
 
+`data` 数组中每个元素的结构：
+
 | 参数名 | 类型 | 说明 | 示例 |
 |--------|------|------|------|
-| List | Array | 分类列表 | |
+| id | Long | 分类ID | `1` |
+| name | String | 分类名称 | `手机` |
+| parentId | Long | 父分类ID | `0` |
+| level | Integer | 分类级别 | `1` |
+| sort | Integer | 排序 | `1` |
+| icon | String | 图标路径 | `/uploads/icons/phone.png` |
+| status | Integer | 状态 | `1` |
 
 #### 响应示例
 ```json
@@ -6120,6 +6339,7 @@ list 数组内每个元素的字段：
                 "parentId": 0,
                 "level": 1,
                 "sort": 1,
+                "icon": "/uploads/icons/phone.png",
                 "status": 1
             }
         ],
@@ -6146,9 +6366,15 @@ list 数组内每个元素的字段：
 
 #### 响应参数 (Response)
 
+`data` 数组中每个元素的结构（递归）：
+
 | 参数名 | 类型 | 说明 | 示例 |
 |--------|------|------|------|
-| List | Array | 树形结构列表 | |
+| id | Long | 分类ID | `1` |
+| name | String | 分类名称 | `手机` |
+| parentId | Long | 父分类ID | `0` |
+| icon | String | 图标路径 | `/uploads/icons/phone.png` |
+| children | Array | 子分类列表（递归结构） | |
 
 #### 响应示例
 ```json
@@ -6160,13 +6386,13 @@ list 数组内每个元素的字段：
             "id": 1,
             "name": "手机",
             "parentId": 0,
-            "level": 1,
+            "icon": "/uploads/icons/phone.png",
             "children": [
                 {
                     "id": 2,
                     "name": "智能手机",
                     "parentId": 1,
-                    "level": 2,
+                    "icon": "/uploads/icons/smartphone.png",
                     "children": []
                 }
             ]
@@ -6184,6 +6410,20 @@ list 数组内每个元素的字段：
 **权限：** 公开
 **功能说明：** 获取所有一级分类列表
 
+#### 响应参数 (Response)
+
+`data` 数组中每个元素的结构：
+
+| 参数名 | 类型 | 说明 | 示例 |
+|--------|------|------|------|
+| id | Long | 分类ID | `1` |
+| name | String | 分类名称 | `手机` |
+| parentId | Long | 父分类ID | `0` |
+| level | Integer | 分类级别 | `1` |
+| sort | Integer | 排序 | `1` |
+| icon | String | 图标路径 | `/uploads/icons/phone.png` |
+| status | Integer | 状态 | `1` |
+
 #### 响应示例
 ```json
 {
@@ -6195,7 +6435,9 @@ list 数组内每个元素的字段：
             "name": "手机",
             "parentId": 0,
             "level": 1,
-            "icon": "/uploads/icons/phone.png"
+            "sort": 1,
+            "icon": "/uploads/icons/phone.png",
+            "status": 1
         }
     ]
 }
@@ -6216,6 +6458,20 @@ list 数组内每个元素的字段：
 |--------|------|------|------|------|
 | parentId | Long | 是 | 父分类ID | `1` |
 
+#### 响应参数 (Response)
+
+`data` 数组中每个元素的结构：
+
+| 参数名 | 类型 | 说明 | 示例 |
+|--------|------|------|------|
+| id | Long | 分类ID | `2` |
+| name | String | 分类名称 | `智能手机` |
+| parentId | Long | 父分类ID | `1` |
+| level | Integer | 分类级别 | `2` |
+| sort | Integer | 排序 | `1` |
+| icon | String | 图标路径 | `/uploads/icons/smartphone.png` |
+| status | Integer | 状态 | `1` |
+
 #### 响应示例
 ```json
 {
@@ -6227,7 +6483,9 @@ list 数组内每个元素的字段：
             "name": "智能手机",
             "parentId": 1,
             "level": 2,
-            "icon": "/uploads/icons/smartphone.png"
+            "sort": 1,
+            "icon": "/uploads/icons/smartphone.png",
+            "status": 1
         }
     ]
 }
@@ -6242,7 +6500,7 @@ list 数组内每个元素的字段：
 **接口路径：** `/attribute/category/{categoryId}`
 **HTTP方法：** GET
 **权限：** 公开
-**功能说明：** 获取指定分类下的所有属性
+**功能说明：** 获取指定分类下的所有属性及其属性值（含销售属性和基本属性）
 
 #### 路径参数
 
@@ -6252,36 +6510,66 @@ list 数组内每个元素的字段：
 
 #### 响应参数 (Response)
 
-| 参数名 | 类型 | 说明 | 示例 |
-|--------|------|------|------|
-| List | Array | 属性列表 | |
-
-#### Attribute 实体返回字段
-
-| 参数名 | 类型 | 说明 | 示例 |
-|--------|------|------|------|
-| id | Long | 属性ID | `1` |
-| name | String | 属性名称 | `颜色` |
-| categoryId | Long | 分类ID | `1` |
-| type | Integer | 属性类型 | `1` |
-| inputType | String | 输入类型 | `select` |
-| required | Integer | 是否必填 | `1` |
-| sort | Integer | 排序 | `1` |
+| 参数名 | 类型 | 说明 |
+|--------|------|------|
+| code | Integer | 状态码，200 表示成功 |
+| message | String | 响应消息 |
+| data | Array | 属性列表 |
+| data[].attrId | Long | 属性ID |
+| data[].attrName | String | 属性名称 |
+| data[].attrType | Integer | 属性类型（1=销售属性，2=基本属性） |
+| data[].sort | Integer | 排序（越小越靠前） |
+| data[].values | Array | 属性值列表 |
+| data[].values[].valueId | Long | 属性值ID |
+| data[].values[].value | String | 属性值名称 |
+| data[].values[].imageUrl | String | 属性值图片URL |
+| data[].values[].sort | Integer | 排序 |
 
 #### 响应示例
 ```json
 {
     "code": 200,
-    "msg": "操作成功",
+    "message": "success",
     "data": [
         {
-            "id": 1,
-            "name": "颜色",
-            "categoryId": 1,
-            "type": 1,
-            "inputType": "select",
-            "required": 1,
-            "sort": 1
+            "attrId": 1,
+            "attrName": "颜色",
+            "attrType": 1,
+            "sort": 1,
+            "values": [
+                {
+                    "valueId": 10,
+                    "value": "黑色",
+                    "imageUrl": null,
+                    "sort": 1
+                },
+                {
+                    "valueId": 11,
+                    "value": "白色",
+                    "imageUrl": "https://example.com/white.png",
+                    "sort": 2
+                }
+            ]
+        },
+        {
+            "attrId": 5,
+            "attrName": "品牌",
+            "attrType": 2,
+            "sort": 2,
+            "values": [
+                {
+                    "valueId": 20,
+                    "value": "小米",
+                    "imageUrl": null,
+                    "sort": 1
+                },
+                {
+                    "valueId": 21,
+                    "value": "华为",
+                    "imageUrl": null,
+                    "sort": 2
+                }
+            ]
         }
     ]
 }
@@ -6304,24 +6592,36 @@ list 数组内每个元素的字段：
 
 #### 响应参数 (Response)
 
-| 参数名 | 类型 | 说明 | 示例 |
-|--------|------|------|------|
-| List | Array | 销售属性列表（含属性值） | |
+| 参数名 | 类型 | 说明 |
+|--------|------|------|
+| code | Integer | 状态码，200 表示成功 |
+| message | String | 响应消息 |
+| data | Array | 销售属性列表 |
+| data[].attrId | Long | 属性ID |
+| data[].attrName | String | 属性名称 |
+| data[].attrType | Integer | 属性类型，固定为 1（销售属性） |
+| data[].sort | Integer | 排序（越小越靠前） |
+| data[].values | Array | 属性值列表 |
+| data[].values[].valueId | Long | 属性值ID |
+| data[].values[].value | String | 属性值名称 |
+| data[].values[].imageUrl | String | 属性值图片URL |
+| data[].values[].sort | Integer | 排序 |
 
 #### 响应示例
 ```json
 {
     "code": 200,
-    "msg": "操作成功",
+    "message": "success",
     "data": [
         {
             "attrId": 1,
             "attrName": "颜色",
-            "type": 1,
+            "attrType": 1,
+            "sort": 1,
             "values": [
-                {"valueId": 10, "value": "黑色"},
-                {"valueId": 11, "value": "白色"},
-                {"valueId": 12, "value": "金色"}
+                {"valueId": 10, "value": "黑色", "imageUrl": null, "sort": 1},
+                {"valueId": 11, "value": "白色", "imageUrl": null, "sort": 2},
+                {"valueId": 12, "value": "金色", "imageUrl": null, "sort": 3}
             ]
         }
     ]
@@ -6343,19 +6643,37 @@ list 数组内每个元素的字段：
 |--------|------|------|------|------|
 | categoryId | Long | 是 | 分类ID | `1` |
 
+#### 响应参数 (Response)
+
+| 参数名 | 类型 | 说明 |
+|--------|------|------|
+| code | Integer | 状态码，200 表示成功 |
+| message | String | 响应消息 |
+| data | Array | 基本属性列表 |
+| data[].attrId | Long | 属性ID |
+| data[].attrName | String | 属性名称 |
+| data[].attrType | Integer | 属性类型，固定为 2（基本属性） |
+| data[].sort | Integer | 排序（越小越靠前） |
+| data[].values | Array | 属性值列表 |
+| data[].values[].valueId | Long | 属性值ID |
+| data[].values[].value | String | 属性值名称 |
+| data[].values[].imageUrl | String | 属性值图片URL |
+| data[].values[].sort | Integer | 排序 |
+
 #### 响应示例
 ```json
 {
     "code": 200,
-    "msg": "操作成功",
+    "message": "success",
     "data": [
         {
             "attrId": 5,
             "attrName": "品牌",
-            "type": 2,
+            "attrType": 2,
+            "sort": 1,
             "values": [
-                {"valueId": 20, "value": "小米"},
-                {"valueId": 21, "value": "华为"}
+                {"valueId": 20, "value": "小米", "imageUrl": null, "sort": 1},
+                {"valueId": 21, "value": "华为", "imageUrl": null, "sort": 2}
             ]
         }
     ]
@@ -6378,18 +6696,36 @@ list 数组内每个元素的字段：
 | categoryId | Long | 是 | 分类ID | `1` |
 | type | Integer | 是 | 属性类型（1-销售属性 2-基本属性） | `1` |
 
+#### 响应参数 (Response)
+
+| 参数名 | 类型 | 说明 |
+|--------|------|------|
+| code | Integer | 状态码，200 表示成功 |
+| message | String | 响应消息 |
+| data | Array | 属性列表 |
+| data[].attrId | Long | 属性ID |
+| data[].attrName | String | 属性名称 |
+| data[].attrType | Integer | 属性类型（1=销售属性，2=基本属性） |
+| data[].sort | Integer | 排序（越小越靠前） |
+| data[].values | Array | 属性值列表 |
+| data[].values[].valueId | Long | 属性值ID |
+| data[].values[].value | String | 属性值名称 |
+| data[].values[].imageUrl | String | 属性值图片URL |
+| data[].values[].sort | Integer | 排序 |
+
 #### 响应示例
 ```json
 {
     "code": 200,
-    "msg": "操作成功",
+    "message": "success",
     "data": [
         {
             "attrId": 1,
             "attrName": "颜色",
-            "type": 1,
+            "attrType": 1,
+            "sort": 1,
             "values": [
-                {"valueId": 10, "value": "黑色"}
+                {"valueId": 10, "value": "黑色", "imageUrl": null, "sort": 1}
             ]
         }
     ]
@@ -6405,124 +6741,13 @@ list 数组内每个元素的字段：
 
 ---
 
-### 12.5 获取SPU基本属性
-
-**接口路径：** `/attribute/spu/{spuId}/basic`
-**HTTP方法：** GET
-**权限：** 公开
-**功能说明：** 获取指定SPU的基本属性值
-
-#### 路径参数
-
-| 参数名 | 类型 | 必填 | 说明 | 示例 |
-|--------|------|------|------|------|
-| spuId | Long | 是 | SPU ID | `1` |
-
-#### 响应示例
-```json
-{
-    "code": 200,
-    "msg": "操作成功",
-    "data": [
-        {
-            "attrId": 5,
-            "attrName": "品牌",
-            "valueId": 20,
-            "value": "小米"
-        }
-    ]
-}
-```
-
----
-
-### 12.6 获取SPU销售属性
-
-**接口路径：** `/attribute/spu/{spuId}/sales`
-**HTTP方法：** GET
-**权限：** 公开
-**功能说明：** 获取指定SPU的销售属性选择
-
-#### 路径参数
-
-| 参数名 | 类型 | 必填 | 说明 | 示例 |
-|--------|------|------|------|------|
-| spuId | Long | 是 | SPU ID | `1` |
-
-#### 响应示例
-```json
-{
-    "code": 200,
-    "msg": "操作成功",
-    "data": [
-        {
-            "attrId": 1,
-            "attrName": "颜色",
-            "valueId": 10,
-            "value": "黑色"
-        }
-    ]
-}
-```
-
----
-
-### 12.7 获取SPU所有属性
-
-**接口路径：** `/attribute/spu/{spuId}/all`
-**HTTP方法：** GET
-**权限：** 公开
-**功能说明：** 获取指定SPU的所有属性（基本属性+销售属性）
-
-#### 路径参数
-
-| 参数名 | 类型 | 必填 | 说明 | 示例 |
-|--------|------|------|------|------|
-| spuId | Long | 是 | SPU ID | `1` |
-
-#### 响应参数 (Response)
-
-| 参数名 | 类型 | 说明 | 示例 |
-|--------|------|------|------|
-| basicAttributes | Array | 基本属性列表 | |
-| saleAttributes | Array | 销售属性列表 | |
-
-#### 响应示例
-```json
-{
-    "code": 200,
-    "msg": "操作成功",
-    "data": {
-        "basicAttributes": [
-            {
-                "attrId": 5,
-                "attrName": "品牌",
-                "valueId": 20,
-                "value": "小米"
-            }
-        ],
-        "saleAttributes": [
-            {
-                "attrId": 1,
-                "attrName": "颜色",
-                "valueId": 10,
-                "value": "黑色"
-            }
-        ]
-    }
-}
-
-```
-
----
-
 ## 十三、商家SPU属性管理模块 (SpuAttr)
 
 ### 13.1 绑定SPU基本属性
 
 **接口路径：** `/spu/attr/basic/bind`
 **HTTP方法：** POST
-**权限：** `hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN')`
+**权限：** `hasRole('SELLER') or hasRole('SUPER_ADMIN')`
 **功能说明：** 商家为SPU绑定基本属性值，支持单选/多选（通过attrValueId）或手动输入（通过manualValue）
 
 #### 请求参数 (Body)
@@ -6577,7 +6802,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/spu/attr/basic/batch-bind`
 **HTTP方法：** POST
-**权限：** `hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')`
+**权限：** `hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')`
 **功能说明：** 批量绑定SPU基本属性。遍历传入的绑定列表逐个绑定，某个绑定失败不会影响其他绑定的执行，最终返回成功/总数
 
 #### 请求参数 (Body)
@@ -6651,7 +6876,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/spu/attr/basic/update/{id}`
 **HTTP方法：** PUT
-**权限：** `hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')`
+**权限：** `hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')`
 **功能说明：** 更新SPU基本属性绑定。若传入 `attrValueId`，对应的 `manualValue` 会被自动清空。
 
 #### 路径参数
@@ -6700,7 +6925,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/spu/attr/basic/batch-update`
 **HTTP方法：** PUT
-**权限：** `hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')`
+**权限：** `hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')`
 **功能说明：** 批量更新SPU基本属性绑定。先校验所有更新项，全部校验通过后才执行更新，任一校验失败则全部回滚。若传入 `attrValueId`，对应的 `manualValue` 会被自动清空。
 
 #### 请求参数 (Body)
@@ -6772,7 +6997,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/spu/attr/basic/delete/{id}`
 **HTTP方法：** DELETE
-**权限：** `hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN')`
+**权限：** `hasRole('SELLER') or hasRole('SUPER_ADMIN')`
 **功能说明：** 删除SPU基本属性绑定
 
 #### 路径参数
@@ -6814,7 +7039,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/spu/attr/basic/list/{spuId}`
 **HTTP方法：** GET
-**权限：** `hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN')`
+**权限：** `hasRole('SELLER') or hasRole('SUPER_ADMIN')`
 **功能说明：** 获取SPU的基本属性列表
 
 #### 路径参数
@@ -6863,7 +7088,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/spu/attr/sale/bind`
 **HTTP方法：** POST
-**权限：** `hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN')`
+**权限：** `hasRole('SELLER') or hasRole('SUPER_ADMIN')`
 **功能说明：** 商家为SPU绑定销售属性及可选值（如颜色：[黑,白,红]）
 
 #### 请求参数 (Body)
@@ -6915,7 +7140,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/spu/attr/sale/batch-bind`
 **HTTP方法：** POST
-**权限：** `hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN')`
+**权限：** `hasRole('SELLER') or hasRole('SUPER_ADMIN')`
 **功能说明：** 批量绑定SPU销售属性
 
 #### 请求参数 (Body)
@@ -6972,7 +7197,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/spu/attr/sale/update/{id}`
 **HTTP方法：** PUT
-**权限：** `hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')`
+**权限：** `hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')`
 **功能说明：** 更新SPU销售属性绑定。如果移除了某个已被SKU绑定的属性值，将更新失败并提示先删除相关SKU
 
 #### 路径参数
@@ -7036,7 +7261,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/spu/attr/sale/batch-update`
 **HTTP方法：** PUT
-**权限：** `hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')`
+**权限：** `hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')`
 **功能说明：** 批量更新SPU销售属性绑定。先校验所有变更，如果任何一项存在"被移除的属性值已被SKU绑定"的情况，则全部失败回滚并提示
 
 #### 请求参数 (Body)
@@ -7106,7 +7331,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/spu/attr/sale/delete/{id}`
 **HTTP方法：** DELETE
-**权限：** `hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')`
+**权限：** `hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')`
 **功能说明：** 删除SPU销售属性绑定
 
 #### 路径参数
@@ -7130,7 +7355,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/spu/attr/sale/list/{spuId}`
 **HTTP方法：** GET
-**权限：** `hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')`
+**权限：** `hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')`
 **功能说明：** 获取SPU的销售属性列表（包含属性值详情）
 
 #### 路径参数
@@ -7209,7 +7434,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/spu/attr/all/{spuId}`
 **HTTP方法：** GET
-**权限：** `hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')`
+**权限：** `hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')`
 **功能说明：** 获取SPU的所有属性（基本属性+销售属性）完整信息
 
 #### 路径参数
@@ -7267,7 +7492,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/spu/attr/available/{spuId}`
 **HTTP方法：** GET
-**权限：** `hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')`
+**权限：** `hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')`
 **功能说明：** 根据SPU的分类，获取分类下所有可用属性，并标记哪些已绑定。用于商家在编辑SPU时选择属性。
 
 #### 路径参数
@@ -7354,7 +7579,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/spu/attr/bind-all`
 **HTTP方法：** POST
-**权限：** `hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')`
+**权限：** `hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')`
 **功能说明：** 一次性为SPU绑定所有属性（基本属性+销售属性）。会先清除该SPU原有的绑定，再批量绑定新的属性。
 
 #### 请求参数 (Body)
@@ -7424,318 +7649,63 @@ list 数组内每个元素的字段：
 
 ---
 
-## 十四、商家SKU属性管理模块 (SkuAttr)
+## 十四、商家SKU属性管理模块 (SkuAttr)（已合并至 SkuController）
 
-### 14.1 绑定SKU销售属性
+> **说明：** 以下 SKU 属性管理接口已合并至 `SkuController`（请求路径不变，仍为 `/sku/attr/*`）。`SkuAttrController` 类已删除。
 
-**接口路径：** `/sku/attr/bind`
-**HTTP方法：** POST
-**权限：** `hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN')`
-**功能说明：** 商家为SKU绑定销售属性值（如颜色、内存、存储等）。注意：此操作会覆盖该SKU原有的销售属性绑定
+### 14.3 ~~更新SKU销售属性绑定~~（已废弃）
 
-#### 请求参数 (Body)
+> **废弃原因：** SKU 创建时必须绑定销售属性（见 14.10），不允许单独修改销售属性绑定。此接口代码已注释，不再对外提供。
 
-| 参数名 | 类型 | 必填 | 说明 | 示例 |
-|--------|------|------|------|------|
-| skuId | Long | 是 | SKU ID | `23` |
-| attrValueIds | Array | 是 | 属性值ID列表 | `[1, 5, 7]` |
-
-#### 响应示例
-```json
-{
-    "code": 200,
-    "msg": "操作成功",
-    "data": {
-        "bindCount": 3,
-        "message": "销售属性绑定成功"
-    }
-}
-```
+**接口路径：** ~~`/sku/attr/update/{skuId}`~~
 
 ---
 
-### 14.2 批量绑定SKU销售属性
+### 14.4 ~~删除SKU销售属性绑定~~（已废弃）
 
-**接口路径：** `/sku/attr/batch-bind`
-**HTTP方法：** POST
-**权限：** `hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN')`
-**功能说明：** 批量绑定SKU销售属性
+> **废弃原因：** 不允许单独删除 SKU 的销售属性绑定。此接口代码已注释，不再对外提供。
 
-#### 请求参数 (Body)
-
-| 参数名 | 类型 | 必填 | 说明 | 示例 |
-|--------|------|------|------|------|
-| - | Array | 是 | 绑定信息列表 | 见下 |
-
-列表项字段：
-| 参数名 | 类型 | 必填 | 说明 |
-|--------|------|------|------|
-| skuId | Long | 是 | SKU ID |
-| attrValueIds | Array | 是 | 属性值ID列表 |
-
-#### 响应示例
-```json
-{
-    "code": 200,
-    "msg": "批量绑定完成",
-    "data": {
-        "totalBindCount": 6,
-        "skuCount": 2
-    }
-}
-```
+**接口路径：** ~~`/sku/attr/delete/{id}`~~
 
 ---
 
-### 14.3 更新SKU销售属性绑定
+### 14.5 ~~删除SKU所有销售属性绑定~~（已废弃）
 
-**接口路径：** `/sku/attr/update/{skuId}`
-**HTTP方法：** PUT
-**权限：** `hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN')`
-**功能说明：** 更新SKU销售属性绑定（先删除原有绑定，再添加新的绑定）
+> **废弃原因：** 不允许单独删除 SKU 的所有销售属性绑定。此接口代码已注释，不再对外提供。
 
-#### 路径参数
-
-| 参数名 | 类型 | 必填 | 说明 | 示例 |
-|--------|------|------|------|------|
-| skuId | Long | 是 | SKU ID | `23` |
-
-#### 请求参数 (Body)
-
-| 参数名 | 类型 | 必填 | 说明 | 示例 |
-|--------|------|------|------|------|
-| - | Array | 是 | 属性值ID列表 | `[1, 5, 7]` |
-
-#### 响应示例
-```json
-{
-    "code": 200,
-    "msg": "更新成功",
-    "data": null
-}
-```
+**接口路径：** ~~`/sku/attr/delete-all/{skuId}`~~
 
 ---
 
-### 14.4 删除SKU销售属性绑定
+### 14.6 ~~获取SKU销售属性列表~~（已废弃）
 
-**接口路径：** `/sku/attr/delete/{id}`
-**HTTP方法：** DELETE
-**权限：** `hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN')`
-**功能说明：** 删除SKU销售属性绑定
+> **废弃原因：** 请使用 14.7 `获取SKU销售属性详情`（`/sku/attr/detail/{skuId}`）替代。此接口返回数据过于原始，无属性名称等信息。此接口代码已注释，不再对外提供。
 
-#### 路径参数
-
-| 参数名 | 类型 | 必填 | 说明 | 示例 |
-|--------|------|------|------|------|
-| id | Long | 是 | 绑定记录ID | `1` |
-
-#### 响应示例
-```json
-{
-    "code": 200,
-    "msg": "删除成功",
-    "data": null
-}
-```
+**接口路径：** ~~`/sku/attr/list/{skuId}`~~
 
 ---
 
-### 14.5 删除SKU所有销售属性绑定
+### 14.7 ~~获取SKU销售属性详情~~（已废弃）
 
-**接口路径：** `/sku/attr/delete-all/{skuId}`
-**HTTP方法：** DELETE
-**权限：** `hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN')`
-**功能说明：** 删除SKU的所有销售属性绑定
+> **废弃原因：** 此接口代码已注释，不再对外提供。如需查询SKU的销售属性，请直接通过 `/sku/list-with-attributes` 等SKU详情接口获取（销售属性已包含在 SkuVo.saleAttributes 中）。
 
-#### 路径参数
-
-| 参数名 | 类型 | 必填 | 说明 | 示例 |
-|--------|------|------|------|------|
-| skuId | Long | 是 | SKU ID | `23` |
-
-#### 响应示例
-```json
-{
-    "code": 200,
-    "msg": "删除成功",
-    "data": {
-        "deletedCount": 3
-    }
-}
-```
+**接口路径：** ~~`/sku/attr/detail/{skuId}`~~
 
 ---
 
-### 14.6 获取SKU销售属性列表
+### 14.8 ~~获取SKU可绑定的销售属性列表~~（已废弃）
 
-**接口路径：** `/sku/attr/list/{skuId}`
-**HTTP方法：** GET
-**权限：** `hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN')`
-**功能说明：** 获取SKU的销售属性列表
+> **废弃原因：** 此接口代码已注释，不再对外提供。创建SKU时无需预先查询可选属性，系统内部自动校验属性合法性。
 
-#### 路径参数
-
-| 参数名 | 类型 | 必填 | 说明 | 示例 |
-|--------|------|------|------|------|
-| skuId | Long | 是 | SKU ID | `23` |
-
-#### 响应示例
-```json
-{
-    "code": 200,
-    "msg": "操作成功",
-    "data": [
-        {
-            "id": 1,
-            "skuId": 23,
-            "attrValueId": 1,
-            "createdAt": "2026-05-12 14:07:25",
-            "updatedAt": "2026-05-12 14:07:25"
-        }
-    ]
-}
-```
+**接口路径：** ~~`/sku/attr/available/{spuId}`~~
 
 ---
 
-### 14.7 获取SKU销售属性详情
+### 14.9 ~~校验SKU属性组合~~（已废弃）
 
-**接口路径：** `/sku/attr/detail/{skuId}`
-**HTTP方法：** GET
-**权限：** `hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN')`
-**功能说明：** 获取SKU的销售属性详情（包含完整的属性名称、属性值等信息）
+> **废弃原因：** 创建 SKU 时（14.10/14.11）内部已自动校验属性组合合法性，无需单独调用。此接口代码已注释，不再对外提供。
 
-#### 路径参数
-
-| 参数名 | 类型 | 必填 | 说明 | 示例 |
-|--------|------|------|------|------|
-| skuId | Long | 是 | SKU ID | `23` |
-
-#### 响应示例
-```json
-{
-    "code": 200,
-    "msg": "操作成功",
-    "data": {
-        "skuId": 23,
-
-        "spuId": 3,
-        "spuName": "小米14 Pro",
-        "price": 4299.00,
-        "stock": 100,
-        "image": "/uploads/images/sku/2026/05/12/xxx.jpg",
-        "saleAttrs": [
-            {
-                "id": 1,
-                "attrId": 1,
-                "attrName": "颜色",
-                "attrValueId": 1,
-                "attrValue": "黑色",
-                "imageUrl": "/images/phone/black.png"
-            },
-            {
-                "id": 2,
-                "attrId": 2,
-                "attrName": "运行内存",
-                "attrValueId": 5,
-                "attrValue": "12G",
-                "imageUrl": null
-            },
-            {
-                "id": 3,
-                "attrId": 3,
-                "attrName": "存储容量",
-                "attrValueId": 7,
-                "attrValue": "256GB",
-                "imageUrl": null
-            }
-        ]
-    }
-}
-```
-
----
-
-### 14.8 获取SKU可绑定的销售属性列表
-
-**接口路径：** `/sku/attr/available/{spuId}`
-**HTTP方法：** GET
-**权限：** `hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN')`
-**功能说明：** 根据SPU获取其下SKU可选择的销售属性及可选值。用于创建SKU时选择销售属性值。
-
-#### 路径参数
-
-| 参数名 | 类型 | 必填 | 说明 | 示例 |
-|--------|------|------|------|------|
-| spuId | Long | 是 | SPU ID | `3` |
-
-#### 响应示例
-```json
-{
-    "code": 200,
-    "msg": "操作成功",
-    "data": {
-        "spuId": 3,
-        "spuName": "小米14 Pro",
-        "saleAttrs": [
-            {
-                "attrId": 1,
-                "attrName": "颜色",
-                "attrType": 1,
-                "values": [
-                    {"valueId": 1, "value": "黑色", "imageUrl": "/images/phone/black.png", "sort": 1},
-                    {"valueId": 2, "value": "白色", "imageUrl": "/images/phone/white.png", "sort": 2},
-                    {"valueId": 3, "value": "蓝色", "imageUrl": "/images/phone/blue.png", "sort": 3}
-                ]
-            },
-            {
-                "attrId": 2,
-                "attrName": "内存",
-                "attrType": 1,
-                "values": [
-                    {"valueId": 4, "value": "8GB", "imageUrl": null, "sort": 1},
-                    {"valueId": 5, "value": "12GB", "imageUrl": null, "sort": 2},
-                    {"valueId": 6, "value": "16GB", "imageUrl": null, "sort": 3}
-                ]
-            }
-        ]
-    }
-}
-```
-
----
-
-### 14.9 校验SKU属性组合
-
-**接口路径：** `/sku/attr/validate/{spuId}`
-**HTTP方法：** POST
-**权限：** `hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN')`
-**功能说明：** 校验SKU属性组合是否合法（检查属性值是否都属于该SPU选择的销售属性）
-
-#### 路径参数
-
-| 参数名 | 类型 | 必填 | 说明 | 示例 |
-|--------|------|------|------|------|
-| spuId | Long | 是 | SPU ID | `3` |
-
-#### 请求参数 (Body)
-
-| 参数名 | 类型 | 必填 | 说明 | 示例 |
-|--------|------|------|------|------|
-| - | Array | 是 | 属性值ID列表 | `[1, 5, 7]` |
-
-#### 响应示例
-```json
-{
-    "code": 200,
-    "msg": "操作成功",
-    "data": {
-        "valid": true,
-        "message": "属性组合合法"
-    }
-}
-```
+**接口路径：** ~~`/sku/attr/validate/{spuId}`~~
 
 ---
 
@@ -7743,7 +7713,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/sku/attr/create`
 **HTTP方法：** POST
-**权限：** `hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')`
+**权限：** `hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')`
 **功能说明：** 一步完成单个SKU的新增 + 销售属性绑定。属性值组合不能与已有SKU重复。**同时会自动更新SPU的最低售价(minPrice)和上架状态（新建启用SKU会将SPU自动上架）。**
 
 #### 请求参数 (Body)
@@ -7787,7 +7757,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/sku/attr/batch-create`
 **HTTP方法：** POST
-**权限：** `hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')`
+**权限：** `hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')`
 **功能说明：** 批量创建SKU并绑定销售属性。所有SKU必须在同一个SPU下，且每个SKU的属性值组合不能与已有SKU重复。**同时会自动更新SPU的最低售价(minPrice)和上架状态。**
 
 #### 请求参数 (Body)
@@ -7864,7 +7834,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/sku/attr/update-combined`
 **HTTP方法：** PUT
-**权限：** `hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')`
+**权限：** `hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')`
 **功能说明：** 更新SKU基本信息（价格、库存、状态等），**不修改销售属性绑定**。修改SKU信息时，销售价格、市场价和成本价三个字段均需传入。**同时会自动更新SPU的最低售价(minPrice)和上架状态（禁用全部启用SKU会导致SPU自动下架）。**
 
 #### 请求参数 (Body)
@@ -7916,7 +7886,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/sku/attr/batch-update`
 **HTTP方法：** PUT
-**权限：** `hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')`
+**权限：** `hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')`
 **功能说明：** 批量更新SKU基本信息，**不修改销售属性**。修改SKU信息时，销售价格、市场价和成本价三个字段均需传入。单个SKU更新失败不影响其他SKU。
 
 #### 请求参数 (Body)
@@ -8155,12 +8125,57 @@ list 数组内每个元素的字段：
 
 ---
 
-### 15.4 获取当前用户的店铺
+### 15.4 管理员获取店铺详情
+
+**接口路径：** `/store/admin/detail/{id}`
+**HTTP方法：** GET
+**权限：** hasRole('SUPER_ADMIN')
+**功能说明：** 管理员根据ID获取店铺完整详情，返回 `StoreAdminVo`，包含店铺所有管理字段。
+
+> 返回 `StoreAdminVo`，包含：`id`, `name`, `sellerId`, `logo`, `banner`, `description`, `phone`, `address`, `businessLicense`, `status`, `sort`, `rejectReason`, `createdAt`, `updatedAt`
+
+#### 路径参数
+
+| 参数名 | 类型 | 必填 | 说明 | 示例 |
+|--------|------|------|------|------|
+| id | Long | 是 | 店铺ID | `1` |
+
+#### 响应示例
+```json
+{
+    "code": 200,
+    "msg": "操作成功",
+    "data": {
+        "id": 1,
+        "name": "小米官方旗舰店",
+        "sellerId": 6,
+        "logo": "2026/05/15/uuid_logo.jpg",
+        "banner": "2026/05/15/uuid_banner.jpg",
+        "description": "小米官方直营店铺",
+        "phone": "13800138000",
+        "address": "北京市海淀区",
+        "businessLicense": "2026/01/01/uuid_license.jpg",
+        "status": 1,
+        "sort": 0,
+        "rejectReason": null,
+        "createdAt": "2026-01-01 10:00:00",
+        "updatedAt": "2026-06-20 10:00:00"
+    }
+}
+```
+
+---
+
+### 15.5 获取当前用户的店铺
 
 **接口路径：** `/store/my-store`
 **HTTP方法：** GET
 **权限：** hasAuthority('store:manage') or hasRole('SUPER_ADMIN') or hasRole('SELLER')
 **功能说明：** 获取当前登录商家对应的店铺
+
+> 返回 `StoreSellerVo`，卖家可见字段：`id`, `name`, `logo`, `banner`, `description`, `phone`, `address`, `businessLicense`, `status`, `rejectReason`, `createdAt`
+>
+> **排除的字段：** `sellerId`(自己就是), `sort`(排序号), `updatedAt`(更新时间)
 
 #### 响应示例
 ```json
@@ -8170,8 +8185,15 @@ list 数组内每个元素的字段：
     "data": {
         "id": 1,
         "name": "我的店铺",
-        "sellerId": 2,
-        "status": 1
+        "logo": "2026/05/15/uuid_logo.jpg",
+        "banner": "2026/05/15/uuid_banner.jpg",
+        "description": "主营手机电脑",
+        "phone": "13800138000",
+        "address": "北京市海淀区",
+        "businessLicense": "2026/01/01/uuid_license.jpg",
+        "status": 1,
+        "rejectReason": null,
+        "createdAt": "2026-01-01 10:00:00"
     }
 }
 ```
@@ -8233,8 +8255,8 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/store/admin/page`
 **HTTP方法：** GET
-**权限：** ADMIN 或 SUPER_ADMIN 角色 (`hasRole('ADMIN') or hasRole('SUPER_ADMIN')`)
-**功能说明：** 管理员分页查询店铺列表，返回完整 Store 实体，可查看全部状态的店铺，支持多条件筛选。
+**权限：** SUPER_ADMIN 角色 (`hasRole('SUPER_ADMIN')`)
+**功能说明：** 管理员分页查询店铺列表，返回 `StoreAdminVo`（含完整管理字段），可查看全部状态的店铺，支持多条件筛选。
 
 #### 请求参数 (Query)
 
@@ -8252,7 +8274,7 @@ list 数组内每个元素的字段：
 
 | 参数名 | 类型 | 说明 |
 |--------|------|------|
-| list | Array | 店铺列表（完整 Store 实体，含所有字段，其中 logo/banner 为相对路径，需拼接完整URL） |
+| list | Array | 店铺列表（`StoreAdminVo`，含完整管理字段，其中 logo/banner 为相对路径，需拼接完整URL） |
 | page | Integer | 当前页码 |
 | pageSize | Integer | 每页数量 |
 | total | Integer | 总数量 |
@@ -8300,7 +8322,7 @@ list 数组内每个元素的字段：
 
 | 错误信息 | 说明 |
 |---------|------|
-| 权限不足 | 当前用户不具备 ADMIN 或 SUPER_ADMIN 角色 |
+| 权限不足 | 当前用户不具备 SUPER_ADMIN 角色 |
 
 ---
 
@@ -8365,13 +8387,7 @@ list 数组内每个元素的字段：
 {
     "code": 200,
     "msg": "开店申请已提交，请等待管理员审核",
-    "data": {
-        "id": 3,
-        "name": "我的店铺",
-        "sellerId": 6,
-        "status": 2,
-        "createdAt": "2026-06-11 10:00:00"
-    }
+    "data": null
 }
 ```
 
@@ -8390,7 +8406,14 @@ list 数组内每个元素的字段：
 **接口路径：** `/store/apply/status`
 **HTTP方法：** GET
 **权限：** isAuthenticated()
-**功能说明：** 当前登录用户查看自己的开店申请状态，返回店铺信息（含 status 和 rejectReason）。
+**功能说明：** 当前登录用户查看自己的开店申请状态，返回审核状态和驳回原因。
+
+#### 响应参数 (Response)
+
+| 参数名 | 类型 | 说明 | 示例 |
+|--------|------|------|------|
+| status | Integer | 审核状态: 2-审核中 3-审核失败 | `2` |
+| rejectReason | String | 驳回原因（审核中为 null） | `店铺名称不合规` |
 
 #### 响应示例（审核中）
 ```json
@@ -8398,12 +8421,8 @@ list 数组内每个元素的字段：
     "code": 200,
     "msg": "操作成功",
     "data": {
-        "id": 3,
-        "name": "我的店铺",
-        "sellerId": 6,
         "status": 2,
-        "rejectReason": null,
-        "createdAt": "2026-06-11 10:00:00"
+        "rejectReason": null
     }
 }
 ```
@@ -8414,12 +8433,8 @@ list 数组内每个元素的字段：
     "code": 200,
     "msg": "操作成功",
     "data": {
-        "id": 3,
-        "name": "我的店铺",
-        "sellerId": 6,
         "status": 3,
-        "rejectReason": "店铺名称不合规",
-        "createdAt": "2026-06-11 10:00:00"
+        "rejectReason": "店铺名称不合规"
     }
 }
 ```
@@ -8459,7 +8474,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/admin/store/apply/pending`
 **HTTP方法：** GET
-**权限：** hasRole('ADMIN') or hasRole('SUPER_ADMIN')
+**权限：** hasRole('SUPER_ADMIN')
 **功能说明：** 管理员分页查询所有 status=2(审核中) 的开店申请列表。
 
 #### 请求参数 (Query)
@@ -8473,10 +8488,14 @@ list 数组内每个元素的字段：
 
 | 参数名 | 类型 | 说明 |
 |--------|------|------|
-| list | Array | 店铺列表（status=2，含所有字段） |
+| list | Array | 店铺列表（`StoreApplyAdminVo`，含审核所需字段） |
 | page | Integer | 当前页码 |
 | pageSize | Integer | 每页数量 |
 | total | Integer | 总数量 |
+
+> 管理接口返回 `StoreApplyAdminVo`，包含：`id`, `name`, `sellerId`, `description`, `phone`, `address`, `status`, `rejectReason`, `createdAt`
+>
+> **排除的字段：** `logo`, `banner`, `businessLicense`, `sort`, `updatedAt`
 
 #### 响应示例
 ```json
@@ -8489,6 +8508,9 @@ list 数组内每个元素的字段：
                 "id": 3,
                 "name": "我的店铺",
                 "sellerId": 6,
+                "description": "主营手机电脑",
+                "phone": "13800138000",
+                "address": "深圳市南山区",
                 "status": 2,
                 "rejectReason": null,
                 "createdAt": "2026-06-11 10:00:00"
@@ -8507,7 +8529,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/admin/store/apply/approve/{id}`
 **HTTP方法：** PUT
-**权限：** hasRole('ADMIN') or hasRole('SUPER_ADMIN')
+**权限：** hasRole('SUPER_ADMIN')
 **功能说明：** 管理员审核通过开店申请。系统自动执行：
 1. 店铺 status 更新为 1(正常)
 2. 申请用户自动获得 SELLER 角色（若尚未拥有）
@@ -8534,7 +8556,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/admin/store/apply/reject/{id}`
 **HTTP方法：** PUT
-**权限：** hasRole('ADMIN') or hasRole('SUPER_ADMIN')
+**权限：** hasRole('SUPER_ADMIN')
 **功能说明：** 管理员驳回开店申请，店铺 status 更新为 3(审核失败)，需填写驳回原因。
 
 #### 路径参数
@@ -8974,7 +8996,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/banner/add`
 **HTTP方法：** POST
-**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**权限：** hasRole('SUPER_ADMIN')
 **功能说明：** 新增轮播图。上传图片成功后保存到数据库，同时清除首页轮播图缓存。
 
 #### 请求参数 (form-data)
@@ -9004,7 +9026,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/banner/update`
 **HTTP方法：** PUT
-**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**权限：** hasRole('SUPER_ADMIN')
 **功能说明：** 编辑轮播图信息。可选更换图片，上传新图片成功后自动删除旧图片文件，并清除首页轮播图缓存。
 
 #### 请求参数 (form-data)
@@ -9035,7 +9057,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/banner/delete/{id}`
 **HTTP方法：** DELETE
-**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**权限：** hasRole('SUPER_ADMIN')
 **功能说明：** 删除轮播图（物理删除），同时删除关联的图片文件，并清除首页轮播图缓存。
 
 #### 路径参数
@@ -9060,7 +9082,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/banner/enable/{id}`
 **HTTP方法：** PUT
-**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**权限：** hasRole('SUPER_ADMIN')
 **功能说明：** 启用轮播图。启用后前台首页可见，并清除首页轮播图缓存。
 
 #### 路径参数
@@ -9085,7 +9107,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/banner/disable/{id}`
 **HTTP方法：** PUT
-**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**权限：** hasRole('SUPER_ADMIN')
 **功能说明：** 禁用轮播图。禁用后前台首页不再展示，并清除首页轮播图缓存。
 
 #### 路径参数
@@ -9110,7 +9132,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/banner/list`
 **HTTP方法：** GET
-**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**权限：** hasRole('SUPER_ADMIN')
 **功能说明：** 获取轮播图列表，支持按状态筛选。可查看所有状态（启用+禁用）的轮播图。用于管理后台的轮播图管理页面。
 
 #### 请求参数
@@ -9118,6 +9140,19 @@ list 数组内每个元素的字段：
 | 参数名 | 类型 | 必填 | 说明 | 示例 |
 |--------|------|------|------|------|
 | status | Integer | 否 | 状态过滤: 1-启用 0-禁用，不传查全部 | 1 |
+
+#### 响应参数
+
+`data` 数组中每个元素的结构：
+
+| 参数名 | 类型 | 说明 | 示例 |
+|--------|------|------|------|
+| id | Long | 主键ID | 1 |
+| title | String | 轮播图标题 | "春季促销" |
+| imageUrl | String | 图片URL | "xxx.jpg" |
+| linkUrl | String | 跳转链接 | "https://example.com" |
+| sort | Integer | 排序（越小越靠前） | 0 |
+| status | Integer | 状态: 1-启用 0-禁用 | 1 |
 
 #### 响应示例
 
@@ -9132,9 +9167,7 @@ list 数组内每个元素的字段：
             "imageUrl": "xxx.jpg",
             "linkUrl": "https://example.com",
             "sort": 0,
-            "status": 1,
-            "createdAt": "2026-06-01 10:00:00",
-            "updatedAt": "2026-06-01 10:00:00"
+            "status": 1
         }
     ]
 }
@@ -9183,7 +9216,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/attribute/manage/add`
 **HTTP方法：** POST
-**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**权限：** hasRole('SUPER_ADMIN')
 **功能说明：** 新增属性定义。属性分为销售属性（如颜色、内存）和基本属性（如电池容量、屏幕尺寸）。
 
 #### 请求参数 (Body - JSON)
@@ -9212,7 +9245,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/attribute/manage/update/{id}`
 **HTTP方法：** PUT
-**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**权限：** hasRole('SUPER_ADMIN')
 **功能说明：** 修改属性信息。如果该属性下已有属性值，则禁止修改属性类型（attrType），但可以修改名称和排序。
 
 #### 路径参数
@@ -9252,7 +9285,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/attribute/manage/delete/{id}`
 **HTTP方法：** DELETE
-**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**权限：** hasRole('SUPER_ADMIN')
 **功能说明：** 删除属性定义。如果该属性下存在属性值，则禁止删除。关联的 `category_attributes` 记录由数据库级联删除。
 
 #### 路径参数
@@ -9284,7 +9317,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/attribute/manage/list`
 **HTTP方法：** GET
-**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**权限：** hasRole('SUPER_ADMIN')
 **功能说明：** 查询全部属性列表，每个属性包含其下的所有属性值。
 
 #### 响应参数
@@ -9298,6 +9331,10 @@ list 数组内每个元素的字段：
 | createdAt | DateTime | 创建时间 | "2026-05-12T14:07:25" |
 | updatedAt | DateTime | 更新时间 | "2026-05-12T14:07:25" |
 | values | Array | 该属性下的属性值列表 | |
+| values[].valueId | Long | 属性值ID | 1 |
+| values[].value | String | 属性值名称 | "黑色" |
+| values[].imageUrl | String | 属性值图片URL | "/images/phone/black.png" |
+| values[].sort | Integer | 排序 | 1 |
 
 #### 响应示例
 
@@ -9315,13 +9352,10 @@ list 数组内每个元素的字段：
             "updatedAt": "2026-05-12T14:07:25",
             "values": [
                 {
-                    "id": 1,
-                    "attrId": 1,
+                    "valueId": 1,
                     "value": "黑色",
                     "imageUrl": "/images/phone/black.png",
-                    "sort": 1,
-                    "createdAt": "2026-05-12T14:07:25",
-                    "updatedAt": "2026-05-12T14:07:25"
+                    "sort": 1
                 }
             ]
         }
@@ -9335,7 +9369,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/attribute/manage/{id}`
 **HTTP方法：** GET
-**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**权限：** hasRole('SUPER_ADMIN')
 **功能说明：** 查询单个属性详情，包含其下的所有属性值。
 
 #### 路径参数
@@ -9343,6 +9377,22 @@ list 数组内每个元素的字段：
 | 参数名 | 类型 | 必填 | 说明 | 示例 |
 |--------|------|------|------|------|
 | id | Long | 是 | 属性ID | 1 |
+
+#### 响应参数
+
+| 参数名 | 类型 | 说明 | 示例 |
+|--------|------|------|------|
+| id | Long | 属性ID | 1 |
+| name | String | 属性名称 | "颜色" |
+| attrType | Integer | 属性类型：1-销售属性，2-基本属性 | 1 |
+| sort | Integer | 排序 | 1 |
+| createdAt | DateTime | 创建时间 | "2026-05-12T14:07:25" |
+| updatedAt | DateTime | 更新时间 | "2026-05-12T14:07:25" |
+| values | Array | 该属性下的属性值列表 | |
+| values[].valueId | Long | 属性值ID | 1 |
+| values[].value | String | 属性值名称 | "黑色" |
+| values[].imageUrl | String | 属性值图片URL | "/images/phone/black.png" |
+| values[].sort | Integer | 排序 | 1 |
 
 #### 响应示例
 
@@ -9359,13 +9409,10 @@ list 数组内每个元素的字段：
         "updatedAt": "2026-05-12T14:07:25",
         "values": [
             {
-                "id": 1,
-                "attrId": 1,
+                "valueId": 1,
                 "value": "黑色",
                 "imageUrl": "/images/phone/black.png",
-                "sort": 1,
-                "createdAt": "2026-05-12T14:07:25",
-                "updatedAt": "2026-05-12T14:07:25"
+                "sort": 1
             }
         ]
     }
@@ -9378,7 +9425,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/attribute/manage/value/add`
 **HTTP方法：** POST
-**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**权限：** hasRole('SUPER_ADMIN')
 **功能说明：** 在指定属性下新增属性值（如颜色下新增"蓝色"）。
 
 #### 请求参数 (Body - JSON)
@@ -9408,7 +9455,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/attribute/manage/value/update/{id}`
 **HTTP方法：** PUT
-**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**权限：** hasRole('SUPER_ADMIN')
 **功能说明：** 修改属性值。如果该属性值已被 SPU 或 SKU 引用，则禁止修改。
 
 #### 路径参数
@@ -9451,7 +9498,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/attribute/manage/value/delete/{id}`
 **HTTP方法：** DELETE
-**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**权限：** hasRole('SUPER_ADMIN')
 **功能说明：** 删除属性值。如果该属性值已被 SPU 或 SKU 引用，则禁止删除。
 
 #### 路径参数
@@ -9480,7 +9527,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/attribute/manage/value/list/{attrId}`
 **HTTP方法：** GET
-**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**权限：** hasRole('SUPER_ADMIN')
 **功能说明：** 根据属性ID查询其下的所有属性值。
 
 #### 路径参数
@@ -9488,6 +9535,15 @@ list 数组内每个元素的字段：
 | 参数名 | 类型 | 必填 | 说明 | 示例 |
 |--------|------|------|------|------|
 | attrId | Long | 是 | 属性ID | 1 |
+
+#### 响应参数
+
+| 参数名 | 类型 | 说明 | 示例 |
+|--------|------|------|------|
+| valueId | Long | 属性值ID | 1 |
+| value | String | 属性值名称 | "黑色" |
+| imageUrl | String | 属性值图片URL | "/images/phone/black.png" |
+| sort | Integer | 排序 | 1 |
 
 #### 响应示例
 
@@ -9497,13 +9553,10 @@ list 数组内每个元素的字段：
     "msg": "操作成功",
     "data": [
         {
-            "id": 1,
-            "attrId": 1,
+            "valueId": 1,
             "value": "黑色",
             "imageUrl": "/images/phone/black.png",
-            "sort": 1,
-            "createdAt": "2026-05-12T14:07:25",
-            "updatedAt": "2026-05-12T14:07:25"
+            "sort": 1
         }
     ]
 }
@@ -9517,8 +9570,8 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/category/attribute/manage/bound/{categoryId}`
 **HTTP方法：** GET
-**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
-**功能说明：** 获取指定分类已绑定的属性列表，每个属性附带 SPU 引用状态（hasSpuUsage），前端可根据该字段展示锁定图标，提示运营管理员哪些属性无法解绑。
+**权限：** hasRole('SUPER_ADMIN')
+**功能说明：** 获取指定分类已绑定的属性列表，每个属性附带 SPU 引用状态（hasSpuUsage），前端可根据该字段展示锁定图标，提示超级管理员哪些属性无法解绑。
 
 #### 路径参数
 
@@ -9573,14 +9626,25 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/category/attribute/manage/available/{categoryId}`
 **HTTP方法：** GET
-**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
-**功能说明：** 获取尚未绑定到指定分类的所有属性，供运营管理员选择绑定。
+**权限：** hasRole('SUPER_ADMIN')
+**功能说明：** 获取尚未绑定到指定分类的所有属性，供超级管理员选择绑定。
 
 #### 路径参数
 
 | 参数名 | 类型 | 必填 | 说明 | 示例 |
 |--------|------|------|------|------|
 | categoryId | Long | 是 | 分类ID | 27 |
+
+#### 响应参数
+
+`data` 数组中每个元素的结构：
+
+| 参数名 | 类型 | 说明 | 示例 |
+|--------|------|------|------|
+| id | Long | 属性ID | 8 |
+| name | String | 属性名称 | "屏幕尺寸" |
+| attrType | Integer | 属性类型：1-销售属性，2-基本属性 | 2 |
+| sort | Integer | 排序 | 0 |
 
 #### 响应示例
 
@@ -9593,9 +9657,7 @@ list 数组内每个元素的字段：
             "id": 8,
             "name": "屏幕尺寸",
             "attrType": 2,
-            "sort": 0,
-            "createdAt": "2026-05-12T14:07:25",
-            "updatedAt": "2026-05-12T14:07:25"
+            "sort": 0
         }
     ]
 }
@@ -9607,7 +9669,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/category/attribute/manage/bind`
 **HTTP方法：** POST
-**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**权限：** hasRole('SUPER_ADMIN')
 **功能说明：** 将属性绑定到指定分类。**仅允许绑定到叶子分类**（没有子分类的分类），因为 SPU 只能挂在叶子分类下，非叶子分类绑定属性无实际意义。
 
 #### 请求参数 (Body - JSON)
@@ -9643,7 +9705,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/category/attribute/manage/update-sort/{id}`
 **HTTP方法：** PUT
-**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**权限：** hasRole('SUPER_ADMIN')
 **功能说明：** 修改绑定记录的排序。调整排序不影响已有 SPU 数据，无约束条件。
 
 #### 路径参数
@@ -9674,7 +9736,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/category/attribute/manage/unbind/{id}`
 **HTTP方法：** DELETE
-**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**权限：** hasRole('SUPER_ADMIN')
 **功能说明：** 从分类中解绑属性。如果该分类下的 SPU 已使用了该属性，则禁止解绑。
 
 #### 路径参数
@@ -9708,7 +9770,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/user/manage/promote-to-seller/{userId}`
 **HTTP方法：** PUT
-**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**权限：** hasRole('SUPER_ADMIN')
 **功能说明：** 将普通用户升级为商家。系统会自动：
 1. 为用户添加 SELLER 角色
 2. 自动创建默认店铺（店铺名为"用户真实姓名/用户名 + 的店铺"）
@@ -9729,6 +9791,8 @@ list 数组内每个元素的字段：
 | roleCode | String | 商家角色编码 | "SELLER" |
 | roleName | String | 商家角色名称 | "普通卖家" |
 | storeId | Long | 店铺ID（新建或已有） | 3 |
+
+> 返回 `PromoteToSellerVo`，包含上述字段。
 
 #### 响应示例
 
@@ -9760,7 +9824,7 @@ list 数组内每个元素的字段：
 
 **接口路径：** `/user/manage/page`
 **HTTP方法：** GET
-**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
+**权限：** hasRole('SUPER_ADMIN')
 **功能说明：** 管理员分页查询用户列表，返回用户基本信息及角色信息，支持多条件筛选：
 
 - 关键词模糊搜索（用户名/手机号/邮箱）
@@ -9784,14 +9848,15 @@ list 数组内每个元素的字段：
 
 | 参数名 | 类型 | 说明 |
 |--------|------|------|
-| records | Array | 用户列表（含ID、用户名、真实姓名、邮箱、手机号、头像、状态、创建时间、角色列表） |
+| records | Array | 用户列表（`UserManageVo`，含ID、用户名、真实姓名、邮箱、手机号、头像、状态、最后登录时间、创建时间、角色编码列表） |
 | current | Integer | 当前页码 |
 | size | Integer | 每页数量 |
 | total | Integer | 总记录数 |
 | pages | Integer | 总页数 |
 
-> 每个用户对象中 roles 字段为角色列表，包含角色的 id、name、code 等信息。
-> password 字段已在服务端清除，不会返回。
+> 管理接口返回 `UserManageVo`，包含：`id`, `username`, `realName`, `email`, `phone`, `avatar`, `status`, `lastLoginTime`, `createdAt`, `roles`(角色编码列表)
+>
+> **排除的字段：** `password`, `lastLoginIp`, `updatedAt`, `isDeleted`/`deletedAt`, `authorities`
 
 #### 响应示例
 
@@ -9809,15 +9874,9 @@ list 数组内每个元素的字段：
                 "phone": "13800138000",
                 "avatar": null,
                 "status": 1,
+                "lastLoginTime": "2026-06-20 10:00:00",
                 "createdAt": "2026-01-01 00:00:00",
-                "roles": [
-                    {
-                        "id": 1,
-                        "name": "超级管理员",
-                        "code": "SUPER_ADMIN",
-                        "description": "超级管理员，拥有系统所有权限"
-                    }
-                ]
+                "roles": ["SUPER_ADMIN"]
             }
         ],
         "current": 1,
@@ -9830,12 +9889,12 @@ list 数组内每个元素的字段：
 
 ---
 
-### 21.3 启用或禁用用户
+### 21.3 启用用户
 
-**接口路径：** `/user/manage/status/{userId}`
+**接口路径：** `/user/manage/enable/{userId}`
 **HTTP方法：** PUT
-**权限：** hasRole('SUPER_ADMIN') or hasRole('ADMIN')
-**功能说明：** 管理员启用或禁用指定用户。禁用后用户无法登录系统（Spring Security 根据 User.isEnabled() 判断）。
+**权限：** hasRole('SUPER_ADMIN')
+**功能说明：** 管理员启用指定用户。启用后用户可正常登录系统。
 
 #### 路径参数
 
@@ -9843,18 +9902,37 @@ list 数组内每个元素的字段：
 |--------|------|------|------|------|
 | userId | Long | 是 | 用户ID | `6` |
 
-#### 请求参数 (Query)
-
-| 参数名 | 类型 | 必填 | 说明 | 示例 |
-|--------|------|------|------|------|
-| status | Integer | 是 | 1-启用 0-禁用 | `1` |
-
-#### 响应示例（启用成功）
+#### 响应示例
 
 ```json
 {
     "code": 200,
     "msg": "用户已启用",
+    "data": null
+}
+```
+
+---
+
+### 21.4 禁用用户
+
+**接口路径：** `/user/manage/disable/{userId}`
+**HTTP方法：** PUT
+**权限：** hasRole('SUPER_ADMIN')
+**功能说明：** 管理员禁用指定用户。禁用后用户无法登录系统，同时清除 Redis 中的 Token 缓存使其立即下线。
+
+#### 路径参数
+
+| 参数名 | 类型 | 必填 | 说明 | 示例 |
+|--------|------|------|------|------|
+| userId | Long | 是 | 用户ID | `6` |
+
+#### 响应示例
+
+```json
+{
+    "code": 200,
+    "msg": "用户已禁用",
     "data": null
 }
 ```
@@ -9867,6 +9945,84 @@ list 数组内每个元素的字段：
 | 状态值无效，仅支持 1-启用 0-禁用 | 传入了非 0/1 的状态值 |
 | 该用户已是启用状态 | 用户当前 status 已为 1 |
 | 该用户已是禁用状态 | 用户当前 status 已为 0 |
+
+---
+
+## 二十二、管理员仪表盘模块 (AdminDashboard)
+
+### 22.1 获取平台运营概览
+
+**接口路径：** `/admin/dashboard/overview`
+**HTTP方法：** GET
+**权限：** hasRole('SUPER_ADMIN')
+**功能说明：** 返回平台级运营概览数据，包含总用户数、今日订单数、商品总数、今日销售额、入驻卖家数，用于超级管理员后台首页核心指标卡片展示。
+
+#### 请求参数
+
+无
+
+#### 响应参数 (Response)
+
+| 参数名 | 类型 | 说明 |
+|--------|------|------|
+| totalUsers | Long | 总用户数，统计全部注册用户 |
+| todayOrders | Long | 今日订单数，统计当日创建的订单总数 |
+| totalProducts | Long | 商品总数，统计未逻辑删除的 SPU 数量 |
+| todaySales | BigDecimal | 今日销售额（元），统计当日已完成订单的实付金额 |
+| settledSellers | Long | 入驻卖家数，统计状态为正常的店铺数量 |
+
+#### 响应示例
+
+```json
+{
+    "code": 200,
+    "message": "success",
+    "data": {
+        "totalUsers": 128,
+        "todayOrders": 15,
+        "totalProducts": 356,
+        "todaySales": 12580.00,
+        "settledSellers": 42
+    }
+}
+```
+
+---
+
+### 22.2 获取平台销售额统计
+
+**接口路径：** `/admin/dashboard/sales`
+**HTTP方法：** GET
+**权限：** hasRole('SUPER_ADMIN')
+**功能说明：** 返回今日、近7日、本月、本年四个时间维度的平台销售额，用于超级管理员后台首页销售额趋势卡片展示。
+
+#### 请求参数
+
+无
+
+#### 响应参数 (Response)
+
+| 参数名 | 类型 | 说明 |
+|--------|------|------|
+| today | BigDecimal | 今日销售额（元），统计当天00:00:00至今的已完成订单 |
+| last7Days | BigDecimal | 近7日销售额（元），含今天 |
+| thisMonth | BigDecimal | 本月销售额（元），当月1日至今 |
+| thisYear | BigDecimal | 本年销售额（元），当年1月1日至今 |
+
+#### 响应示例
+
+```json
+{
+    "code": 200,
+    "message": "success",
+    "data": {
+        "today": 12580.00,
+        "last7Days": 85600.00,
+        "thisMonth": 325000.00,
+        "thisYear": 1850000.00
+    }
+}
+```
 
 ---
 

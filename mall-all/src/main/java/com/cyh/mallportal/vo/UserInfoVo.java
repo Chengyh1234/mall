@@ -37,18 +37,15 @@ public class UserInfoVo {
     /** 角色编码列表（如 ["USER", "SELLER"]） */
     private List<String> roles;
 
-    /** 权限编码列表（如 ["ROLE_USER", "product:add", ...]） */
-    private List<String> authorities;
 
     /**
      * 从 User 实体创建 UserInfoVo，并自动脱敏处理
      *
      * @param user       用户实体
      * @param roles      角色编码列表（如 ["USER", "SELLER"]）
-     * @param authorities 权限编码列表（如 ["ROLE_USER", "product:add"]）
      * @return UserInfoVo
      */
-    public static UserInfoVo fromUser(User user, List<String> roles, List<String> authorities) {
+    public static UserInfoVo fromUser(User user, List<String> roles) {
         if (user == null) {
             return null;
         }
@@ -61,7 +58,6 @@ public class UserInfoVo {
         vo.setRealName(maskRealName(user.getRealName()));
         vo.setCreatedAt(user.getCreatedAt());
         vo.setRoles(roles);
-        vo.setAuthorities(authorities);
         return vo;
     }
 

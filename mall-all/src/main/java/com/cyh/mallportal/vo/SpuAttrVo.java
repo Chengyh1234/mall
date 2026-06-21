@@ -9,7 +9,14 @@ import java.util.List;
 
 /**
  * SPU属性视图对象
- * 包含SPU的基本属性和销售属性完整信息
+ * 包含SPU的基本属性和销售属性完整信息，以及选过不是该分类下全部属性
+ * {"spuId":54,"spuName":"华硕天选5pro",
+ * "basicAttrs":
+ *   {"id":47,"attrId":6,"attrName":"屏幕尺寸","attrType":2,"attrValueId":11,"attrValue":"6.73英寸","manualValue":null,"imageUrl":null}],
+ *  "saleAttrs":
+ *  [{"id":34,"attrId":1,"attrName":"颜色","selectedValues":[{"valueId":20,"value":"电脑黑色","imageUrl":null}]
+ *  }]
+ *  }
  */
 @Data
 public class SpuAttrVo implements Serializable {

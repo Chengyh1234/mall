@@ -1,37 +1,29 @@
 package com.cyh.mallportal.controller;
-
-import cn.hutool.core.io.FileUtil;
 import com.alibaba.druid.util.StringUtils;
 import com.alibaba.fastjson2.JSON;
-
 import com.cyh.mallcommon.utils.Result;
 import com.cyh.mallcommon.constant.FileConstants;
 import com.cyh.mallportal.dto.SpuDto;
-import com.cyh.mallportal.entity.Spu;
-import com.cyh.mallportal.entity.User;
-import com.cyh.mallportal.service.CategoryService;
-import com.cyh.mallportal.service.FileService;
-import com.cyh.mallportal.service.SpuService;
-import com.cyh.mallportal.service.StoreService;
-import com.cyh.mallportal.vo.SpuDetailVo;
+import com.cyh.mallportal.entity.*;
+import com.cyh.mallportal.mapper.AttributeMapper;
+import com.cyh.mallportal.mapper.AttributeValueMapper;
+import com.cyh.mallportal.service.*;
+import com.cyh.mallportal.vo.*;
+import com.cyh.mallportal.vo.SpuVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.io.File;
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
- * 商品SPU管理控制器
+ * 商品SPU管理控制器 已经修改响应
  * 提供商品的增删改查功能及图片管理
  */
 @Slf4j
@@ -51,6 +43,15 @@ public class SpuController {
     @Autowired
     private StoreService storeService;
 
+    @Autowired
+    private SpuAttrService spuAttrService;
+
+    @Autowired
+    private AttributeMapper attributeMapper;
+
+    @Autowired
+    private AttributeValueMapper attributeValueMapper;
+
     //@Value("${file.upload.images-path:./uploads/images}")
     //private String imagesPath;
 
@@ -59,7 +60,7 @@ public class SpuController {
      * 店铺ID由系统根据当前登录商家自动获取，无需前端传入
      */
     @PostMapping("/add")
-    @PreAuthorize("hasAuthority('product:add') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasAuthority('product:add') or hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Map<String, Object>> add(@RequestPart(value = "spuDto") String spuDtoString,
                                            @RequestPart(value = "imageFiles", required = false) List<MultipartFile> imageFiles) {
         SpuDto spuDto = JSON.parseObject(spuDtoString, SpuDto.class);
@@ -148,7 +149,7 @@ public class SpuController {
      * 删除商品（逻辑删除，设置 is_deleted=1，图片保留以支持恢复）
      */
     @DeleteMapping("/delete/{id}")
-    @PreAuthorize("hasAuthority('product:delete') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasAuthority('product:delete') or hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Void> delete(@PathVariable Long id) {
         Spu spu = spuService.getById(id);
         if (spu == null) {
@@ -177,7 +178,7 @@ public class SpuController {
      * 上架前校验：SPU下必须存在启用状态的SKU，否则不允许上架
      */
     @PutMapping("/on-shelf/{id}")
-    @PreAuthorize("hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Void> onShelf(@PathVariable Long id) {
         Spu spu = spuService.getById(id);
         if (spu == null) {
@@ -209,7 +210,7 @@ public class SpuController {
      * 下架商品（设置 status=0）
      */
     @PutMapping("/off-shelf/{id}")
-    @PreAuthorize("hasAuthority('product:offShelf') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasAuthority('product:offShelf') or hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Void> offShelf(@PathVariable Long id) {
         Spu spu = spuService.getById(id);
         if (spu == null) {
@@ -236,7 +237,7 @@ public class SpuController {
      * 恢复商品（设置 is_deleted=0）
      */
     @PutMapping("/restore/{id}")
-    @PreAuthorize("hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Void> restore(@PathVariable Long id) {
         Long currentUserId = getCurrentUserId();
         if (currentUserId == null) {
@@ -261,7 +262,7 @@ public class SpuController {
      * @return 更新结果
      */
     @PutMapping("/update")
-    @PreAuthorize("hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Map<String, Object>> update(@RequestPart(value = "spuDto") String spuDtoString,
                                               @RequestPart(value = "imageFiles", required = false) List<MultipartFile> imageFiles) {
         SpuDto spuDto = JSON.parseObject(spuDtoString, SpuDto.class);
@@ -395,66 +396,117 @@ public class SpuController {
     }
 
     /**
-     * 根据ID获取商品详情（包含商家信息）
-     * 上架商品（status=1）公开可见；
-     * 下架商品仅商品所属商家、管理员或超级管理员可查看
+     * 根据ID获取商品详情（公开）
+     * 公开接口，仅返回上架商品（status=1）
+     * 下架商品不对外公开，返回"商品不存在"
+     * 返回 SpuVo 字段 + sellerId、sellerUsername、sellerAvatar
      *
      * @param id 商品ID
-     * @return 商品详情（包含商家信息）
+     * @return 商品详情
      */
     @GetMapping("/detail/{id}")
     public Result<SpuDetailVo> getById(@PathVariable Long id) {
-        SpuDetailVo spuDetail = spuService.getSpuDetailById(id);
-        if (spuDetail == null || spuDetail.getSpu() == null) {
+        Spu spu = spuService.getById(id);
+        if (spu == null) {
             return Result.error("商品不存在");
         }
 
-        Spu spu = spuDetail.getSpu();
-
-        // 上架商品，任何人可看
-        if (spu.getStatus() == 1) {
-            return Result.success(spuDetail);
+        // 仅返回上架商品（status=1），下架商品不对外公开
+        if (spu.getStatus() != 1) {
+            return Result.error("商品不存在");
         }
 
-        // 下架商品，仅商品所属商家或管理员可看
-        Long currentUserId = getCurrentUserId();
-        if (currentUserId != null) {
-            if (currentUserId.equals(spu.getSellerId()) || isAdminOrSeller()) {
-                return Result.success(spuDetail);
-            }
+        SpuDetailVo vo = spuService.getSpuDetailById(id);
+        if (vo == null) {
+            return Result.error("商品不存在");
         }
-
-        return Result.error("商品不存在");
+        return Result.success(vo);
     }
 
     /**
-     * 获取商品列表
+     * 商家端：根据ID获取商品管理详情（不限上下架状态）
+     * 仅限商品所属商家查看，可查看上架和下架商品
+     * 返回 SpuSellerVo 字段 + sellerUsername、sellerAvatar、sellerRealName、sellerPhone
+     *
+     * @param id 商品ID
+     * @return 商家端商品管理详情
+     */
+    @GetMapping("/manage-detail/seller/{id}")
+    @PreAuthorize("hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    public Result<SpuSellerDetailVo> getManageDetailForSeller(@PathVariable Long id) {
+        Spu spu = spuService.getById(id);
+        if (spu == null) {
+            return Result.error("商品不存在");
+        }
+
+        // 校验权限：仅当前商家可查看自己的商品
+        Long currentUserId = getCurrentUserId();
+        if (currentUserId == null) {
+            return Result.error("用户未登录");
+        }
+
+        if (!currentUserId.equals(spu.getSellerId())) {
+            return Result.error("无权查看此商品");
+        }
+
+        SpuSellerDetailVo vo = spuService.getSpuSellerDetailById(id);
+        if (vo == null) {
+            return Result.error("商品不存在");
+        }
+        return Result.success(vo);
+    }
+
+    /**
+     * 管理员端：根据ID获取商品管理详情（不限上下架状态）
+     * 仅限管理员或超级管理员查看所有商品
+     * 返回 SpuAdminVo 字段 + sellerUsername、sellerAvatar、sellerRealName、sellerPhone
+     *
+     * @param id 商品ID
+     * @return 管理员端商品管理详情
+     */
+    @GetMapping("/manage-detail/admin/{id}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public Result<SpuAdminDetailVo> getManageDetailForAdmin(@PathVariable Long id) {
+        Spu spu = spuService.getById(id);
+        if (spu == null) {
+            return Result.error("商品不存在");
+        }
+
+        SpuAdminDetailVo vo = spuService.getSpuAdminDetailById(id);
+        if (vo == null) {
+            return Result.error("商品不存在");
+        }
+        return Result.success(vo);
+    }
+
+    /**
+     * 获取商品列表  ---------可删
      * 公开接口，仅返回上架状态（status=1）的商品
      */
-    @GetMapping("/list")
-    public Result<List<Spu>> getList(Spu spu) {
-        // 公开接口只展示上架商品
-        if (spu == null) {
-            spu = new Spu();
-        }
-        spu.setStatus(1);
-        List<Spu> list = spuService.getList(spu);
-        return Result.success(list);
-    }
+    //@GetMapping("/list")
+    //public Result<List<Spu>> getList(Spu spu) {
+    //    // 公开接口只展示上架商品
+    //    if (spu == null) {
+    //        spu = new Spu();
+    //    }
+    //    spu.setStatus(1);
+    //    List<Spu> list = spuService.getList(spu);
+    //    return Result.success(list);
+    //}
 
     /**
-     * 根据商家ID获取商品列表（不分页）
+     * 根据商家ID获取商品列表（不分页）---------可删
      * 仅限商家及以上角色访问，用于商家管理自己的商品
      *
      * @param sellerId 商家ID
      * @return 商品列表
      */
-    @GetMapping("/list-by-seller/{sellerId}")
-    @PreAuthorize("hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
-    public Result<List<Spu>> getListBySellerId(@PathVariable Long sellerId) {
-        List<Spu> list = spuService.getListBySellerId(sellerId);
-        return Result.success(list);
-    }
+    //@GetMapping("/list-by-seller/{sellerId}")
+    //@PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
+    //public Result<List<Spu>> getListBySellerId(@PathVariable Long sellerId) {
+    //    List<Spu> list = spuService.getListBySellerId(sellerId);
+    //    return Result.success(list);
+    //}
 
     /**
      * 根据商家ID分页获取商品列表
@@ -466,13 +518,13 @@ public class SpuController {
      * @return 商品分页列表
      */
     @GetMapping("/page-by-seller/{sellerId}")
-    @PreAuthorize("hasRole('SELLER') or hasRole('ADMIN') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<Map<String, Object>> getPageBySellerId(@PathVariable Long sellerId,
                                                          @RequestParam(required = false) Integer status,
                                                          @RequestParam(required = false) String keyword,
                                                          @RequestParam(defaultValue = "1") Integer page,
                                                          @RequestParam(defaultValue = "10") Integer pageSize) {
-        List<Spu> list = spuService.getPageBySellerId(sellerId, status, keyword, page, pageSize);
+        List<SpuSellerVo> list = spuService.getPageBySellerId(sellerId, status, keyword, page, pageSize);
         int total = spuService.countBySellerId(sellerId, status, keyword);
         Map<String, Object> data = new HashMap<>();
         data.put("list", list);
@@ -484,8 +536,8 @@ public class SpuController {
     }
 
     /**
-     * 【运营管理员】分页获取全部商品列表（含上架和下架）
-     * 不限商家，用于运营管理员查看全平台商品，支持按状态筛选和商品名称搜索
+     * 分页获取全部商品列表（含上架和下架）
+     * 不限商家，用于超级管理员查看全平台商品，支持按状态筛选和商品名称搜索
      * 返回格式与 page-by-seller 一致，但不包含 sellerId 字段
      *
      * @param status   状态筛选（可选，1-上架 0-下架，不传则查询全部）
@@ -495,12 +547,12 @@ public class SpuController {
      * @return 商品分页列表（含 categoryName、brandName）
      */
     @GetMapping("/page-all")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public Result<Map<String, Object>> getPageAll(@RequestParam(required = false) Integer status,
                                                   @RequestParam(required = false) String keyword,
                                                   @RequestParam(defaultValue = "1") Integer page,
                                                   @RequestParam(defaultValue = "10") Integer pageSize) {
-        List<Spu> list = spuService.getPageAll(status, keyword, page, pageSize);
+        List<SpuAdminVo> list = spuService.getPageAll(status, keyword, page, pageSize);
         int total = spuService.countAll(status, keyword);
         Map<String, Object> data = new HashMap<>();
         data.put("list", list);
@@ -529,7 +581,7 @@ public class SpuController {
                                                @RequestParam(required = false) String keyword,
                                                @RequestParam(defaultValue = "1") Integer page,
                                                @RequestParam(defaultValue = "10") Integer pageSize) {
-        List<Spu> list;
+        List<SpuVo> list;
         int total = 0;
         // 获取分类ID列表（如果传入了categoryId，包含子分类）
         List<Long> categoryIds = null;
@@ -596,7 +648,7 @@ public class SpuController {
                                                         @RequestParam(defaultValue = "desc") String sortOrder,
                                                         @RequestParam(defaultValue = "1") Integer page,
                                                         @RequestParam(defaultValue = "10") Integer pageSize) {
-        List<Spu> list = spuService.getPageByStoreId(storeId, keyword, categoryId,
+        List<SpuVo> list = spuService.getPageByStoreId(storeId, keyword, categoryId,
                 minPrice, maxPrice, sortBy, sortOrder, page, pageSize);
         int total = spuService.countByStoreId(storeId, keyword, categoryId, minPrice, maxPrice);
 
@@ -609,6 +661,50 @@ public class SpuController {
         if (keyword != null) data.put("keyword", keyword);
         if (categoryId != null) data.put("categoryId", categoryId);
         return Result.success(data);
+    }
+
+    /**
+     * 根据SPU ID获取基本属性及属性值（公开）
+     * <p>
+     * 从 spu_basic_attr_values 表查询 SPU 已选的基本属性，
+     * 关联 Attribute 表获取属性名称，关联 AttributeValue 表获取属性值名称。
+     * 手动输入值直接返回 manual_value 字段内容。
+     *
+     * @param spuId SPU ID
+     * @return 基本属性列表（含属性名称和值）
+     */
+    @GetMapping("/{spuId}/basic-attributes")
+    public Result<List<SpuBasicAttrVo>> getBasicAttributes(@PathVariable Long spuId) {
+        Spu spu = spuService.getById(spuId);
+        if (spu == null) {
+            return Result.error("商品不存在");
+        }
+
+        // 获取 SPU 已选的基本属性原始记录
+        List<SpuBasicAttrValue> basicAttrs = spuAttrService.getBasicAttrsBySpuId(spuId);
+        List<SpuBasicAttrVo> result = basicAttrs.stream()
+                .map(ba -> {
+                    SpuBasicAttrVo vo = new SpuBasicAttrVo();
+                    vo.setAttrId(ba.getAttrId());
+
+                    // 查询属性名称
+                    Attribute attr = attributeMapper.selectById(ba.getAttrId());
+                    vo.setAttrName(attr != null ? attr.getName() : null);
+
+                    // 处理属性值：手动输入值优先，无手动输入则使用预定义值
+                    if (ba.getManualValue() != null && !ba.getManualValue().isEmpty()) {
+                        vo.setValue(ba.getManualValue());
+                        vo.setValueId(null);
+                    } else if (ba.getAttrValueId() != null) {
+                        AttributeValue attrValue = attributeValueMapper.selectById(ba.getAttrValueId());
+                        vo.setValueId(ba.getAttrValueId());
+                        vo.setValue(attrValue != null ? attrValue.getValue() : null);
+                        vo.setImageUrl(attrValue != null ? attrValue.getImageUrl() : null);
+                    }
+                    return vo;
+                })
+                .toList();
+        return Result.success(result);
     }
 
     /**
@@ -636,22 +732,5 @@ public class SpuController {
             }
         }
         return null;
-    }
-
-    /**
-     * 判断当前用户是否为管理员或商家
-     * 管理员和商家可以操作所有商品
-     *
-     * @return true-是管理员或商家，false-普通用户
-     */
-    private boolean isAdminOrSeller() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.isAuthenticated()) {
-            return authentication.getAuthorities().stream()
-                    .anyMatch(auth -> auth.getAuthority().equals("ROLE_SUPER_ADMIN")
-                            || auth.getAuthority().equals("ROLE_ADMIN")
-                            || auth.getAuthority().equals("ROLE_SELLER"));
-        }
-        return false;
     }
 }

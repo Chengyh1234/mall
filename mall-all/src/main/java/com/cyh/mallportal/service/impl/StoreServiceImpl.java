@@ -11,8 +11,8 @@ import com.cyh.mallportal.mapper.StoreAdminMapper;
 import com.cyh.mallportal.mapper.StoreMapper;
 import com.cyh.mallportal.mapper.UserRoleMapper;
 import com.cyh.mallportal.service.StoreService;
-import com.cyh.mallportal.vo.StoreDetailVO;
-import com.cyh.mallportal.vo.StoreVO;
+import com.cyh.mallportal.vo.StoreDetailVo;
+import com.cyh.mallportal.vo.StoreVo;
 import com.cyh.mallcommon.constant.MyConstants;
 import com.cyh.mallcommon.exception.BusinessException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -97,16 +97,16 @@ public class StoreServiceImpl implements StoreService {
     }
 
     /**
-     * 根据ID查询店铺详情（返回 StoreDetailVO）
+     * 根据ID查询店铺详情（返回 StoreDetailVo）
      * 用于公开展示店铺详细信息，不包含内部管理字段
      *
      * @param id 店铺ID
      * @return 店铺详情 VO，店铺不存在返回 null
      */
     @Override
-    public StoreDetailVO getDetailVO(Long id) {
+    public StoreDetailVo getDetailVO(Long id) {
         Store store = storeMapper.selectById(id);
-        return StoreDetailVO.fromStore(store);
+        return StoreDetailVo.fromStore(store);
     }
 
     /**
@@ -165,7 +165,7 @@ public class StoreServiceImpl implements StoreService {
 
     /**
      * 分页查询公开店铺列表（仅 status=1）
-     * 用于无需权限的店铺展示页面，返回 StoreVO
+     * 用于无需权限的店铺展示页面，返回 StoreVo
      *
      * @param keyword  搜索关键字，模糊搜索店铺名称
      * @param page     页码，从1开始
@@ -173,7 +173,7 @@ public class StoreServiceImpl implements StoreService {
      * @return 店铺 VO 分页列表
      */
     @Override
-    public List<StoreVO> getPageVO(String keyword, Integer page, Integer pageSize) {
+    public List<StoreVo> getPageVO(String keyword, Integer page, Integer pageSize) {
         int offset = (page != null && page > 0 ? page - 1 : 0) * (pageSize != null ? pageSize : 10);
         int limit = pageSize != null ? pageSize : 10;
         return storeMapper.selectPageVO(keyword, offset, limit);

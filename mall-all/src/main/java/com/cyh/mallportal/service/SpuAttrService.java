@@ -166,5 +166,5 @@ public interface SpuAttrService {
      * @param sellerId 当前商家ID
      * @return 绑定结果
      */
-    Map<String, Object> bindAllAttrs(SpuAttrFullBindDto dto, Long sellerId);
+    //Map<String, Object> bindAllAttrs(SpuAttrFullBindDto dto, Long sellerId);
 }

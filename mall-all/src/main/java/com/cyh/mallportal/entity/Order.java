@@ -164,13 +164,6 @@ public class Order implements Serializable {
     private String cancelReason;
 
     /**
-     * 乐观锁版本号
-     */
-    @Version
-    @TableField(value = "version")
-    private Integer version;
-
-    /**
      * 逻辑删除: 0-正常 1-已删除（用户删除标记，非MP逻辑删除）
      * 用户查询手动过滤 is_deleted=0，商家/管理员不对此字段做过滤
      */

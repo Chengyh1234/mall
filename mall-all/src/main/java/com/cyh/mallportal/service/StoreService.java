@@ -1,8 +1,8 @@
 package com.cyh.mallportal.service;
 
 import com.cyh.mallportal.entity.Store;
-import com.cyh.mallportal.vo.StoreDetailVO;
-import com.cyh.mallportal.vo.StoreVO;
+import com.cyh.mallportal.vo.StoreDetailVo;
+import com.cyh.mallportal.vo.StoreVo;
 
 import java.util.List;
 
@@ -33,13 +33,13 @@ public interface StoreService {
     Store getById(Long id);
 
     /**
-     * 根据ID查询店铺详情（返回 StoreDetailVO）
+     * 根据ID查询店铺详情（返回 StoreDetailVo）
      * 用于公开展示店铺详细信息，不包含内部管理字段
      *
      * @param id 店铺ID
      * @return 店铺详情 VO，店铺不存在返回 null
      */
-    StoreDetailVO getDetailVO(Long id);
+    StoreDetailVo getDetailVO(Long id);
 
     /**
      * 根据商家ID获取店铺
@@ -75,14 +75,14 @@ public interface StoreService {
 
     /**
      * 分页查询公开店铺列表（仅 status=1）
-     * 用于无需权限的店铺展示页面，返回 StoreVO，不包含内部管理字段
+     * 用于无需权限的店铺展示页面，返回 StoreVo，不包含内部管理字段
      *
      * @param keyword  搜索关键字（店铺名称模糊匹配）
      * @param page     页码，从1开始
      * @param pageSize 每页数量
      * @return 店铺 VO 分页列表
      */
-    List<StoreVO> getPageVO(String keyword, Integer page, Integer pageSize);
+    List<StoreVo> getPageVO(String keyword, Integer page, Integer pageSize);
 
     /**
      * 统计公开店铺数量（仅 status=1）

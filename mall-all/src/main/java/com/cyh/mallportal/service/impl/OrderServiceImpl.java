@@ -77,7 +77,7 @@ public class OrderServiceImpl implements OrderService {
      * 创建订单
      * 使用 Redis Lua 脚本冻结库存，设置支付超时时间
      *
-     * @param userId        用户ID
+     * @param userId         用户ID
      * @param orderCreateDto 订单创建DTO
      * @return 订单VO
      */
@@ -140,7 +140,6 @@ public class OrderServiceImpl implements OrderService {
 
         order.setCreatedAt(LocalDateTime.now());
         order.setUpdatedAt(LocalDateTime.now());
-        order.setVersion(1);
 
         orderMapper.insert(order);
         log.info("订单创建成功, 订单ID: {}, 订单号: {}, 支付截止: {}", order.getId(), orderNo, order.getExpireTime());
@@ -203,17 +202,14 @@ public class OrderServiceImpl implements OrderService {
 
         // 3. 冻结库存（原子操作，任一 SKU 失败则回滚已冻结的）
         List<Long> frozenSkuIds = new ArrayList<>();
-        try {
-            for (CartItem item : selectedItems) {
-                boolean success = stockLuaScript.freezeStock(item.getSkuId(), item.getQuantity());
-                if (!success) {
-                    rollbackFrozenByCart(frozenSkuIds, selectedItems);
-                    throw new BusinessException("商品[" + item.getProductName() + "]库存不足");
-                }
-                frozenSkuIds.add(item.getSkuId());
+
+        for (CartItem item : selectedItems) {
+            boolean success = stockLuaScript.freezeStock(item.getSkuId(), item.getQuantity());
+            if (!success) {
+                rollbackFrozenByCart(frozenSkuIds, selectedItems);
+                throw new BusinessException("商品[" + item.getProductName() + "]库存不足");
             }
-        } catch (BusinessException e) {
-            throw e;
+            frozenSkuIds.add(item.getSkuId());
         }
 
         // 4. 遍历购物车商品，每个 SKU 生成 1 笔独立订单
@@ -245,7 +241,6 @@ public class OrderServiceImpl implements OrderService {
 
             order.setCreatedAt(LocalDateTime.now());
             order.setUpdatedAt(LocalDateTime.now());
-            order.setVersion(1);
 
             orderMapper.insert(order);
             log.info("订单创建成功, 订单ID: {}, 订单号: {}, 金额: {}, 支付截止: {}",
@@ -415,65 +410,6 @@ public class OrderServiceImpl implements OrderService {
         }
 
         return getOrderById(order.getId());
-    }
-
-    /**
-     * 根据用户ID获取订单列表
-     *
-     * @param userId 用户ID
-     * @return 订单列表
-     */
-    @Override
-    public List<Order> getOrdersByUserId(Long userId) {
-        log.info("获取用户订单列表, 用户ID: {}", userId);
-        return orderMapper.selectByUserId(userId);
-    }
-
-    /**
-     * 分页获取用户订单列表（普通用户，自动过滤 is_deleted=0）
-     *
-     * @param userId   用户ID
-     * @param page     页码
-     * @param pageSize 每页数量
-     * @return 订单列表
-     */
-    @Override
-    public List<Order> getOrdersByUserId(Long userId, Integer page, Integer pageSize) {
-        log.info("分页获取用户订单列表, 用户ID: {}, 页码: {}, 每页: {}", userId, page, pageSize);
-        // MyBatis-Plus Page 对象自动处理 LIMIT/OFFSET
-        Page<Order> pageParam = new Page<>(page != null ? page : 1, pageSize != null ? pageSize : 10);
-        IPage<Order> result = orderMapper.selectByUserIdPaged(pageParam, userId);
-        return result.getRecords();
-    }
-
-    /**
-     * 根据用户ID和状态获取订单列表
-     *
-     * @param userId 用户ID
-     * @param status 订单状态
-     * @return 订单列表
-     */
-    @Override
-    public List<Order> getOrdersByUserIdAndStatus(Long userId, Integer status) {
-        log.info("获取用户订单列表, 用户ID: {}, 状态: {}", userId, status);
-        return orderMapper.selectByUserIdAndStatus(userId, status);
-    }
-
-    /**
-     * 分页获取用户订单列表（按状态筛选，自动过滤 is_deleted=0）
-     *
-     * @param userId   用户ID
-     * @param status   订单状态
-     * @param page     页码
-     * @param pageSize 每页数量
-     * @return 订单列表
-     */
-    @Override
-    public List<Order> getOrdersByUserIdAndStatus(Long userId, Integer status, Integer page, Integer pageSize) {
-        log.info("分页获取用户订单列表, 用户ID: {}, 状态: {}, 页码: {}, 每页: {}", userId, status, page, pageSize);
-        Page<Order> pageParam = new Page<>(page != null ? page : 1, pageSize != null ? pageSize : 10);
-        IPage<Order> result = orderMapper.selectByUserIdAndStatusPaged(pageParam, userId, status);
-        return result.getRecords();
     }
 
     /**
@@ -1074,17 +1010,17 @@ public class OrderServiceImpl implements OrderService {
      * 分页查询全部订单（运营管理员/超级管理员使用，多条件筛选）
      * 查询平台所有订单，支持按状态、用户ID、订单号、支付/发货/收货时间范围筛选
      *
-     * @param status    订单状态（可选，null 时查询全部）
-     * @param userId    用户ID（可选）
-     * @param orderNo   订单号（可选，模糊匹配）
-     * @param payTimeStart    支付时间范围-起始（可选）
-     * @param payTimeEnd      支付时间范围-结束（可选）
+     * @param status            订单状态（可选，null 时查询全部）
+     * @param userId            用户ID（可选）
+     * @param orderNo           订单号（可选，模糊匹配）
+     * @param payTimeStart      支付时间范围-起始（可选）
+     * @param payTimeEnd        支付时间范围-结束（可选）
      * @param deliveryTimeStart 发货时间范围-起始（可选）
      * @param deliveryTimeEnd   发货时间范围-结束（可选）
-     * @param receiveTimeStart 收货时间范围-起始（可选）
-     * @param receiveTimeEnd   收货时间范围-结束（可选）
-     * @param page     页码，默认第1页
-     * @param pageSize 每页数量，默认10条
+     * @param receiveTimeStart  收货时间范围-起始（可选）
+     * @param receiveTimeEnd    收货时间范围-结束（可选）
+     * @param page              页码，默认第1页
+     * @param pageSize          每页数量，默认10条
      * @return 订单列表
      */
     @Override
@@ -1112,15 +1048,15 @@ public class OrderServiceImpl implements OrderService {
      * 统计全部订单总数（多条件筛选）
      * 与 getAllOrders 条件完全一致，用于分页总记录数
      *
-     * @param status    订单状态（可选，null 时统计全部）
-     * @param userId    用户ID（可选）
-     * @param orderNo   订单号（可选，模糊匹配）
-     * @param payTimeStart    支付时间范围-起始（可选）
-     * @param payTimeEnd      支付时间范围-结束（可选）
+     * @param status            订单状态（可选，null 时统计全部）
+     * @param userId            用户ID（可选）
+     * @param orderNo           订单号（可选，模糊匹配）
+     * @param payTimeStart      支付时间范围-起始（可选）
+     * @param payTimeEnd        支付时间范围-结束（可选）
      * @param deliveryTimeStart 发货时间范围-起始（可选）
      * @param deliveryTimeEnd   发货时间范围-结束（可选）
-     * @param receiveTimeStart 收货时间范围-起始（可选）
-     * @param receiveTimeEnd   收货时间范围-结束（可选）
+     * @param receiveTimeStart  收货时间范围-起始（可选）
+     * @param receiveTimeEnd    收货时间范围-结束（可选）
      * @return 订单总数
      */
     @Override

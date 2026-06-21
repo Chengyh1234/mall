@@ -6,12 +6,12 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
 /**
- * SKU详情VO（包含销售属性）
+ * SKU详情VO（公开接口，普通用户可见）
+ * 仅包含用户购买决策所需的字段
  */
 @Data
 @Builder
@@ -19,70 +19,26 @@ import java.util.Map;
 @AllArgsConstructor
 public class SkuVo {
 
-    /**
-     * SKU ID
-     */
+    /** SKU ID */
     private Long id;
 
-    /**
-     * 关联SPU ID
-     */
+    /** 关联SPU ID */
     private Long spuId;
 
-    /**
-     * SKU编码
-     */
-    //private String skuCode;
-
-    /**
-     * 销售价格
-     */
+    /** 销售价格 */
     private BigDecimal price;
 
-    /**
-     * 市场价
-     */
+    /** 市场价（划线价） */
     private BigDecimal marketPrice;
 
-    /**
-     * 成本价
-     */
-    private BigDecimal costPrice;
-
-    /**
-     * 库存数量
-     */
-    private Integer stock;
-
-    /**
-     * 预警库存
-     */
-    private Integer warnStock;
-
-    /**
-     * 图片路径
-     */
+    /** 图片路径 */
     private String image;
 
-    /**
-     * 重量（kg）
-     */
+    /** 重量（kg） */
     private BigDecimal weight;
 
-    /**
-     * 状态（1-启用 0-禁用）
-     */
-    private Integer status;
-
-    /**
-     * 创建时间
-     */
-    private LocalDateTime createdAt;
-
-    /**
-     * 更新时间
-     */
-    private LocalDateTime updatedAt;
+    /** 库存状态: true-有货 false-无货 */
+    private Boolean inStock;
 
     /**
      * 销售属性列表

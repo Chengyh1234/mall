@@ -2,6 +2,7 @@ package com.cyh.mallportal.controller;
 
 import cn.hutool.core.util.IdUtil;
 import com.cyh.mallcommon.constant.MyConstants;
+import com.cyh.mallcommon.exception.BusinessException;
 import com.cyh.mallcommon.utils.Result;
 import com.cyh.mallcommon.validation.Password;
 import com.cyh.mallcommon.validation.Phone;
@@ -13,6 +14,7 @@ import com.cyh.mallportal.mapper.RoleMapper;
 import com.cyh.mallportal.mapper.UserMapper;
 import com.cyh.mallportal.mapper.UserRoleMapper;
 import com.cyh.mallportal.service.EmailService;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -84,11 +86,17 @@ public class AuthController {
         redisTemplate.delete(redisKey);
         // ========== 验证码校验结束 ==========
 
+
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getAccount(), request.getPassword())//创建认证对象
         );
 
         User user = (User) authentication.getPrincipal();
+
+        // 校验用户状态：被禁用的用户拒绝登录
+        if (user.getStatus() == null || user.getStatus() != 1) {
+            throw new BusinessException("账号已被禁用，无法登录");//无法进行使用，需要使用security体系的异常
+        }
 
         // ========== 角色校验：仅允许普通用户(USER)角色登录 ==========
         boolean hasUserRole = user.getRoles() != null && user.getRoles().stream()
@@ -101,14 +109,7 @@ public class AuthController {
         String token = IdUtil.fastSimpleUUID();
         String sessionId = IdUtil.fastSimpleUUID();
 
-        // 单点登录：检查用户是否已有活跃会话，如果有则使旧会话失效
-        String oldSessionId = (String) redisTemplate.opsForValue().get(MyConstants.USER_CURRENT_SESSION_PREFIX + user.getId());
-        if (oldSessionId != null) {
-            // 删除旧会话的Token（需要维护sessionId到token的映射，这里简化处理）
-            // 实际项目中可以存储 sessionId -> token 的映射
-            log.warn("用户 {} 在其他设备登录，旧会话已失效", user.getUsername());
-        }
-
+        // 单点登录：使旧会话失效
         // 存储用户当前会话
         redisTemplate.opsForValue().set(
                 MyConstants.USER_CURRENT_SESSION_PREFIX + user.getId(),
@@ -132,6 +133,7 @@ public class AuthController {
         userInfo.put("realName", user.getRealName());
         userInfo.put("email", user.getEmail());
         userInfo.put("phone", user.getPhone());
+        userInfo.put("status", user.getStatus()); // 记录用户启用/禁用状态，供TokenAuthenticationFilter校验
 
         Map<String, String> rolesMap = new HashMap<>();
         if (user.getRoles() != null) {
@@ -189,10 +191,14 @@ public class AuthController {
         );
 
         User user = (User) authentication.getPrincipal();
+        // 校验用户状态：被禁用的用户拒绝登录
+        if (user.getStatus() == null || user.getStatus() != 1) {
+            throw new BusinessException("账号已被禁用，无法登录");//无法进行使用，需要使用security体系的异常
+        }
 
-        // ========== 角色校验：仅允许管理员(ADMIN)或超级管理员(SUPER_ADMIN)角色登录 ==========
+        // ========== 角色校验：仅允许超级管理员(SUPER_ADMIN)角色登录 ==========
         boolean hasAdminRole = user.getRoles() != null && user.getRoles().stream()
-                .anyMatch(role -> "ADMIN".equals(role.getCode()) || "SUPER_ADMIN".equals(role.getCode()));
+                .anyMatch(role -> "SUPER_ADMIN".equals(role.getCode()));
         if (!hasAdminRole) {
             return Result.error("该账号无管理员权限，请使用普通用户登录入口");
         }
@@ -200,12 +206,7 @@ public class AuthController {
         String token = IdUtil.fastSimpleUUID();
         String sessionId = IdUtil.fastSimpleUUID();
 
-        // 单点登录：检查用户是否已有活跃会话，如果有则使旧会话失效
-        String oldSessionId = (String) redisTemplate.opsForValue().get(MyConstants.USER_CURRENT_SESSION_PREFIX + user.getId());
-        if (oldSessionId != null) {
-            log.warn("管理员 {} 在其他设备登录，旧会话已失效", user.getUsername());
-        }
-
+        // 单点登录：使旧会话失效
         // 存储用户当前会话
         redisTemplate.opsForValue().set(
                 MyConstants.USER_CURRENT_SESSION_PREFIX + user.getId(),
@@ -229,6 +230,7 @@ public class AuthController {
         userInfo.put("realName", user.getRealName());
         userInfo.put("email", user.getEmail());
         userInfo.put("phone", user.getPhone());
+        userInfo.put("status", user.getStatus()); // 记录用户启用/禁用状态，供TokenAuthenticationFilter校验
 
         Map<String, String> rolesMap = new HashMap<>();
         if (user.getRoles() != null) {
@@ -450,6 +452,10 @@ public class AuthController {
         if (user == null) {
             return Result.error("用户不存在");
         }
+        // 校验用户状态：被禁用的用户拒绝登录
+        if (user.getStatus() == null || user.getStatus() != 1) {
+            throw new BusinessException("账号已被禁用，无法登录");//无法进行使用，需要使用security体系的异常
+        }
 
         // 3. 加载角色
         var roles = roleMapper.selectByUserId(user.getId());
@@ -469,18 +475,26 @@ public class AuthController {
             return Result.error("该账号无普通用户权限，请使用管理员登录入口");
         }
 
+        // 校验用户状态：被禁用的用户不允许登录
+        if (user.getStatus() == null || user.getStatus() != 1) {
+            return Result.error("账号已被禁用，无法登录");
+        }
+
         // 5. 生成 Token
         String token = IdUtil.fastSimpleUUID();
         String sessionId = IdUtil.fastSimpleUUID();
 
-        String oldSessionId = (String) redisTemplate.opsForValue().get(MyConstants.USER_CURRENT_SESSION_PREFIX + user.getId());
-        if (oldSessionId != null) {
-            log.warn("用户 {} 在其他设备登录，旧会话已失效", user.getUsername());
-        }
-
+        // 单点登录：使旧会话失效
         redisTemplate.opsForValue().set(
                 MyConstants.USER_CURRENT_SESSION_PREFIX + user.getId(),
                 sessionId,
+                MyConstants.TOKEN_EXPIRATION,
+                TimeUnit.SECONDS
+        );
+        // 存储 userId → token 反向映射，用于权限变更时原地更新 Redis 缓存
+        redisTemplate.opsForValue().set(
+                MyConstants.USER_ACTIVE_TOKEN_PREFIX + user.getId(),
+                token,
                 MyConstants.TOKEN_EXPIRATION,
                 TimeUnit.SECONDS
         );
@@ -492,6 +506,7 @@ public class AuthController {
         userInfo.put("realName", user.getRealName());
         userInfo.put("email", user.getEmail());
         userInfo.put("phone", user.getPhone());
+        userInfo.put("status", user.getStatus()); // 记录用户启用/禁用状态，供TokenAuthenticationFilter校验
 
         Map<String, String> rolesMap = new HashMap<>();
         if (user.getRoles() != null) {
@@ -514,7 +529,7 @@ public class AuthController {
         data.put("token", token);
         data.put("username", user.getUsername());
         data.put("realName", user.getRealName());
-        data.put("roles", user.getRoles());
+        data.put("roles", user.getRoles().stream().map(role -> role.getCode()).toList());
 
         return Result.success("登录成功", data);
     }

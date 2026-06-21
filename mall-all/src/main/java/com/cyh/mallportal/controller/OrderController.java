@@ -6,6 +6,7 @@ import com.cyh.mallportal.dto.OrderCreateDto;
 import com.cyh.mallportal.entity.Order;
 import com.cyh.mallportal.entity.User;
 import com.cyh.mallportal.service.OrderService;
+import com.cyh.mallportal.vo.OrderListAdminVo;
 import com.cyh.mallportal.vo.OrderListItemVo;
 import com.cyh.mallportal.vo.OrderStatusCountVo;
 import com.cyh.mallportal.vo.OrderVo;
@@ -22,6 +23,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * 订单管理控制器 已处理响应
@@ -80,39 +82,6 @@ public class OrderController {
             return Result.success("订单创建成功", orderIds);
         }
         return Result.error("购物车中没有选中的商品");
-    }
-
-    /**
-     * 分页获取自己的订单列表（普通用户，自动过滤 is_deleted=0）<已经取消使用这个来展示订单了> 不使用了
-     *
-     * @param status   订单状态（可选，用于筛选）
-     * @param page     页码，默认第1页
-     * @param pageSize 每页数量，默认10条
-     * @return 分页数据：{ list, page, pageSize, total }
-     */
-    @GetMapping("/list")
-    @PreAuthorize("hasRole('USER')")
-    public Result<Map<String, Object>> getOrdersByUserId(@RequestParam(required = false) Integer status,
-                                                         @RequestParam(defaultValue = "1") Integer page,
-                                                         @RequestParam(defaultValue = "10") Integer pageSize) {
-        Long userId = getCurrentUserId();
-
-        List<Order> orders;
-        int total;
-        if (status != null) {
-            orders = orderService.getOrdersByUserIdAndStatus(userId, status, page, pageSize);
-            total = orderService.countOrders(userId, status);
-        } else {
-            orders = orderService.getOrdersByUserId(userId, page, pageSize);
-            total = orderService.countOrders(userId);
-        }
-
-        Map<String, Object> data = new HashMap<>();
-        data.put("list", orders);
-        data.put("page", page);
-        data.put("pageSize", pageSize);
-        data.put("total", total);
-        return Result.success(data);
     }
 
     /**
@@ -397,7 +366,7 @@ public class OrderController {
      * @return 分页数据：{ list(OrderListItemVo[]), page, pageSize, total }
      */
     @GetMapping("/seller/list")
-    @PreAuthorize("hasRole('SELLER') or hasRole('STORE_ADMIN') or hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SELLER') or hasRole('STORE_ADMIN') or hasRole('SUPER_ADMIN')")
     public Result<Map<String, Object>> getSellerOrderList(
             @RequestParam(required = false) Integer status,
             @RequestParam(required = false) Long userId,
@@ -443,7 +412,7 @@ public class OrderController {
      * @return 订单详情（含订单项和发货记录）
      */
     @GetMapping("/seller/detail/{orderNo}")
-    @PreAuthorize("hasRole('SELLER') or hasRole('STORE_ADMIN') or hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SELLER') or hasRole('STORE_ADMIN') or hasRole('SUPER_ADMIN')")
     public Result<OrderVo> getOrderDetailBySellerId(@PathVariable String orderNo) {
         Long sellerId = getCurrentUserId();
 
@@ -529,7 +498,7 @@ public class OrderController {
      * @return 分页数据：{ list, page, pageSize, total }
      */
     @GetMapping("/admin/list")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public Result<Map<String, Object>> getAllOrders(
             @RequestParam(required = false) Integer status,
             @RequestParam(required = false) Long userId,
@@ -549,8 +518,12 @@ public class OrderController {
                 payTimeStart, payTimeEnd, deliveryTimeStart, deliveryTimeEnd,
                 receiveTimeStart, receiveTimeEnd);
 
+        List<OrderListAdminVo> voList = orders.stream()
+                .map(OrderListAdminVo::fromOrder)
+                .collect(Collectors.toList());
+
         Map<String, Object> data = new HashMap<>();
-        data.put("list", orders);
+        data.put("list", voList);
         data.put("page", page);
         data.put("pageSize", pageSize);
         data.put("total", total);
@@ -564,7 +537,7 @@ public class OrderController {
      * @return 订单详情（含订单项和发货记录）
      */
     @GetMapping("/admin/detail/{orderNo}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public Result<OrderVo> getOrderDetailByAdmin(@PathVariable String orderNo) {
         OrderVo orderVo = orderService.getOrderDetailByOrderNoForAdmin(orderNo);
         if (orderVo == null) {
@@ -582,7 +555,7 @@ public class OrderController {
      * @return 操作结果
      */
     @PutMapping("/admin/cancel/{orderId}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public Result<Void> adminCancelOrder(@PathVariable Long orderId,
                                          @RequestParam(required = false) String cancelReason) {
         boolean success = orderService.adminCancelOrder(orderId, cancelReason);
@@ -603,7 +576,7 @@ public class OrderController {
      * @return 操作结果
      */
     @PutMapping("/admin/adjust/{orderId}")
-    @PreAuthorize("hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public Result<Void> adjustOrderAmount(@PathVariable Long orderId,
                                           @RequestParam(required = false) BigDecimal freightAmount,
                                           @RequestParam(required = false) BigDecimal discountAmount,
@@ -629,7 +602,7 @@ public class OrderController {
      * @return 操作结果
      */
     @PutMapping("/refund/approve/{orderId}")
-    @PreAuthorize("hasRole('SELLER') or hasRole('STORE_ADMIN') or hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SELLER') or hasRole('STORE_ADMIN') or hasRole('SUPER_ADMIN')")
     public Result<Void> approveRefund(@PathVariable Long orderId) {
         Long operatorId = getCurrentUserId();
         boolean success = orderService.approveRefund(orderId, operatorId);
@@ -648,7 +621,7 @@ public class OrderController {
      * @return 操作结果
      */
     @PutMapping("/refund/reject/{orderId}")
-    @PreAuthorize("hasRole('SELLER') or hasRole('STORE_ADMIN') or hasRole('ADMIN') or hasRole('SUPER_ADMIN')")
+    @PreAuthorize("hasRole('SELLER') or hasRole('STORE_ADMIN') or hasRole('SUPER_ADMIN')")
     public Result<Void> rejectRefund(@PathVariable Long orderId,
                                      @RequestParam String rejectReason) {
         if (rejectReason == null || rejectReason.isEmpty()) {
@@ -714,7 +687,6 @@ public class OrderController {
         if (authentication != null) {
             return authentication.getAuthorities().stream()
                     .anyMatch(a -> a.getAuthority().contains("SUPER_ADMIN") ||
-                                   a.getAuthority().contains("ADMIN") ||
                                    a.getAuthority().contains("SELLER") ||
                                    a.getAuthority().contains("STORE_ADMIN"));
         }

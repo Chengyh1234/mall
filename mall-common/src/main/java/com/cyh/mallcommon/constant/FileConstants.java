@@ -57,7 +57,7 @@ public class FileConstants {
     public static final String STORE_LOGO = "/images/stores/logo";
 
     /** 商家店铺横幅 */
-    public static final String STORE_BANNER = "/images/stores/banners";
+    public static final String STORE_BANNER = "/images/stores/banner";
 
     /** 商家其他图片 */
     public static final String STORE_IMAGES = "/images/stores";

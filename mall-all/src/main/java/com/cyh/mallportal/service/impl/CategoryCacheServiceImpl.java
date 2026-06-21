@@ -2,6 +2,7 @@ package com.cyh.mallportal.service.impl;
 
 import com.cyh.mallportal.entity.Category;
 import com.cyh.mallportal.service.CategoryCacheService;
+import com.cyh.mallportal.vo.CategoryTreeVo;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -12,7 +13,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * 分类缓存服务实现类
@@ -192,13 +192,13 @@ public class CategoryCacheServiceImpl implements CategoryCacheService {
     }
 
     @Override
-    public List<Map<String, Object>> getTreeWithChildren(Long parentId) {
+    public List<CategoryTreeVo> getTreeWithChildren(Long parentId) {
         String cacheKey = CATEGORY_TREE_PREFIX + (parentId == null ? 0 : parentId);
         try {
             String json = redisTemplate.opsForValue().get(cacheKey);
             if (StringUtils.hasText(json)) {
                 log.debug("从缓存获取分类树成功，缓存键: {}", cacheKey);
-                return objectMapper.readValue(json, new TypeReference<List<Map<String, Object>>>() {});
+                return objectMapper.readValue(json, new TypeReference<List<CategoryTreeVo>>() {});
             }
         } catch (JsonProcessingException e) {
             log.error("反序列化分类树缓存失败，缓存键: {}, 异常: {}", cacheKey, e.getMessage());
@@ -207,7 +207,7 @@ public class CategoryCacheServiceImpl implements CategoryCacheService {
     }
 
     @Override
-    public void setTreeWithChildren(Long parentId, List<Map<String, Object>> tree) {
+    public void setTreeWithChildren(Long parentId, List<CategoryTreeVo> tree) {
         String cacheKey = CATEGORY_TREE_PREFIX + (parentId == null ? 0 : parentId);
         try {
             String json = objectMapper.writeValueAsString(tree);

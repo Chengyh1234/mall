@@ -8,6 +8,7 @@ import com.cyh.mallportal.dto.BrandDto;
 import com.cyh.mallportal.entity.Brand;
 import com.cyh.mallportal.service.BrandService;
 import com.cyh.mallportal.service.FileService;
+import com.cyh.mallportal.vo.BrandVo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -18,9 +19,10 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
- * 品牌管理控制器
+ * 品牌管理控制器 已处理响应
  * 提供品牌的增删改查功能及Logo上传功能
  */
 @Slf4j
@@ -45,7 +47,7 @@ public class BrandController {
      * @return 新增结果
      */
     @PostMapping("/add")
-    @PreAuthorize("hasAuthority('product:add') or hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public Result<Map<String, Object>> add(@RequestPart(value = "brandDto") String brandDtoString,
                                            @RequestPart(value = "logoFile", required = false) MultipartFile logoFile) {
         // 解析品牌DTO
@@ -92,7 +94,7 @@ public class BrandController {
      * @return 删除结果
      */
     @DeleteMapping("/delete/{id}")
-    @PreAuthorize("hasAuthority('product:delete') or hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public Result<Void> delete(@PathVariable Long id) {
         // 参数校验
         if (id == null) {
@@ -115,7 +117,7 @@ public class BrandController {
      * @return 更新结果
      */
     @PutMapping("/update")
-    @PreAuthorize("hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public Result<Map<String, Object>> update(@RequestPart(value = "brandDto") String brandDtoString,
                                                @RequestPart(value = "logoFile", required = false) MultipartFile logoFile) {
         // 解析品牌DTO
@@ -180,7 +182,7 @@ public class BrandController {
      * @return 品牌详情
      */
     @GetMapping("/detail/{id}")
-    public Result<Brand> getById(@PathVariable Long id) {
+    public Result<BrandVo> getById(@PathVariable Long id) {
         // 参数校验
         if (id == null) {
             return Result.error("品牌ID不能为空");
@@ -189,7 +191,7 @@ public class BrandController {
         // 调用service查询品牌详情
         Brand brand = brandService.getById(id);
         if (brand != null) {
-            return Result.success(brand);
+            return Result.success(BrandVo.fromBrand(brand));
         }
         return Result.error("品牌不存在");
     }
@@ -201,10 +203,13 @@ public class BrandController {
      * @return 品牌列表
      */
     @GetMapping("/list")
-    public Result<List<Brand>> getList(Brand brand) {
+    public Result<List<BrandVo>> getList(Brand brand) {
         // 调用service查询品牌列表
         List<Brand> list = brandService.getList(brand);
-        return Result.success(list);
+        List<BrandVo> voList = list.stream()
+                .map(BrandVo::fromBrand)
+                .collect(Collectors.toList());
+        return Result.success(voList);
     }
 
     /**
@@ -224,7 +229,9 @@ public class BrandController {
 
         // 构建返回结果
         Map<String, Object> data = new HashMap<>();
-        data.put("list", pageResult.getRecords());
+        data.put("list", pageResult.getRecords().stream()
+                .map(BrandVo::fromBrand)
+                .collect(Collectors.toList()));
         data.put("total", pageResult.getTotal());
         data.put("page", page);
         data.put("pageSize", pageSize);
@@ -240,7 +247,7 @@ public class BrandController {
      * @return 品牌列表
      */
     @GetMapping("/status/{status}")
-    public Result<List<Brand>> getByStatus(@PathVariable Integer status) {
+    public Result<List<BrandVo>> getByStatus(@PathVariable Integer status) {
         // 参数校验
         if (status == null) {
             return Result.error("状态不能为空");
@@ -248,7 +255,10 @@ public class BrandController {
 
         // 调用service查询品牌列表
         List<Brand> list = brandService.getByStatus(status);
-        return Result.success(list);
+        List<BrandVo> voList = list.stream()
+                .map(BrandVo::fromBrand)
+                .collect(Collectors.toList());
+        return Result.success(voList);
     }
 
     /**
@@ -258,7 +268,7 @@ public class BrandController {
      * @return 品牌列表
      */
     @GetMapping("/search")
-    public Result<List<Brand>> getByNameLike(@RequestParam String name) {
+    public Result<List<BrandVo>> getByNameLike(@RequestParam String name) {
         // 参数校验
         if (!StringUtils.hasText(name)) {
             return Result.error("品牌名称不能为空");
@@ -266,7 +276,10 @@ public class BrandController {
 
         // 调用service查询品牌列表
         List<Brand> list = brandService.getByNameLike(name);
-        return Result.success(list);
+        List<BrandVo> voList = list.stream()
+                .map(BrandVo::fromBrand)
+                .collect(Collectors.toList());
+        return Result.success(voList);
     }
 
     /**
@@ -275,10 +288,13 @@ public class BrandController {
      * @return 品牌列表，按排序号升序排列
      */
     @GetMapping("/sort")
-    public Result<List<Brand>> getBySort() {
+    public Result<List<BrandVo>> getBySort() {
         // 调用service查询品牌列表
         List<Brand> list = brandService.getBySort();
-        return Result.success(list);
+        List<BrandVo> voList = list.stream()
+                .map(BrandVo::fromBrand)
+                .collect(Collectors.toList());
+        return Result.success(voList);
     }
 
     /**

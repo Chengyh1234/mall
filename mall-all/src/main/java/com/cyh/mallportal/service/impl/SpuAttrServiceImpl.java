@@ -40,6 +40,13 @@ public class SpuAttrServiceImpl implements SpuAttrService {
     private final SkuMapper skuMapper;
     private final SkuSaleAttrValueMapper skuSaleAttrValueMapper;
 
+    /**
+     * 绑定SPU基本属性
+     *
+     * @param dto      基本属性绑定参数
+     * @param sellerId 商家ID
+     * @return 绑定记录ID
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long bindBasicAttr(SpuBasicAttrBindDto dto, Long sellerId) {
@@ -130,6 +137,14 @@ public class SpuAttrServiceImpl implements SpuAttrService {
         return count;
     }
 
+    /**
+     * 更新SPU基本属性绑定
+     *
+     * @param id       绑定记录ID
+     * @param dto      基本属性绑定参数
+     * @param sellerId 商家ID
+     * @return 是否更新成功
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean updateBasicAttr(Long id, SpuBasicAttrBindDto dto, Long sellerId) {
@@ -237,6 +252,13 @@ public class SpuAttrServiceImpl implements SpuAttrService {
         return count;
     }
 
+    /**
+     * 删除SPU基本属性绑定
+     *
+     * @param id       绑定记录ID
+     * @param sellerId 商家ID
+     * @return 是否删除成功
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean deleteBasicAttr(Long id, Long sellerId) {
@@ -256,6 +278,12 @@ public class SpuAttrServiceImpl implements SpuAttrService {
         return result > 0;
     }
 
+    /**
+     * 获取SPU已绑定的基本属性列表
+     *
+     * @param spuId SPU ID
+     * @return 基本属性绑定记录列表
+     */
     @Override
     public List<SpuBasicAttrValue> getBasicAttrsBySpuId(Long spuId) {
         LambdaQueryWrapper<SpuBasicAttrValue> wrapper = new LambdaQueryWrapper<>();
@@ -263,6 +291,13 @@ public class SpuAttrServiceImpl implements SpuAttrService {
         return spuBasicAttrValueMapper.selectList(wrapper);
     }
 
+    /**
+     * 绑定SPU销售属性
+     *
+     * @param dto      销售属性绑定参数
+     * @param sellerId 商家ID
+     * @return 绑定记录ID
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long bindSaleAttr(SpuSaleAttrBindDto dto, Long sellerId) {
@@ -318,6 +353,13 @@ public class SpuAttrServiceImpl implements SpuAttrService {
         return entity.getId();
     }
 
+    /**
+     * 批量绑定SPU销售属性（逐个绑定，单条失败不影响其他）
+     *
+     * @param dtoList  销售属性绑定参数列表
+     * @param sellerId 商家ID
+     * @return 成功绑定的数量
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public int batchBindSaleAttr(List<SpuSaleAttrBindDto> dtoList, Long sellerId) {
@@ -488,6 +530,13 @@ public class SpuAttrServiceImpl implements SpuAttrService {
         return count;
     }
 
+    /**
+     * 删除SPU销售属性绑定
+     *
+     * @param id       绑定记录ID
+     * @param sellerId 商家ID
+     * @return 是否删除成功
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean deleteSaleAttr(Long id, Long sellerId) {
@@ -507,6 +556,12 @@ public class SpuAttrServiceImpl implements SpuAttrService {
         return result > 0;
     }
 
+    /**
+     * 获取SPU已绑定的销售属性列表
+     *
+     * @param spuId SPU ID
+     * @return 销售属性绑定记录列表
+     */
     @Override
     public List<SpuSaleAttrChoice> getSaleAttrsBySpuId(Long spuId) {
         LambdaQueryWrapper<SpuSaleAttrChoice> wrapper = new LambdaQueryWrapper<>();
@@ -514,6 +569,12 @@ public class SpuAttrServiceImpl implements SpuAttrService {
         return spuSaleAttrChoiceMapper.selectList(wrapper);
     }
 
+    /**
+     * 获取SPU销售属性详情列表（含属性值信息）
+     *
+     * @param spuId SPU ID
+     * @return 销售属性详情VO列表
+     */
     @Override
     public List<SpuAttrVo.SpuSaleAttrDetailVo> getSaleAttrsWithValuesBySpuId(Long spuId) {
         // 获取销售属性列表
@@ -551,6 +612,12 @@ public class SpuAttrServiceImpl implements SpuAttrService {
         }).collect(Collectors.toList());
     }
 
+    /**
+     * 获取SPU所有属性（基本属性 + 销售属性，含详情）
+     *
+     * @param spuId SPU ID
+     * @return SPU属性聚合VO
+     */
     @Override
     public SpuAttrVo getAllAttrsBySpuId(Long spuId) {
         SpuAttrVo vo = new SpuAttrVo();
@@ -679,6 +746,7 @@ public class SpuAttrServiceImpl implements SpuAttrService {
         basicAttributes.forEach(a -> allAttrIds.add(a.getId()));
         saleAttributes.forEach(a -> allAttrIds.add(a.getId()));
 
+        //k-属性值id，v-属性值实体类
         Map<Long, List<AttributeValue>> attrValuesMap = new HashMap<>();
         if (!allAttrIds.isEmpty()) {
             List<AttributeValue> allAttrValues = attributeValueMapper.getByAttrIds(allAttrIds);
@@ -726,28 +794,46 @@ public class SpuAttrServiceImpl implements SpuAttrService {
                     SpuBasicAttrValue boundAttr = (SpuBasicAttrValue) boundMap.get(attr.getId());
                     item.setBoundId(boundAttr.getId());
 
-                    // 设置当前绑定的值
-                    Map<String, Object> currentValue = new HashMap<>();
+                    // 设置当前绑定的值列表（基本属性：0 或 1 个）
+                    List<Map<String, Object>> bCurrentValues = new ArrayList<>();
                     if (boundAttr.getAttrValueId() != null) {
                         AttributeValue attrValue = attributeValueMapper.selectById(boundAttr.getAttrValueId());
                         if (attrValue != null) {
-                            currentValue.put("valueId", attrValue.getId());
-                            currentValue.put("value", attrValue.getValue());
-                            currentValue.put("imageUrl", attrValue.getImageUrl());
+                            Map<String, Object> cv = new HashMap<>();
+                            cv.put("valueId", attrValue.getId());
+                            cv.put("value", attrValue.getValue());
+                            cv.put("imageUrl", attrValue.getImageUrl());
+                            bCurrentValues.add(cv);
                         }
                     } else if (boundAttr.getManualValue() != null) {
-                        currentValue.put("value", boundAttr.getManualValue());
+                        Map<String, Object> cv = new HashMap<>();
+                        cv.put("value", boundAttr.getManualValue());
+                        bCurrentValues.add(cv);
                     }
-                    item.setCurrentValue(currentValue);
+                    item.setCurrentValues(bCurrentValues);
                 } else {
                     SpuSaleAttrChoice boundAttr = (SpuSaleAttrChoice) boundMap.get(attr.getId());
                     item.setBoundId(boundAttr.getId());
 
-                    // 设置当前绑定的值
-                    Map<String, Object> currentValue = new HashMap<>();
+                    // 设置当前绑定的值列表（销售属性：0 到 N 个）
                     List<Long> valueIds = JSON.parseArray(boundAttr.getSelectedValues(), Long.class);
-                    currentValue.put("valueIds", valueIds);
-                    item.setCurrentValue(currentValue);
+                    List<Map<String, Object>> sCurrentValues = new ArrayList<>();
+                    if (valueIds != null && !valueIds.isEmpty()) {
+                        List<AttributeValue> allValues = attrValuesMap.getOrDefault(attr.getId(), new ArrayList<>());
+                        Map<Long, AttributeValue> valueMap = allValues.stream()
+                                .collect(Collectors.toMap(AttributeValue::getId, v -> v, (v1, v2) -> v1));
+                        for (Long vid : valueIds) {
+                            AttributeValue av = valueMap.get(vid);
+                            if (av != null) {
+                                Map<String, Object> cv = new HashMap<>();
+                                cv.put("valueId", av.getId());
+                                cv.put("value", av.getValue());
+                                cv.put("imageUrl", av.getImageUrl());
+                                sCurrentValues.add(cv);
+                            }
+                        }
+                    }
+                    item.setCurrentValues(sCurrentValues);
                 }
             }
 
@@ -772,76 +858,76 @@ public class SpuAttrServiceImpl implements SpuAttrService {
     /**
      * 一次性为SPU绑定所有属性
      */
-    @Override
-    @Transactional(rollbackFor = Exception.class)
-    public Map<String, Object> bindAllAttrs(SpuAttrFullBindDto dto, Long sellerId) {
-        log.info("一次性绑定SPU所有属性, spuId: {}", dto.getSpuId());
-
-        // 校验权限
-        checkSpuPermission(dto.getSpuId(), sellerId);
-
-        Map<String, Object> result = new HashMap<>();
-
-        // 删除SPU下所有SKU的销售属性绑定
-        List<Sku> skus = skuMapper.selectList(
-                new LambdaQueryWrapper<Sku>().eq(Sku::getSpuId, dto.getSpuId()));
-        for (Sku sku : skus) {
-            skuSaleAttrValueMapper.delete(
-                    new LambdaQueryWrapper<SkuSaleAttrValue>().eq(SkuSaleAttrValue::getSkuId, sku.getId()));
-        }
-
-        // 删除SPU下所有SKU
-        skuMapper.delete(new LambdaQueryWrapper<Sku>().eq(Sku::getSpuId, dto.getSpuId()));
-
-        // 清除原有的绑定
-        int deletedBasicCount = 0;
-        int deletedSaleCount = 0;
-        LambdaQueryWrapper<SpuBasicAttrValue> deleteBasicWrapper = new LambdaQueryWrapper<>();
-        deleteBasicWrapper.eq(SpuBasicAttrValue::getSpuId, dto.getSpuId());
-        deletedBasicCount = spuBasicAttrValueMapper.delete(deleteBasicWrapper);
-
-        LambdaQueryWrapper<SpuSaleAttrChoice> deleteSaleWrapper = new LambdaQueryWrapper<>();
-        deleteSaleWrapper.eq(SpuSaleAttrChoice::getSpuId, dto.getSpuId());
-        deletedSaleCount = spuSaleAttrChoiceMapper.delete(deleteSaleWrapper);
-
-        result.put("deletedBasicCount", deletedBasicCount);
-        result.put("deletedSaleCount", deletedSaleCount);
-
-        int boundBasicCount = 0;
-        int boundSaleCount = 0;
-
-        // 绑定基本属性
-        if (!CollectionUtils.isEmpty(dto.getBasicAttrs())) {
-            for (SpuBasicAttrBindDto basicDto : dto.getBasicAttrs()) {
-                basicDto.setSpuId(dto.getSpuId());
-                try {
-                    bindBasicAttr(basicDto, sellerId);
-                    boundBasicCount++;
-                } catch (Exception e) {
-                    log.warn("绑定基本属性失败, attrId: {}, error: {}", basicDto.getAttrId(), e.getMessage());
-                }
-            }
-        }
-
-        // 绑定销售属性
-        if (!CollectionUtils.isEmpty(dto.getSaleAttrs())) {
-            for (SpuSaleAttrBindDto saleDto : dto.getSaleAttrs()) {
-                saleDto.setSpuId(dto.getSpuId());
-                try {
-                    bindSaleAttr(saleDto, sellerId);
-                    boundSaleCount++;
-                } catch (Exception e) {
-                    log.warn("绑定销售属性失败, attrId: {}, error: {}", saleDto.getAttrId(), e.getMessage());
-                }
-            }
-        }
-
-        result.put("boundBasicCount", boundBasicCount);
-        result.put("boundSaleCount", boundSaleCount);
-        result.put("spuId", dto.getSpuId());
-
-        log.info("SPU属性绑定完成, 绑定基本属性: {}, 绑定销售属性: {}", boundBasicCount, boundSaleCount);
-
-        return result;
-    }
+    //@Override
+    //@Transactional(rollbackFor = Exception.class)
+    //public Map<String, Object> bindAllAttrs(SpuAttrFullBindDto dto, Long sellerId) {
+    //    log.info("一次性绑定SPU所有属性, spuId: {}", dto.getSpuId());
+    //
+    //    // 校验权限
+    //    checkSpuPermission(dto.getSpuId(), sellerId);
+    //
+    //    Map<String, Object> result = new HashMap<>();
+    //
+    //    // 删除SPU下所有SKU的销售属性绑定
+    //    List<Sku> skus = skuMapper.selectList(
+    //            new LambdaQueryWrapper<Sku>().eq(Sku::getSpuId, dto.getSpuId()));
+    //    for (Sku sku : skus) {
+    //        skuSaleAttrValueMapper.delete(
+    //                new LambdaQueryWrapper<SkuSaleAttrValue>().eq(SkuSaleAttrValue::getSkuId, sku.getId()));
+    //    }
+    //
+    //    // 删除SPU下所有SKU
+    //    skuMapper.delete(new LambdaQueryWrapper<Sku>().eq(Sku::getSpuId, dto.getSpuId()));
+    //
+    //    // 清除原有的绑定
+    //    int deletedBasicCount = 0;
+    //    int deletedSaleCount = 0;
+    //    LambdaQueryWrapper<SpuBasicAttrValue> deleteBasicWrapper = new LambdaQueryWrapper<>();
+    //    deleteBasicWrapper.eq(SpuBasicAttrValue::getSpuId, dto.getSpuId());
+    //    deletedBasicCount = spuBasicAttrValueMapper.delete(deleteBasicWrapper);
+    //
+    //    LambdaQueryWrapper<SpuSaleAttrChoice> deleteSaleWrapper = new LambdaQueryWrapper<>();
+    //    deleteSaleWrapper.eq(SpuSaleAttrChoice::getSpuId, dto.getSpuId());
+    //    deletedSaleCount = spuSaleAttrChoiceMapper.delete(deleteSaleWrapper);
+    //
+    //    result.put("deletedBasicCount", deletedBasicCount);
+    //    result.put("deletedSaleCount", deletedSaleCount);
+    //
+    //    int boundBasicCount = 0;
+    //    int boundSaleCount = 0;
+    //
+    //    // 绑定基本属性
+    //    if (!CollectionUtils.isEmpty(dto.getBasicAttrs())) {
+    //        for (SpuBasicAttrBindDto basicDto : dto.getBasicAttrs()) {
+    //            basicDto.setSpuId(dto.getSpuId());
+    //            try {
+    //                bindBasicAttr(basicDto, sellerId);
+    //                boundBasicCount++;
+    //            } catch (Exception e) {
+    //                log.warn("绑定基本属性失败, attrId: {}, error: {}", basicDto.getAttrId(), e.getMessage());
+    //            }
+    //        }
+    //    }
+    //
+    //    // 绑定销售属性
+    //    if (!CollectionUtils.isEmpty(dto.getSaleAttrs())) {
+    //        for (SpuSaleAttrBindDto saleDto : dto.getSaleAttrs()) {
+    //            saleDto.setSpuId(dto.getSpuId());
+    //            try {
+    //                bindSaleAttr(saleDto, sellerId);
+    //                boundSaleCount++;
+    //            } catch (Exception e) {
+    //                log.warn("绑定销售属性失败, attrId: {}, error: {}", saleDto.getAttrId(), e.getMessage());
+    //            }
+    //        }
+    //    }
+    //
+    //    result.put("boundBasicCount", boundBasicCount);
+    //    result.put("boundSaleCount", boundSaleCount);
+    //    result.put("spuId", dto.getSpuId());
+    //
+    //    log.info("SPU属性绑定完成, 绑定基本属性: {}, 绑定销售属性: {}", boundBasicCount, boundSaleCount);
+    //
+    //    return result;
+    //}
 }

@@ -1,9 +1,9 @@
 package com.cyh.mallportal.service;
 
 import com.cyh.mallportal.entity.Category;
+import com.cyh.mallportal.vo.CategoryTreeVo;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * 分类缓存服务接口
@@ -79,7 +79,7 @@ public interface CategoryCacheService {
      * @param parentId 父分类ID
      * @return 分类树结构列表，如果缓存不存在返回null
      */
-    List<Map<String, Object>> getTreeWithChildren(Long parentId);
+    List<CategoryTreeVo> getTreeWithChildren(Long parentId);
 
     /**
      * 设置分类树结构缓存
@@ -87,7 +87,7 @@ public interface CategoryCacheService {
      * @param parentId 父分类ID
      * @param tree     分类树结构
      */
-    void setTreeWithChildren(Long parentId, List<Map<String, Object>> tree);
+    void setTreeWithChildren(Long parentId, List<CategoryTreeVo> tree);
 
     /**
      * 清除所有分类缓存

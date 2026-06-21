@@ -38,7 +38,7 @@ public class OrderDeliveryController {
      * @return 创建结果
      */
     @PostMapping("/create")
-    @PreAuthorize("hasAuthority('order:delivery:add') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Map<String, Object>> createDelivery(@RequestBody OrderDeliveryDto deliveryDto) {
         // 参数校验
         if (deliveryDto.getOrderId() == null) {
@@ -69,7 +69,7 @@ public class OrderDeliveryController {
      * @return 签收结果
      */
     @PutMapping("/sign")
-    @PreAuthorize("hasAuthority('order:delivery:edit') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Void> signDelivery(@RequestParam String deliveryNo,
                                      @RequestParam(required = false) String signer) {
         // 如果用户不是管理员，验证是否是订单所有者
@@ -101,7 +101,7 @@ public class OrderDeliveryController {
      * @return 处理结果
      */
     @PutMapping("/exception")
-    @PreAuthorize("hasAuthority('order:delivery:edit') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Void> exceptionDelivery(@RequestParam String deliveryNo,
                                           @RequestParam String exceptionReason) {
         boolean success = orderDeliveryService.exceptionDelivery(deliveryNo, exceptionReason);
@@ -157,7 +157,7 @@ public class OrderDeliveryController {
      * @return 发货记录列表
      */
     @GetMapping("/status/{deliveryStatus}")
-    @PreAuthorize("hasAuthority('order:delivery:query') or hasRole('SUPER_ADMIN') or hasRole('ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<List<OrderDelivery>> getByStatus(@PathVariable Integer deliveryStatus) {
         List<OrderDelivery> deliveries = orderDeliveryService.getByStatus(deliveryStatus);
         return Result.success(deliveries);
@@ -200,7 +200,6 @@ public class OrderDeliveryController {
         if (authentication != null) {
             return authentication.getAuthorities().stream()
                     .anyMatch(a -> a.getAuthority().contains("SUPER_ADMIN") ||
-                                   a.getAuthority().contains("ADMIN") ||
                                    a.getAuthority().contains("SELLER"));
         }
         return false;

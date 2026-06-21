@@ -6,13 +6,17 @@ import com.cyh.mallcommon.exception.LoginExpiredException;
 import com.cyh.mallcommon.utils.Result;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.servlet.NoHandlerFoundException;
 
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
@@ -52,10 +56,18 @@ public class GlobalExceptionHandler {
         return Result.error(ErrorCode.BUSINESS_ERROR.getBusinessCode(), e.getMessage());
     }
 
+    // ==================== 找不到对应资源 ====================
+
+    @ExceptionHandler(NoHandlerFoundException.class)
+    public Result<?> handleNotFound(NoHandlerFoundException e, HttpServletResponse response) {
+        response.setStatus(ErrorCode.NOT_FOUND.getHttpStatus());
+        log.warn("找不到资源: {}", e.getMessage());
+        return Result.error(ErrorCode.NOT_FOUND.getBusinessCode(), ErrorCode.NOT_FOUND.getMessage());
+    }
     // ==================== 未认证 ====================
 
     /**
-     * 登录认证失败（用户名或密码错误）
+     * 登录认证失败（用户名或密码错误） AuthenticationException是security认证异常的父类
      * <p>
      * HTTP 状态码：401 | 业务码：40101
      */
@@ -82,7 +94,7 @@ public class GlobalExceptionHandler {
 
     /**
      * 权限不足（@PreAuthorize 权限校验失败），接口调用的权限和方法上@PreAuthorize里进行设置的权限不一样
-     * 无法处理SecurityConfig里面设置权限
+     * 无法处理SecurityConfig里面设置权限   AccessDeniedException是security授权异常的父类
      * <p>
      * HTTP 状态码：403 | 业务码：403
      */
@@ -117,12 +129,12 @@ public class GlobalExceptionHandler {
      * <p>
      * HTTP 状态码：404 | 业务码：404
      */
-    @ExceptionHandler(NoSuchElementException.class)
-    public Result<?> handleNoSuchElementException(NoSuchElementException e, HttpServletResponse response) {
-        response.setStatus(ErrorCode.NOT_FOUND.getHttpStatus());
-        log.warn("资源不存在: {}", e.getMessage());
-        return Result.error(ErrorCode.NOT_FOUND.getBusinessCode(), e.getMessage());
-    }
+    //@ExceptionHandler(NoSuchElementException.class)
+    //public Result<?> handleNoSuchElementException(NoSuchElementException e, HttpServletResponse response) {
+    //    response.setStatus(ErrorCode.NOT_FOUND.getHttpStatus());
+    //    log.warn("资源不存在: {}", e.getMessage());
+    //    return Result.error(ErrorCode.NOT_FOUND.getBusinessCode(), e.getMessage());
+    //}
 
     // ==================== 系统异常 ====================
 

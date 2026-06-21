@@ -2,9 +2,9 @@ package com.cyh.mallportal.service;
 
 import com.cyh.mallportal.entity.Attribute;
 import com.cyh.mallportal.entity.AttributeValue;
+import com.cyh.mallportal.vo.CategoryAttrVo;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * 属性Service接口
@@ -42,7 +42,15 @@ public interface AttributeService {
      * @param categoryId 分类ID
      * @return 销售属性及属性值列表
      */
-    List<Map<String, Object>> getSalesAttributesWithValues(Long categoryId);
+    List<CategoryAttrVo> getSalesAttributesWithValues(Long categoryId);
+
+    /**
+     * 获取分类下的所有属性及其属性值（含销售属性和基本属性）
+     *
+     * @param categoryId 分类ID
+     * @return 所有属性及属性值列表
+     */
+    List<CategoryAttrVo> getCategoryAttributesWithValues(Long categoryId);
 
     /**
      * 获取分类下的基本属性及其属性值
@@ -50,21 +58,5 @@ public interface AttributeService {
      * @param categoryId 分类ID
      * @return 基本属性及属性值列表
      */
-    List<Map<String, Object>> getBasicAttributesWithValues(Long categoryId);
-
-    /**
-     * 获取SPU的基本属性值
-     *
-     * @param spuId SPU ID
-     * @return SPU基本属性值列表
-     */
-    List<Map<String, Object>> getSpuBasicAttributes(Long spuId);
-
-    /**
-     * 获取SPU的销售属性选择
-     *
-     * @param spuId SPU ID
-     * @return SPU销售属性选择列表
-     */
-    List<Map<String, Object>> getSpuSaleAttributes(Long spuId);
+    List<CategoryAttrVo> getBasicAttributesWithValues(Long categoryId);
 }

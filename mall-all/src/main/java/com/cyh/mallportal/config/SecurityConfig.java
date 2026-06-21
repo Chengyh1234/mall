@@ -1,7 +1,7 @@
 package com.cyh.mallportal.config;
 
 import com.cyh.mallportal.filter.TokenAuthenticationFilter;
-import com.cyh.mallportal.handler.CustomAuthenticationEntryPoint;
+import com.cyh.mallportal.filter.CustomAuthenticationEntryPoint;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -111,7 +111,6 @@ public class SecurityConfig {
                                 "/attribute/category/**",
                                 "/attribute/sales/**",
                                 "/attribute/basic/**",
-                                "/attribute/spu/**",
                                 "/banner/active",
                                 "/brand/**",
                                 "/category/detail/**",
@@ -129,16 +128,17 @@ public class SecurityConfig {
                                 "/order/status-desc/**",
                                 "/order/pay-status-desc/**",
                                 "/sku/detail/**",
-                                "/sku/list",
-                                "/sku/page",
-                                "/sku/min-price/**",
+                                //"/sku/list",
+                                //"/sku/page",
+                                //"/sku/min-price/**",
                                 "/sku/total-stock/**",
                                 "/sku/list-with-attributes",
                                 "/sku/detail-with-attributes/**",
                                 "/spu/detail/**",
-                                "/spu/list",
+                                //"/spu/list",
                                 "/spu/page",
                                 "/spu/by-store/**",
+                                "/spu/*/basic-attributes",
                                 "/store/detail/**",
                                 "/store/page"
                         ).permitAll()

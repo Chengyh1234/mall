@@ -53,11 +53,4 @@ public interface UserMapper extends BaseMapper<User> {
      */
     List<String> selectRoleCodesByUserId(@Param("userId") Long userId);
 
-    /**
-     * 根据用户ID查询权限编码列表
-     *
-     * @param userId 用户ID
-     * @return 权限编码列表
-     */
-    List<String> selectPermissionCodesByUserId(@Param("userId") Long userId);
 }
