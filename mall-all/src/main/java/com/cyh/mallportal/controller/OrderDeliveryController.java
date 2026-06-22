@@ -7,6 +7,7 @@ import com.cyh.mallportal.entity.User;
 import com.cyh.mallportal.service.OrderDeliveryService;
 import com.cyh.mallportal.service.OrderService;
 import com.cyh.mallportal.vo.OrderVo;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -39,18 +40,7 @@ public class OrderDeliveryController {
      */
     @PostMapping("/create")
     @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
-    public Result<Map<String, Object>> createDelivery(@RequestBody OrderDeliveryDto deliveryDto) {
-        // 参数校验
-        if (deliveryDto.getOrderId() == null) {
-            return Result.error("订单ID不能为空");
-        }
-        if (deliveryDto.getDeliveryCompany() == null || deliveryDto.getDeliveryCompany().trim().isEmpty()) {
-            return Result.error("物流公司不能为空");
-        }
-        if (deliveryDto.getDeliveryNo() == null || deliveryDto.getDeliveryNo().trim().isEmpty()) {
-            return Result.error("物流单号不能为空");
-        }
-
+    public Result<Map<String, Object>> createDelivery(@RequestBody @Valid OrderDeliveryDto deliveryDto) {
         Long deliveryId = orderDeliveryService.createDelivery(deliveryDto);
         if (deliveryId != null) {
             Map<String, Object> data = new HashMap<>();

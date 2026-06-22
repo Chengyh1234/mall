@@ -1,10 +1,10 @@
 package com.cyh.mallportal.dto;
 
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.time.LocalDateTime;
 
 /**
  * 购物车项DTO
@@ -15,28 +15,20 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 public class CartItemDto {
 
-    /**
-     * SKU ID（添加购物车时必填）
-     */
+    /** SKU ID（添加购物车时必填） */
+    @NotNull(message = "SKU ID不能为空")
     private Long skuId;
 
-    /**
-     * 数量（默认为1）
-     */
+    /** 数量（默认为1） */
+    @Min(value = 1, message = "数量不能小于1")
     private Integer quantity;
 
-    /**
-     * 商品主图路径（前端传入，作为快照保存）
-     */
+    /** 商品主图路径（前端传入，作为快照保存） */
     private String productImage;
 
-    /**
-     * SKU规格描述快照（如："颜色:黑色 / 尺寸:XL"）
-     */
+    /** SKU规格描述快照（如："颜色:黑色 / 尺寸:XL"） */
     private String skuSpecs;
 
-    /**
-     * 备注（如：送礼需要精美包装）
-     */
+    /** 备注（如：送礼需要精美包装） */
     private String notes;
 }

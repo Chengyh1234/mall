@@ -6,6 +6,7 @@ import com.cyh.mallportal.entity.CartItem;
 import com.cyh.mallportal.entity.User;
 import com.cyh.mallportal.service.CartItemService;
 import com.cyh.mallportal.vo.CartItemVo;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -18,7 +19,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * 购物车管理控制器 已处理响应
+ * 购物车管理控制器
  * 提供购物车的增删改查及结算功能
  */
 @RestController
@@ -37,15 +38,8 @@ public class CartItemController {
      */
     @PostMapping("/add")
     @PreAuthorize("hasRole('USER')")
-    public Result<Map<String, Object>> addToCart(@RequestBody CartItemDto cartItemDto) {
+    public Result<Map<String, Object>> addToCart(@RequestBody @Valid CartItemDto cartItemDto) {
         Long userId = getCurrentUserId();
-
-        if (cartItemDto.getSkuId() == null) {
-            return Result.error("SKU ID不能为空");
-        }
-        if (cartItemDto.getQuantity() != null && cartItemDto.getQuantity() <= 0) {
-            return Result.error("数量必须大于0");
-        }
 
         boolean success = cartItemService.addToCart(userId, cartItemDto);
         if (success) {

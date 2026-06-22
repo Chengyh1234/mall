@@ -18,6 +18,9 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.validation.annotation.Validated;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -27,6 +30,7 @@ import java.util.stream.Collectors;
 /**
  * 店铺管理控制器   已修改响应
  */
+@Validated
 @RestController
 @RequestMapping("/store")
 public class StoreController {
@@ -286,7 +290,7 @@ public class StoreController {
      */
     @PutMapping("/status/{id}")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
-    public Result<Void> updateStatus(@PathVariable Long id, @RequestParam Integer status) {
+    public Result<Void> updateStatus(@PathVariable Long id, @RequestParam @Min(0) @Max(1) Integer status) {
         boolean success = storeService.updateStatus(id, status);
         if (success) {
             return Result.success("更新成功", null);

@@ -14,6 +14,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.validation.annotation.Validated;
 
 import java.util.HashMap;
 import java.util.List;
@@ -23,6 +24,7 @@ import java.util.Map;
  * 分类管理控制器 已处理响应
  * 提供分类的增删改查及树形结构查询功能
  */
+@Validated
 @RestController
 @RequestMapping("/category")
 public class CategoryController {

@@ -1,12 +1,16 @@
 package com.cyh.mallportal.controller;
 
 import com.cyh.mallcommon.utils.Result;
+import com.cyh.mallcommon.validation.group.Create;
+import com.cyh.mallcommon.validation.group.Update;
+import com.cyh.mallportal.dto.LogisticsCompanyDto;
 import com.cyh.mallportal.entity.LogisticsCompany;
 import com.cyh.mallportal.service.LogisticsCompanyService;
 import com.cyh.mallportal.vo.LogisticsCompanyAdminVo;
 import com.cyh.mallportal.vo.LogisticsCompanyVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -99,19 +103,20 @@ public class LogisticsCompanyController {
     /**
      * 新增物流公司
      *
-     * @param company 物流公司实体
+     * @param dto 物流公司DTO
      * @return 新增结果
      */
     @PostMapping("/add")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
-    public Result<Map<String, Object>> add(@RequestBody LogisticsCompany company) {
-        // 参数校验
-        if (company.getName() == null || company.getName().trim().isEmpty()) {
-            return Result.error("物流公司名称不能为空");
-        }
-        if (company.getCode() == null || company.getCode().trim().isEmpty()) {
-            return Result.error("物流公司代码不能为空");
-        }
+    public Result<Map<String, Object>> add(@RequestBody @Validated(Create.class) LogisticsCompanyDto dto) {
+        LogisticsCompany company = new LogisticsCompany();
+        company.setName(dto.getName());
+        company.setCode(dto.getCode());
+        company.setLogo(dto.getLogo());
+        company.setWebsite(dto.getWebsite());
+        company.setPhone(dto.getPhone());
+        company.setSort(dto.getSort());
+        company.setStatus(dto.getStatus());
 
         boolean success = logisticsCompanyService.add(company);
         if (success) {
@@ -125,15 +130,21 @@ public class LogisticsCompanyController {
     /**
      * 更新物流公司
      *
-     * @param company 物流公司实体
+     * @param dto 物流公司DTO
      * @return 更新结果
      */
     @PutMapping("/update")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
-    public Result<Void> update(@RequestBody LogisticsCompany company) {
-        if (company.getId() == null) {
-            return Result.error("物流公司ID不能为空");
-        }
+    public Result<Void> update(@RequestBody @Validated(Update.class) LogisticsCompanyDto dto) {
+        LogisticsCompany company = new LogisticsCompany();
+        company.setId(dto.getId());
+        company.setName(dto.getName());
+        company.setCode(dto.getCode());
+        company.setLogo(dto.getLogo());
+        company.setWebsite(dto.getWebsite());
+        company.setPhone(dto.getPhone());
+        company.setSort(dto.getSort());
+        company.setStatus(dto.getStatus());
 
         boolean success = logisticsCompanyService.update(company);
         if (success) {

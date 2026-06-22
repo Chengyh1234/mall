@@ -1,16 +1,19 @@
 package com.cyh.mallportal.controller;
 
+import com.cyh.mallcommon.exception.BusinessException;
 import com.cyh.mallcommon.utils.Result;
 import com.cyh.mallportal.dto.BatchPayDto;
 import com.cyh.mallportal.dto.OrderCreateDto;
 import com.cyh.mallportal.entity.Order;
 import com.cyh.mallportal.entity.User;
+import com.cyh.mallportal.service.DistributedLockService;
 import com.cyh.mallportal.service.OrderService;
 import com.cyh.mallportal.vo.OrderListAdminVo;
 import com.cyh.mallportal.vo.OrderListItemVo;
 import com.cyh.mallportal.vo.OrderStatusCountVo;
 import com.cyh.mallportal.vo.OrderVo;
 import com.cyh.mallportal.vo.RefundProgressVo;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -23,6 +26,7 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
@@ -36,6 +40,9 @@ public class OrderController {
     @Autowired
     private OrderService orderService;
 
+    @Autowired
+    private DistributedLockService distributedLockService;
+
     /**
      * 创建订单
      *
@@ -44,19 +51,24 @@ public class OrderController {
      */
     @PostMapping("/create")
     @PreAuthorize("hasRole('USER')")
-    public Result<Long> createOrder(@RequestBody OrderCreateDto orderCreateDto) {
+    public Result<Long> createOrder(@RequestBody @Valid OrderCreateDto orderCreateDto) {
         Long userId = getCurrentUserId();
-
-        if (orderCreateDto.getItems() == null || orderCreateDto.getItems().isEmpty()) {
-            return Result.error("订单商品不能为空");
-        }
 
         if (orderCreateDto.getAddressId() == null && (orderCreateDto.getReceiverName() == null || orderCreateDto.getReceiverPhone() == null)) {
             return Result.error("收货信息不能为空");
         }
 
-        Long orderId = orderService.createOrder(userId, orderCreateDto);
-        return Result.success("订单创建成功", orderId);
+        try {
+            // 分布式锁：按用户粒度，防止重复提交订单
+            Long orderId = distributedLockService.executeWithLock(
+                    "lock:order:create:" + userId,
+                    3, -1, TimeUnit.SECONDS,
+                    () -> orderService.createOrder(userId, orderCreateDto)
+            );
+            return Result.success("订单创建成功", orderId);
+        } catch (BusinessException e) {
+            return Result.error(e.getMessage());
+        }
     }
 
     /**
@@ -73,15 +85,20 @@ public class OrderController {
                                                      @RequestParam(required = false) String buyerMessage) {
         Long userId = getCurrentUserId();
 
-        if (addressId == null) {
-            return Result.error("收货地址不能为空");
+        try {
+            // 分布式锁：按用户粒度，防止从购物车结算重复提交
+            List<Long> orderIds = distributedLockService.executeWithLock(
+                    "lock:order:create:cart:" + userId,
+                    3, -1, TimeUnit.SECONDS,
+                    () -> orderService.createOrderFromCart(userId, addressId, buyerMessage)
+            );
+            if (orderIds != null && !orderIds.isEmpty()) {
+                return Result.success("订单创建成功", orderIds);
+            }
+            return Result.error("购物车中没有选中的商品");
+        } catch (BusinessException e) {
+            return Result.error(e.getMessage());
         }
-
-        List<Long> orderIds = orderService.createOrderFromCart(userId, addressId, buyerMessage);
-        if (orderIds != null && !orderIds.isEmpty()) {
-            return Result.success("订单创建成功", orderIds);
-        }
-        return Result.error("购物车中没有选中的商品");
     }
 
     /**
@@ -206,11 +223,23 @@ public class OrderController {
             return Result.error("无权操作此订单");
         }
 
-        boolean success = orderService.payOrder(orderId, payType);
-        if (success) {
+        try {
+            // 分布式锁：按订单粒度，防止重复支付
+            distributedLockService.executeWithLock(
+                    "lock:order:pay:" + orderId,
+                    3, -1, TimeUnit.SECONDS,
+                    () -> {
+                        boolean success = orderService.payOrder(orderId, payType);
+                        if (!success) {
+                            throw new BusinessException("支付失败，订单状态不允许");
+                        }
+                        return null;
+                    }
+            );
             return Result.success("支付成功", null);
+        } catch (BusinessException e) {
+            return Result.error(e.getMessage());
         }
-        return Result.error("支付失败，订单状态不允许");
     }
 
     /**
@@ -222,17 +251,21 @@ public class OrderController {
      */
     @PostMapping("/batch-pay")
     @PreAuthorize("hasRole('USER')")
-    public Result<Map<String, Object>> batchPayOrders(@RequestBody BatchPayDto batchPayDto) {
+    public Result<Map<String, Object>> batchPayOrders(@RequestBody @Valid BatchPayDto batchPayDto) {
         Long userId = getCurrentUserId();
 
-        // 参数校验
-        if (batchPayDto.getOrderIds() == null || batchPayDto.getOrderIds().isEmpty()) {
-            return Result.error("订单ID列表不能为空");
+        try {
+            // 分布式锁：按用户粒度，防止批量支付重复提交
+            Map<String, Object> result = distributedLockService.executeWithLock(
+                    "lock:order:batch-pay:" + userId,
+                    3, -1, TimeUnit.SECONDS,
+                    () -> orderService.batchPayOrders(batchPayDto.getOrderIds(),
+                            batchPayDto.getPayType() != null ? batchPayDto.getPayType() : "alipay", userId)
+            );
+            return Result.success("批量付款处理完成", result);
+        } catch (BusinessException e) {
+            return Result.error(e.getMessage());
         }
-
-        Map<String, Object> result = orderService.batchPayOrders(batchPayDto.getOrderIds(),
-                batchPayDto.getPayType() != null ? batchPayDto.getPayType() : "alipay", userId);
-        return Result.success("批量付款处理完成", result);
     }
 
     /**
@@ -624,9 +657,6 @@ public class OrderController {
     @PreAuthorize("hasRole('SELLER') or hasRole('STORE_ADMIN') or hasRole('SUPER_ADMIN')")
     public Result<Void> rejectRefund(@PathVariable Long orderId,
                                      @RequestParam String rejectReason) {
-        if (rejectReason == null || rejectReason.isEmpty()) {
-            return Result.error("拒接退款时请填写原因");
-        }
         Long operatorId = getCurrentUserId();
         boolean success = orderService.rejectRefund(orderId, rejectReason, operatorId);
         if (success) {

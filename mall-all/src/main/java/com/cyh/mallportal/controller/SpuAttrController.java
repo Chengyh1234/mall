@@ -18,6 +18,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.Valid;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -112,7 +113,7 @@ public class SpuAttrController {
      */
     @PutMapping("/basic/batch-update")
     @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
-    public Result<Map<String, Object>> batchUpdateBasicAttr(@RequestBody List<SpuBasicAttrBindDto> dtoList) {
+    public Result<Map<String, Object>> batchUpdateBasicAttr(@RequestBody @Valid List<SpuBasicAttrBindDto> dtoList) {
         Long sellerId = getCurrentUserId();
         if (sellerId == null) {
             return Result.error("用户未登录");
@@ -192,7 +193,7 @@ public class SpuAttrController {
      */
     @PostMapping("/sale/batch-bind")
     @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
-    public Result<Map<String, Object>> batchBindSaleAttr(@RequestBody List<SpuSaleAttrBindDto> dtoList) {
+    public Result<Map<String, Object>> batchBindSaleAttr(@RequestBody @Valid List<SpuSaleAttrBindDto> dtoList) {
         Long sellerId = getCurrentUserId();
         if (sellerId == null) {
             return Result.error("用户未登录");

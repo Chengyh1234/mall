@@ -84,14 +84,10 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
             "/order/status-desc/**",
             "/order/pay-status-desc/**",
             "/sku/detail/**",
-            //"/sku/list",
-            //"/sku/page",
-            //"/sku/min-price/**",
             "/sku/total-stock/**",
             "/sku/list-with-attributes",
             "/sku/detail-with-attributes/**",
             "/spu/detail/**",
-            //"/spu/list",
             "/spu/page",
             "/spu/by-store/**",
             "/spu/*/basic-attributes",
@@ -119,10 +115,6 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
 
         String path = request.getServletPath();
         String method = request.getMethod();
-
-
-        //String requestURI = request.getRequestURI();
-        //log.info("path: {}, method: {}, uri: {}", path, method, requestURI);
 
         // 静态资源公开（不限方法）
         if (pathMatcher.match("/uploads/images/**", path)) {
@@ -205,10 +197,6 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
             if (tokenSessionId == null || !tokenSessionId.equals(currentSessionId)) {
                 // 5.1. sessionId不匹配，说明用户已在其他设备登录，但是之前在redis中还记录，需要删除
                 redisTemplate.delete(MyConstants.TOKEN_PREFIX + token);
-                // sessionId不匹配，说明用户已在其他设备登录
-                //log.warn("用户 {} 的会话已失效（在其他设备登录）", userId);
-                //response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-                //response.getWriter().write("{\"code\": 401, \"message\": \"账号已在其他设备登录\"}");
                 return;
             }
 

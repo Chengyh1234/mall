@@ -1,6 +1,8 @@
 package com.cyh.mallportal.controller;
 
 import com.cyh.mallcommon.utils.Result;
+import com.cyh.mallcommon.validation.group.Create;
+import com.cyh.mallcommon.validation.group.Update;
 import com.cyh.mallportal.dto.AddressDto;
 import com.cyh.mallportal.entity.Address;
 import com.cyh.mallportal.entity.User;
@@ -10,6 +12,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
@@ -36,27 +39,8 @@ public class AddressController {
      */
     @PostMapping("/add")
     @PreAuthorize("hasRole('USER')")
-    public Result<Map<String, Object>> addAddress(@RequestBody AddressDto addressDto) {
+    public Result<Map<String, Object>> addAddress(@RequestBody @Validated(Create.class) AddressDto addressDto) {
         Long userId = getCurrentUserId();
-
-        if (addressDto.getReceiverName() == null || addressDto.getReceiverName().trim().isEmpty()) {
-            return Result.error("收货人不能为空");
-        }
-        if (addressDto.getReceiverPhone() == null || addressDto.getReceiverPhone().trim().isEmpty()) {
-            return Result.error("收货人电话不能为空");
-        }
-        if (addressDto.getProvince() == null || addressDto.getProvince().trim().isEmpty()) {
-            return Result.error("省不能为空");
-        }
-        if (addressDto.getCity() == null || addressDto.getCity().trim().isEmpty()) {
-            return Result.error("市不能为空");
-        }
-        if (addressDto.getDistrict() == null || addressDto.getDistrict().trim().isEmpty()) {
-            return Result.error("区不能为空");
-        }
-        if (addressDto.getDetailAddress() == null || addressDto.getDetailAddress().trim().isEmpty()) {
-            return Result.error("详细地址不能为空");
-        }
 
         Long addressId = addressService.addAddress(userId, addressDto);
         Map<String, Object> data = new HashMap<>();
@@ -72,12 +56,8 @@ public class AddressController {
      */
     @PutMapping("/update")
     @PreAuthorize("hasRole('USER')")
-    public Result<Void> updateAddress(@RequestBody AddressDto addressDto) {
+    public Result<Void> updateAddress(@RequestBody @Validated(Update.class) AddressDto addressDto) {
         Long userId = getCurrentUserId();
-
-        if (addressDto.getId() == null) {
-            return Result.error("地址ID不能为空");
-        }
 
         boolean success = addressService.updateAddress(userId, addressDto);
         if (success) {

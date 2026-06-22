@@ -25,18 +25,6 @@ import java.util.stream.Collectors;
  * <p>
  * 统一处理各类异常，返回标准 {@link Result} 格式响应，
  * 并设置对应的 HTTP 状态码。
- *
- * <pre>
- * 错误类型          HTTP 状态码    业务码
- * ────────────────────────────────────────
- * 请求参数格式错误    400            400
- * 密码错误           401          40102
- * 登录失效（Token）   401          40103
- * 权限不足           403            403
- * 资源不存在          404            404
- * 业务规则错误       200          40000
- * 系统异常           500            500
- * </pre>
  */
 @Slf4j
 @RestControllerAdvice
@@ -121,20 +109,6 @@ public class GlobalExceptionHandler {
         log.warn("参数校验失败: {}", errorMsg);
         return Result.error(ErrorCode.BAD_REQUEST.getBusinessCode(), errorMsg);
     }
-
-    // ==================== 资源不存在 ====================
-
-    /**
-     * 请求的资源不存在
-     * <p>
-     * HTTP 状态码：404 | 业务码：404
-     */
-    //@ExceptionHandler(NoSuchElementException.class)
-    //public Result<?> handleNoSuchElementException(NoSuchElementException e, HttpServletResponse response) {
-    //    response.setStatus(ErrorCode.NOT_FOUND.getHttpStatus());
-    //    log.warn("资源不存在: {}", e.getMessage());
-    //    return Result.error(ErrorCode.NOT_FOUND.getBusinessCode(), e.getMessage());
-    //}
 
     // ==================== 系统异常 ====================
 

@@ -1,5 +1,6 @@
 package com.cyh.mallportal.dto;
 
+import jakarta.validation.constraints.NotEmpty;
 import lombok.Data;
 
 import java.util.List;
@@ -11,13 +12,10 @@ import java.util.List;
 @Data
 public class BatchPayDto {
 
-    /**
-     * 待付款的订单ID列表（至少一个）
-     */
+    /** 待付款的订单ID列表（至少一个） */
+    @NotEmpty(message = "订单ID列表不能为空")
     private List<Long> orderIds;
 
-    /**
-     * 支付方式：alipay-支付宝  wechat-微信（默认 alipay）
-     */
+    /** 支付方式：alipay-支付宝  wechat-微信（默认 alipay） */
     private String payType;
 }

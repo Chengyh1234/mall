@@ -1,6 +1,8 @@
 package com.cyh.mallportal.controller;
 
 import com.cyh.mallcommon.utils.Result;
+import com.cyh.mallcommon.validation.group.Create;
+import com.cyh.mallcommon.validation.group.Update;
 import com.cyh.mallportal.dto.StoreAdminDto;
 import com.cyh.mallportal.entity.Store;
 import com.cyh.mallportal.entity.StoreAdmin;
@@ -11,8 +13,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,14 +40,7 @@ public class StoreAdminController {
      */
     @PostMapping("/add")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
-    public Result<Map<String, Object>> add(@RequestBody StoreAdminDto storeAdminDto) {
-        if (storeAdminDto.getStoreId() == null) {
-            return Result.error("店铺ID不能为空");
-        }
-        if (storeAdminDto.getUserId() == null) {
-            return Result.error("用户ID不能为空");
-        }
-
+    public Result<Map<String, Object>> add(@RequestBody @Validated(Create.class) StoreAdminDto storeAdminDto) {
         Long currentUserId = getCurrentUserId();
         if (currentUserId == null) {
             return Result.error("用户未登录");
@@ -72,11 +70,7 @@ public class StoreAdminController {
      */
     @PutMapping("/update")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
-    public Result<Void> update(@RequestBody StoreAdminDto storeAdminDto) {
-        if (storeAdminDto.getId() == null) {
-            return Result.error("管理员ID不能为空");
-        }
-
+    public Result<Void> update(@RequestBody @Validated(Update.class) StoreAdminDto storeAdminDto) {
         StoreAdmin oldAdmin = storeAdminService.getById(storeAdminDto.getId());
         if (oldAdmin == null) {
             return Result.error("管理员不存在");
@@ -181,7 +175,9 @@ public class StoreAdminController {
      */
     @PutMapping("/status/{id}")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
-    public Result<Void> updateStatus(@PathVariable Long id, @RequestParam Integer status) {
+    public Result<Void> updateStatus(@PathVariable Long id,
+                                     @RequestParam @Min(value = 0, message = "状态值不能小于0")
+                                     @Max(value = 1, message = "状态值不能大于1") Integer status) {
         StoreAdmin admin = storeAdminService.getById(id);
         if (admin == null) {
             return Result.error("管理员不存在");

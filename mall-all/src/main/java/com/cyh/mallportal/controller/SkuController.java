@@ -16,6 +16,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import jakarta.validation.Valid;
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
@@ -53,7 +54,7 @@ public class SkuController {
      * @return 删除结果
      */
     @DeleteMapping("/delete/{id}")
-    @PreAuthorize("hasAuthority('product:delete') or hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Void> delete(@PathVariable Long id) {
         // 获取SKU信息（包含图片）
         Sku sku = skuService.getById(id);
@@ -76,7 +77,7 @@ public class SkuController {
      * @return 删除结果
      */
     @DeleteMapping("/delete-by-spu/{spuId}")
-    @PreAuthorize("hasAuthority('product:delete') or hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Void> deleteBySpuId(@PathVariable Long spuId) {
         // 获取所有SKU并删除图片
         List<Sku> skus = skuService.getBySpuId(spuId);
@@ -100,7 +101,7 @@ public class SkuController {
      * @return 删除结果
      */
     @DeleteMapping("/batch-delete")
-    @PreAuthorize("hasAuthority('product:delete') or hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Map<String, Object>> batchDelete(@RequestBody List<Long> ids) {
         if (ids == null || ids.isEmpty()) {
             return Result.error("SKU ID列表不能为空");
@@ -120,94 +121,94 @@ public class SkuController {
         return Result.success("批量删除成功", data);
     }
 
-    /**
-     * 更新SKU信息（支持图片上传） =============似乎不需要
-     *
-     * @param skuDtoString SKU信息的JSON字符串
-     * @param imageFile    上传的SKU图片（非必填）
-     * @return 更新结果
-     */
-    @PutMapping("/update")
-    @PreAuthorize("hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
-    public Result<Map<String, Object>> update(@RequestPart(value = "skuDto") String skuDtoString,
-                                              @RequestPart(value = "imageFile", required = false) MultipartFile imageFile) {
-        // 解析SKU DTO
-        SkuDto skuDto = JSON.parseObject(skuDtoString, SkuDto.class);
-
-        // 参数校验
-        if (skuDto.getId() == null) {
-            return Result.error("SKU ID不能为空");
-        }
-
-        // 查询原有SKU信息
-        Sku existingSku = skuService.getById(skuDto.getId());
-        if (existingSku == null) {
-            return Result.error("SKU不存在");
-        }
-
-        // 创建SKU实体并设置更新后的值
-        Sku sku = new Sku();
-        sku.setId(skuDto.getId());
-
-        if (skuDto.getPrice() != null) {
-            sku.setPrice(skuDto.getPrice());
-        }
-        if (skuDto.getMarketPrice() != null) {
-            sku.setMarketPrice(skuDto.getMarketPrice());
-        }
-        if (skuDto.getCostPrice() != null) {
-            sku.setCostPrice(skuDto.getCostPrice());
-        }
-        if (skuDto.getStock() != null) {
-            sku.setStock(skuDto.getStock());
-        }
-        if (skuDto.getWarnStock() != null) {
-            sku.setWarnStock(skuDto.getWarnStock());
-        }
-
-        if (skuDto.getWeight() != null) {
-            sku.setWeight(skuDto.getWeight());
-        }
-        if (skuDto.getStatus() != null) {
-            sku.setStatus(skuDto.getStatus());
-        }
-
-        // 处理新上传的图片
-        if (imageFile != null && !imageFile.isEmpty()) {
-            // 删除旧图片
-            if (StringUtils.hasText(existingSku.getImage())) {
-                deleteImageFile(existingSku.getImage());
-            }
-            // 上传新图片
-            Map<String, String> imageInfo = uploadImage(imageFile);
-            if (imageInfo != null) {
-                sku.setImage(imageInfo.get("relativePath"));
-            } else {
-                return Result.error("图片上传失败");
-            }
-        } else if (skuDto.getImage() != null) {
-            // 使用指定的图片路径
-            if (!skuDto.getImage().equals(existingSku.getImage())) {
-                deleteImageFile(existingSku.getImage());
-                sku.setImage(skuDto.getImage());
-            } else {
-                sku.setImage(existingSku.getImage());
-            }
-        } else {
-            // 保留原有图片
-            sku.setImage(existingSku.getImage());
-        }
-
-        // 调用service更新SKU
-        boolean success = skuService.update(sku);
-        if (success) {
-            Map<String, Object> data = new HashMap<>();
-            data.put("id", sku.getId());
-            data.put("image", sku.getImage());
-            return Result.success("更新成功", data);
-        }
-        return Result.error("更新失败");
-    }
+    ///**
+    // * 更新SKU信息（支持图片上传） =============似乎不需要
+    // *
+    // * @param skuDtoString SKU信息的JSON字符串
+    // * @param imageFile    上传的SKU图片（非必填）
+    // * @return 更新结果
+    // */
+    //@PutMapping("/update")
+    //@PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    //public Result<Map<String, Object>> update(@RequestPart(value = "skuDto") String skuDtoString,
+    //                                          @RequestPart(value = "imageFile", required = false) MultipartFile imageFile) {
+    //    // 解析SKU DTO
+    //    SkuDto skuDto = JSON.parseObject(skuDtoString, SkuDto.class);
+    //
+    //    // 参数校验
+    //    if (skuDto.getId() == null) {
+    //        return Result.error("SKU ID不能为空");
+    //    }
+    //
+    //    // 查询原有SKU信息
+    //    Sku existingSku = skuService.getById(skuDto.getId());
+    //    if (existingSku == null) {
+    //        return Result.error("SKU不存在");
+    //    }
+    //
+    //    // 创建SKU实体并设置更新后的值
+    //    Sku sku = new Sku();
+    //    sku.setId(skuDto.getId());
+    //
+    //    if (skuDto.getPrice() != null) {
+    //        sku.setPrice(skuDto.getPrice());
+    //    }
+    //    if (skuDto.getMarketPrice() != null) {
+    //        sku.setMarketPrice(skuDto.getMarketPrice());
+    //    }
+    //    if (skuDto.getCostPrice() != null) {
+    //        sku.setCostPrice(skuDto.getCostPrice());
+    //    }
+    //    if (skuDto.getStock() != null) {
+    //        sku.setStock(skuDto.getStock());
+    //    }
+    //    if (skuDto.getWarnStock() != null) {
+    //        sku.setWarnStock(skuDto.getWarnStock());
+    //    }
+    //
+    //    if (skuDto.getWeight() != null) {
+    //        sku.setWeight(skuDto.getWeight());
+    //    }
+    //    if (skuDto.getStatus() != null) {
+    //        sku.setStatus(skuDto.getStatus());
+    //    }
+    //
+    //    // 处理新上传的图片
+    //    if (imageFile != null && !imageFile.isEmpty()) {
+    //        // 删除旧图片
+    //        if (StringUtils.hasText(existingSku.getImage())) {
+    //            deleteImageFile(existingSku.getImage());
+    //        }
+    //        // 上传新图片
+    //        Map<String, String> imageInfo = uploadImage(imageFile);
+    //        if (imageInfo != null) {
+    //            sku.setImage(imageInfo.get("relativePath"));
+    //        } else {
+    //            return Result.error("图片上传失败");
+    //        }
+    //    } else if (skuDto.getImage() != null) {
+    //        // 使用指定的图片路径
+    //        if (!skuDto.getImage().equals(existingSku.getImage())) {
+    //            deleteImageFile(existingSku.getImage());
+    //            sku.setImage(skuDto.getImage());
+    //        } else {
+    //            sku.setImage(existingSku.getImage());
+    //        }
+    //    } else {
+    //        // 保留原有图片
+    //        sku.setImage(existingSku.getImage());
+    //    }
+    //
+    //    // 调用service更新SKU
+    //    boolean success = skuService.update(sku);
+    //    if (success) {
+    //        Map<String, Object> data = new HashMap<>();
+    //        data.put("id", sku.getId());
+    //        data.put("image", sku.getImage());
+    //        return Result.success("更新成功", data);
+    //    }
+    //    return Result.error("更新失败");
+    //}
 
     /**
      * 启用SKU
@@ -216,7 +217,7 @@ public class SkuController {
      * @return 启用结果
      */
     @PutMapping("/enable/{id}")
-    @PreAuthorize("hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Void> enable(@PathVariable Long id) {
         boolean success = skuService.enable(id);
         if (success) {
@@ -232,7 +233,7 @@ public class SkuController {
      * @return 禁用结果
      */
     @PutMapping("/disable/{id}")
-    @PreAuthorize("hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Void> disable(@PathVariable Long id) {
         boolean success = skuService.disable(id);
         if (success) {
@@ -249,7 +250,7 @@ public class SkuController {
      * @return 更新结果
      */
     @PutMapping("/update-stock")
-    @PreAuthorize("hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Void> updateStock(@RequestParam Long id,
                                     @RequestParam Integer stock) {
         boolean success = skuService.updateStock(id, stock);
@@ -267,7 +268,7 @@ public class SkuController {
      * @return 扣减结果
      */
     @PutMapping("/decrease-stock")
-    @PreAuthorize("hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Void> decreaseStock(@RequestParam Long id,
                                       @RequestParam Integer quantity) {
         boolean success = skuService.decreaseStock(id, quantity);
@@ -277,70 +278,7 @@ public class SkuController {
         return Result.error("扣减失败，库存不足");
     }
 
-    //    /**
-//     * 根据ID获取SKU详情
-//     *
-//     * @param id SKU ID
-//     * @return SKU信息
-//     */
-//    @GetMapping("/detail/{id}")
-//    public Result<Sku> getById(@PathVariable Long id) {
-//        Sku sku = skuService.getById(id);
-//        if (sku != null) {
-//            return Result.success(sku);
-//        }
-//        return Result.error("SKU不存在");
-//    }
 
-    //    /**
-//     * 根据SPU ID获取SKU列表
-//     *
-//     * @param spuId SPU ID
-//     * @return SKU列表
-//     */
-//    @GetMapping("/list")
-//    public Result<List<Sku>> getBySpuId(@RequestParam Long spuId) {
-//        List<Sku> list = skuService.getBySpuId(spuId);
-//        return Result.success(list);
-//    }
-
-    /**
-     * 分页获取SKU列表==========暂时没有使用到
-     *
-     * @param spuId    SPU ID（可选）
-     * @param status   状态（可选）
-     * @param page     页码
-     * @param pageSize 每页条数
-     * @return 分页结果
-     */
-    //@GetMapping("/page")
-    //public Result<Map<String, Object>> getPage(@RequestParam(required = false) Long spuId,
-    //                                           @RequestParam(required = false) Integer status,
-    //                                           @RequestParam(defaultValue = "1") Integer page,
-    //                                           @RequestParam(defaultValue = "10") Integer pageSize) {
-    //    List<Sku> list = skuService.getPage(spuId, status, page, pageSize);
-    //    int total = skuService.count(spuId, status);
-    //
-    //    Map<String, Object> data = new HashMap<>();
-    //    data.put("list", list);
-    //    data.put("page", page);
-    //    data.put("pageSize", pageSize);
-    //    data.put("total", total);
-    //
-    //    return Result.success(data);
-    //}
-
-    //    /**
-//     * 获取SPU的最低价格==========暂时没有使用到
-//     *
-//     * @param spuId SPU ID
-//     * @return 最低价格
-//     */
-//    @GetMapping("/min-price/{spuId}")
-//    public Result<BigDecimal> getMinPrice(@PathVariable Long spuId) {
-//        BigDecimal minPrice = skuService.getMinPrice(spuId);
-//        return Result.success(minPrice);
-//    }
 
     /**
      * 获取SPU的库存总量
@@ -395,20 +333,6 @@ public class SkuController {
         return Result.success(list);
     }
 
-    ///**
-    // * 根据ID获取SKU详情（包含销售属性）-------其实也不需要
-    // *
-    // * @param id SKU ID
-    // * @return SKU详情（包含销售属性）
-    // */
-    //@GetMapping("/detail-with-attributes/{id}")
-    //public Result<SkuVo> getByIdWithAttributes(@PathVariable Long id) {
-    //    SkuVo sku = skuService.getByIdWithAttributes(id);
-    //    if (sku != null) {
-    //        return Result.success(sku);
-    //    }
-    //    return Result.error("SKU不存在");
-    //}
 
     // ==================== SKU销售属性管理（从 SkuAttrController 合并） ====================
 
@@ -481,7 +405,7 @@ public class SkuController {
      */
     @PutMapping("/attr/batch-update")
     @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
-    public Result<Map<String, Object>> batchUpdateSkuWithAttrs(@RequestBody List<SkuUpdateDto> dtoList) {
+    public Result<Map<String, Object>> batchUpdateSkuWithAttrs(@RequestBody @Valid List<SkuUpdateDto> dtoList) {
         Long sellerId = getCurrentUserId();
         if (sellerId == null) {
             return Result.error("用户未登录");

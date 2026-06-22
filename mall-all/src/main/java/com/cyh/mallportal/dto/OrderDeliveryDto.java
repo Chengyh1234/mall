@@ -1,5 +1,7 @@
 package com.cyh.mallportal.dto;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -19,53 +21,36 @@ import java.math.BigDecimal;
 @AllArgsConstructor
 public class OrderDeliveryDto {
 
-    /**
-     * 订单ID
-     */
+    /** 订单ID */
+    @NotNull(message = "订单ID不能为空")
     private Long orderId;
 
-    /**
-     * 物流公司
-     */
+    /** 物流公司 */
+    @NotBlank(message = "物流公司不能为空")
     private String deliveryCompany;
 
-    /**
-     * 物流单号
-     */
+    /** 物流单号 */
+    @NotBlank(message = "物流单号不能为空")
     private String deliveryNo;
 
-    /**
-     * 发货人
-     */
+    /** 发货人 */
     private String sender;
 
-    /**
-     * 发货人ID
-     */
+    /** 发货人ID */
     private Long senderId;
 
-    /**
-     * 包裹数量
-     */
+    /** 包裹数量 */
     private Integer packageCount;
 
-    /**
-     * 包裹重量(kg)
-     */
+    /** 包裹重量(kg) */
     private BigDecimal weight;
 
-    /**
-     * 收货人姓名
-     */
+    /** 收货人姓名 */
     private String receiverName;
 
-    /**
-     * 收货人电话
-     */
+    /** 收货人电话 */
     private String receiverPhone;
 
-    /**
-     * 备注
-     */
+    /** 备注 */
     private String remark;
 }

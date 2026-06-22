@@ -17,6 +17,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.validation.annotation.Validated;
+
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -27,6 +29,7 @@ import java.util.*;
  * 提供商品的增删改查功能及图片管理
  */
 @Slf4j
+@Validated
 @RestController
 @RequestMapping("/spu")
 public class SpuController {

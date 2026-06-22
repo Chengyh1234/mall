@@ -15,6 +15,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.validation.annotation.Validated;
 
 import java.util.HashMap;
 import java.util.List;
@@ -26,6 +27,7 @@ import java.util.stream.Collectors;
  * 提供品牌的增删改查功能及Logo上传功能
  */
 @Slf4j
+@Validated
 @RestController
 @RequestMapping("/brand")
 public class BrandController {
