@@ -3,7 +3,7 @@ package com.cyh.mallportal.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
-import com.cyh.mallcommon.constant.MyConstants;
+import com.cyh.mallcommon.constant.RedisConstants;
 import com.cyh.mallcommon.exception.BusinessException;
 import com.cyh.mallportal.entity.Role;
 import com.cyh.mallportal.entity.Store;
@@ -227,11 +227,11 @@ public class UserManageServiceImpl implements UserManageService {
 
         // 4. 清除 Redis 中的 Token 缓存使其立即下线
         String activeToken = (String) redisTemplate.opsForValue().get(
-                MyConstants.USER_ACTIVE_TOKEN_PREFIX + userId);
+                RedisConstants.USER_ACTIVE_TOKEN_PREFIX + userId);
         if (activeToken != null) {
-            redisTemplate.delete(MyConstants.TOKEN_PREFIX + activeToken);
-            redisTemplate.delete(MyConstants.USER_CURRENT_SESSION_PREFIX + userId);
-            redisTemplate.delete(MyConstants.USER_ACTIVE_TOKEN_PREFIX + userId);
+            redisTemplate.delete(RedisConstants.TOKEN_PREFIX + activeToken);
+            redisTemplate.delete(RedisConstants.USER_CURRENT_SESSION_PREFIX + userId);
+            redisTemplate.delete(RedisConstants.USER_ACTIVE_TOKEN_PREFIX + userId);
             log.info("用户被禁用，已清除登录缓存: userId={}", userId);
         }
 

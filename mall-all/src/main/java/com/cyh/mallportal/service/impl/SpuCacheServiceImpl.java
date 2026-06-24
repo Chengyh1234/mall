@@ -1,6 +1,6 @@
 package com.cyh.mallportal.service.impl;
 
-import com.cyh.mallcommon.constant.MyConstants;
+import com.cyh.mallcommon.constant.RedisConstants;
 import com.cyh.mallportal.entity.Spu;
 import com.cyh.mallportal.service.SpuCacheService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -81,7 +81,7 @@ public class SpuCacheServiceImpl implements SpuCacheService {
     public void setSpuList(String cacheKey, List<Spu> spuList) {
         try {
             String json = objectMapper.writeValueAsString(spuList);
-            redisTemplate.opsForValue().set(cacheKey, json, MyConstants.SPU_CACHE_EXPIRE_MINUTES, TimeUnit.MINUTES);
+            redisTemplate.opsForValue().set(cacheKey, json, RedisConstants.SPU_CACHE_EXPIRE_MINUTES, TimeUnit.MINUTES);
             log.debug("设置SPU列表缓存成功，缓存键: {}, 商品数量: {}", cacheKey, spuList.size());
         } catch (JsonProcessingException e) {
             log.error("序列化SPU列表缓存失败，缓存键: {}, 异常: {}", cacheKey, e.getMessage());
@@ -117,7 +117,7 @@ public class SpuCacheServiceImpl implements SpuCacheService {
      */
     @Override
     public void setSpuCount(String countKey, int count) {
-        redisTemplate.opsForValue().set(countKey, String.valueOf(count), MyConstants.SPU_CACHE_EXPIRE_MINUTES, TimeUnit.MINUTES);
+        redisTemplate.opsForValue().set(countKey, String.valueOf(count), RedisConstants.SPU_CACHE_EXPIRE_MINUTES, TimeUnit.MINUTES);
         log.debug("设置SPU总数缓存成功，缓存键: {}, 总数: {}", countKey, count);
     }
 
@@ -130,14 +130,14 @@ public class SpuCacheServiceImpl implements SpuCacheService {
     @Override
     public void clearAllSpuCache() {
         // 清除商品列表缓存
-        var keys = redisTemplate.keys(MyConstants.SPU_CACHE_PREFIX + "*");
+        var keys = redisTemplate.keys(RedisConstants.SPU_CACHE_PREFIX + "*");
         if (keys != null && !keys.isEmpty()) {
             redisTemplate.delete(keys);
             log.info("清除所有SPU列表缓存成功，共清除 {} 个缓存", keys.size());
         }
         
         // 清除商品总数缓存
-        var countKeys = redisTemplate.keys(MyConstants.SPU_COUNT_PREFIX + "*");
+        var countKeys = redisTemplate.keys(RedisConstants.SPU_COUNT_PREFIX + "*");
         if (countKeys != null && !countKeys.isEmpty()) {
             redisTemplate.delete(countKeys);
             log.info("清除所有SPU总数缓存成功，共清除 {} 个缓存", countKeys.size());
@@ -184,7 +184,7 @@ public class SpuCacheServiceImpl implements SpuCacheService {
      */
     @Override
     public String generateCacheKey(Long categoryId, Long brandId, String keyword, Integer status, Integer page, Integer pageSize) {
-        StringBuilder sb = new StringBuilder(MyConstants.SPU_CACHE_PREFIX);
+        StringBuilder sb = new StringBuilder(RedisConstants.SPU_CACHE_PREFIX);
         sb.append("c:").append(categoryId == null ? "all" : categoryId);
         sb.append(":b:").append(brandId == null ? "all" : brandId);
         sb.append(":k:").append(StringUtils.hasText(keyword) ? keyword.hashCode() : "none");
@@ -208,7 +208,7 @@ public class SpuCacheServiceImpl implements SpuCacheService {
      */
     @Override
     public String generateCountKey(Long categoryId, Long brandId, String keyword, Integer status) {
-        StringBuilder sb = new StringBuilder(MyConstants.SPU_COUNT_PREFIX);
+        StringBuilder sb = new StringBuilder(RedisConstants.SPU_COUNT_PREFIX);
         sb.append("c:").append(categoryId == null ? "all" : categoryId);
         sb.append(":b:").append(brandId == null ? "all" : brandId);
         sb.append(":k:").append(StringUtils.hasText(keyword) ? keyword.hashCode() : "none");

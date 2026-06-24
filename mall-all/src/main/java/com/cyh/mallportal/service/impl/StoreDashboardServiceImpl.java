@@ -1,10 +1,15 @@
 package com.cyh.mallportal.service.impl;
 
+import com.cyh.mallcommon.constant.RedisConstants;
 import com.cyh.mallportal.mapper.OrderItemMapper;
 import com.cyh.mallportal.mapper.OrderMapper;
 import com.cyh.mallportal.service.StoreDashboardService;
 import com.cyh.mallportal.vo.StoreDashboardVo;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -13,12 +18,18 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 /**
  * 商家仪表盘服务实现类
  * 聚合订单、订单明细数据，提供销售 KPI、趋势和商品排行功能
+ * <p>
+ * 【缓存策略】
+ * - 所有统计结果缓存 5 分钟，延迟可接受，大幅减少数据库聚合查询压力
+ * - 缓存 Key 按 sellerId 隔离，不同商家互不干扰
  */
+@Slf4j
 @Service
 public class StoreDashboardServiceImpl implements StoreDashboardService {
 
@@ -27,6 +38,12 @@ public class StoreDashboardServiceImpl implements StoreDashboardService {
 
     @Autowired
     private OrderItemMapper orderItemMapper;
+
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     /**
      * 获取销售 KPI 总览
@@ -38,6 +55,20 @@ public class StoreDashboardServiceImpl implements StoreDashboardService {
      */
     @Override
     public StoreDashboardVo.KpiOverview getSalesKpiOverview(Long sellerId) {
+        String key = "dashboard:store:kpi:" + sellerId;
+
+        // Step1: 尝试从缓存读取
+        String cached = stringRedisTemplate.opsForValue().get(key);
+        if (cached != null) {
+            try {
+                return objectMapper.readValue(cached, StoreDashboardVo.KpiOverview.class);
+            } catch (JsonProcessingException e) {
+                // 反序列化失败，删除脏缓存，重新查库
+                stringRedisTemplate.delete(key);
+            }
+        }
+
+        // Step2: 缓存未命中，查数据库（原有逻辑）
         LocalDateTime todayStart = LocalDateTime.of(LocalDate.now(), LocalTime.MIN);
         LocalDateTime weekStart = LocalDateTime.of(LocalDate.now().minusDays(6), LocalTime.MIN);
         LocalDateTime monthStart = LocalDateTime.of(LocalDate.now().withDayOfMonth(1), LocalTime.MIN);
@@ -49,7 +80,6 @@ public class StoreDashboardServiceImpl implements StoreDashboardService {
         BigDecimal thisYear = orderMapper.sumCompletedSalesByTimeRange(sellerId, yearStart);
 
         // 利润 = 销售额 - 成本
-        //下面是成本
         BigDecimal todayCost = orderMapper.sumCompletedCostByTimeRange(sellerId, todayStart);
         BigDecimal last7DaysCost = orderMapper.sumCompletedCostByTimeRange(sellerId, weekStart);
         BigDecimal thisMonthCost = orderMapper.sumCompletedCostByTimeRange(sellerId, monthStart);
@@ -60,7 +90,7 @@ public class StoreDashboardServiceImpl implements StoreDashboardService {
         System.out.println("thisMonthCost: " + thisMonthCost);
         System.out.println("thisYearCost: " + thisYearCost);
 
-        return new StoreDashboardVo.KpiOverview(
+        StoreDashboardVo.KpiOverview result = new StoreDashboardVo.KpiOverview(
                 today != null ? today : BigDecimal.ZERO,
                 last7Days != null ? last7Days : BigDecimal.ZERO,
                 thisMonth != null ? thisMonth : BigDecimal.ZERO,
@@ -70,6 +100,16 @@ public class StoreDashboardServiceImpl implements StoreDashboardService {
                 thisMonth != null ? thisMonth.subtract(thisMonthCost != null ? thisMonthCost : BigDecimal.ZERO) : BigDecimal.ZERO,
                 thisYear != null ? thisYear.subtract(thisYearCost != null ? thisYearCost : BigDecimal.ZERO) : BigDecimal.ZERO
         );
+
+        // Step3: 写入缓存，5分钟过期
+        try {
+            stringRedisTemplate.opsForValue().set(key, objectMapper.writeValueAsString(result),
+                    RedisConstants.DASHBOARD_CACHE_TTL_MINUTES, TimeUnit.MINUTES);
+        } catch (JsonProcessingException e) {
+            log.error("序列化缓存数据失败, key: {}", key, e);
+        }
+
+        return result;
     }
 
     /**
@@ -81,12 +121,23 @@ public class StoreDashboardServiceImpl implements StoreDashboardService {
      */
     @Override
     public StoreDashboardVo.SalesTrend getSalesTrend(Long sellerId) {
+        String key = "dashboard:store:trend:" + sellerId;
+
+        // Step1: 尝试从缓存读取
+        String cached = stringRedisTemplate.opsForValue().get(key);
+        if (cached != null) {
+            try {
+                return objectMapper.readValue(cached, StoreDashboardVo.SalesTrend.class);
+            } catch (JsonProcessingException e) {
+                stringRedisTemplate.delete(key);
+            }
+        }
+
+        // Step2: 缓存未命中，查数据库（原有逻辑）
         LocalDateTime weekStart = LocalDateTime.of(LocalDate.now().minusDays(6), LocalTime.MIN);
 
-        // @MapKey("date") 返回 Map<String, Map>，key=日期字符串，value 含 date、amount 字段
         Map<String, Map<String, Object>> resultMap = orderMapper.selectDailySalesBySellerId(sellerId, weekStart);
 
-        // 从 Map 中提取日期→金额的映射
         Map<String, BigDecimal> dateAmountMap = new LinkedHashMap<>();
         if (resultMap != null) {
             for (Map.Entry<String, Map<String, Object>> entry : resultMap.entrySet()) {
@@ -98,7 +149,6 @@ public class StoreDashboardServiceImpl implements StoreDashboardService {
             }
         }
 
-        // 构建固定7天的日期和金额数组，无数据的日期补0
         List<String> dates = new ArrayList<>();
         List<BigDecimal> values = new ArrayList<>();
         for (int i = 6; i >= 0; i--) {
@@ -108,7 +158,17 @@ public class StoreDashboardServiceImpl implements StoreDashboardService {
             values.add(dateAmountMap.getOrDefault(dateStr, BigDecimal.ZERO));
         }
 
-        return new StoreDashboardVo.SalesTrend(dates, values);
+        StoreDashboardVo.SalesTrend result = new StoreDashboardVo.SalesTrend(dates, values);
+
+        // Step3: 写入缓存
+        try {
+            stringRedisTemplate.opsForValue().set(key, objectMapper.writeValueAsString(result),
+                    RedisConstants.DASHBOARD_CACHE_TTL_MINUTES, TimeUnit.MINUTES);
+        } catch (JsonProcessingException e) {
+            log.error("序列化缓存数据失败, key: {}", key, e);
+        }
+
+        return result;
     }
 
     /**
@@ -124,10 +184,22 @@ public class StoreDashboardServiceImpl implements StoreDashboardService {
         if (period == null || period.isEmpty()) {
             period = "last7Days";
         }
+        String key = "dashboard:store:ranking:" + sellerId + ":" + period;
 
+        // Step1: 尝试从缓存读取
+        String cached = stringRedisTemplate.opsForValue().get(key);
+        if (cached != null) {
+            try {
+                return objectMapper.readValue(cached,
+                        objectMapper.getTypeFactory().constructCollectionType(List.class, StoreDashboardVo.ProductRankItem.class));
+            } catch (JsonProcessingException e) {
+                stringRedisTemplate.delete(key);
+            }
+        }
+
+        // Step2: 缓存未命中，查数据库（原有逻辑）
         LocalDateTime startTime = getPeriodStartTime(period);
 
-        // @MapKey("name") 返回 Map<String, Map>，遍历 values() 获取所有商品
         Map<String, Map<String, Object>> resultMap = orderItemMapper.selectProductSalesRanking(sellerId, startTime);
         if (resultMap == null || resultMap.isEmpty()) {
             return Collections.emptyList();
@@ -143,20 +215,16 @@ public class StoreDashboardServiceImpl implements StoreDashboardService {
             return item;
         }).collect(Collectors.toList());
 
-        // @MapKey 返回 HashMap 不保证顺序，此处按销售额降序重排
         result.sort((a, b) -> b.getSalesAmount().compareTo(a.getSalesAmount()));
 
-        // 计算所有商品的总销售额，用于计算占比
         BigDecimal totalSales = result.stream()
                 .map(StoreDashboardVo.ProductRankItem::getSalesAmount)
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        // 计算所有商品的总销售数量，用于计算销量占比
         int totalCount = result.stream()
                 .mapToInt(StoreDashboardVo.ProductRankItem::getSalesCount)
                 .sum();
 
-        // 为每个商品计算销售额占百分比（保留一位小数）
         if (totalSales.compareTo(BigDecimal.ZERO) > 0) {
             for (StoreDashboardVo.ProductRankItem item : result) {
                 BigDecimal percent = item.getSalesAmount()
@@ -170,7 +238,6 @@ public class StoreDashboardServiceImpl implements StoreDashboardService {
             }
         }
 
-        // 为每个商品计算销量占百分比（保留一位小数）
         if (totalCount > 0) {
             for (StoreDashboardVo.ProductRankItem item : result) {
                 BigDecimal countPercent = new BigDecimal(item.getSalesCount())
@@ -182,6 +249,14 @@ public class StoreDashboardServiceImpl implements StoreDashboardService {
             for (StoreDashboardVo.ProductRankItem item : result) {
                 item.setCountPercentOfTotal(BigDecimal.ZERO);
             }
+        }
+
+        // Step3: 写入缓存
+        try {
+            stringRedisTemplate.opsForValue().set(key, objectMapper.writeValueAsString(result),
+                    RedisConstants.DASHBOARD_CACHE_TTL_MINUTES, TimeUnit.MINUTES);
+        } catch (JsonProcessingException e) {
+            log.error("序列化缓存数据失败, key: {}", key, e);
         }
 
         return result;

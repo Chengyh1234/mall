@@ -3,7 +3,7 @@ package com.cyh.mallportal.controller;
 import cn.hutool.captcha.CaptchaUtil;
 import cn.hutool.captcha.CircleCaptcha;
 import cn.hutool.core.util.IdUtil;
-import com.cyh.mallcommon.constant.MyConstants;
+import com.cyh.mallcommon.constant.RedisConstants;
 import com.cyh.mallcommon.utils.Result;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -46,11 +46,11 @@ public class CaptchaController {
         // 2. 生成唯一 Key 作为 Redis 存储标识
         String captchaKey = IdUtil.fastSimpleUUID();
 
-        // 3. 将验证码文本存入 Redis（5分钟过期，一次性使用）
+        // 3. 将验证码文本存入 Redis（1分钟过期，一次性使用）
         redisTemplate.opsForValue().set(
-                MyConstants.CAPTCHA_PREFIX + captchaKey,
+                RedisConstants.CAPTCHA_PREFIX + captchaKey,
                 captcha.getCode(),
-                MyConstants.CAPTCHA_EXPIRATION,
+                RedisConstants.CAPTCHA_EXPIRATION,
                 TimeUnit.SECONDS
         );
 

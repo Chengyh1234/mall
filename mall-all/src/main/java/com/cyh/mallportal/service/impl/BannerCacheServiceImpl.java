@@ -1,5 +1,6 @@
 package com.cyh.mallportal.service.impl;
 
+import com.cyh.mallcommon.constant.RedisConstants;
 import com.cyh.mallportal.entity.Banner;
 import com.cyh.mallportal.service.BannerCacheService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -28,19 +29,16 @@ public class BannerCacheServiceImpl implements BannerCacheService {
     private final RedisTemplate<String, String> redisTemplate;
     private final ObjectMapper objectMapper;
 
-    /** 启用的轮播图列表缓存键 */
-    private static final String BANNER_ACTIVE_KEY = "banner:active";
-
     @Override
     public List<Banner> getActiveBanners() {
         try {
-            String json = redisTemplate.opsForValue().get(BANNER_ACTIVE_KEY);
+            String json = redisTemplate.opsForValue().get(RedisConstants.BANNER_ACTIVE_KEY);
             if (StringUtils.hasText(json)) {
-                log.debug("从缓存获取启用的轮播图列表成功，缓存键: {}", BANNER_ACTIVE_KEY);
+                log.debug("从缓存获取启用的轮播图列表成功，缓存键: {}", RedisConstants.BANNER_ACTIVE_KEY);
                 return objectMapper.readValue(json, new TypeReference<List<Banner>>() {});
             }
         } catch (JsonProcessingException e) {
-            log.error("反序列化轮播图列表缓存失败，缓存键: {}, 异常: {}", BANNER_ACTIVE_KEY, e.getMessage());
+            log.error("反序列化轮播图列表缓存失败，缓存键: {}, 异常: {}", RedisConstants.BANNER_ACTIVE_KEY, e.getMessage());
         }
         return null;
     }
@@ -49,10 +47,10 @@ public class BannerCacheServiceImpl implements BannerCacheService {
     public void setActiveBanners(List<Banner> banners) {
         try {
             String json = objectMapper.writeValueAsString(banners);
-            redisTemplate.opsForValue().set(BANNER_ACTIVE_KEY, json);
-            log.debug("设置轮播图列表缓存成功（永久），缓存键: {}, 轮播图数量: {}", BANNER_ACTIVE_KEY, banners.size());
+            redisTemplate.opsForValue().set(RedisConstants.BANNER_ACTIVE_KEY, json);
+            log.debug("设置轮播图列表缓存成功（永久），缓存键: {}, 轮播图数量: {}", RedisConstants.BANNER_ACTIVE_KEY, banners.size());
         } catch (JsonProcessingException e) {
-            log.error("序列化轮播图列表缓存失败，缓存键: {}, 异常: {}", BANNER_ACTIVE_KEY, e.getMessage());
+            log.error("序列化轮播图列表缓存失败，缓存键: {}, 异常: {}", RedisConstants.BANNER_ACTIVE_KEY, e.getMessage());
         }
     }
 

@@ -44,24 +44,6 @@ public interface CategoryService {
     Category getById(Long id);
 
     /**
-     * 获取分类列表
-     *
-     * @param category 查询条件
-     * @return 分类列表
-     */
-    List<Category> getList(Category category);
-
-    /**
-     * 分页获取分类列表
-     *
-     * @param category 查询条件
-     * @param page     页码
-     * @param pageSize 每页条数
-     * @return 分类列表
-     */
-    List<Category> getPage(Category category, Integer page, Integer pageSize);
-
-    /**
      * 根据父分类ID查询子分类
      *
      * @param parentId 父分类ID
@@ -70,36 +52,11 @@ public interface CategoryService {
     List<Category> getByParentId(Long parentId);
 
     /**
-     * 根据分类级别查询
+     * 获取全部分类树形结构（从根节点构建整棵树，结果缓存到 Redis）
      *
-     * @param level 分类级别
-     * @return 分类列表
-     */
-    List<Category> getByLevel(Integer level);
-
-    /**
-     * 根据状态查询分类
-     *
-     * @param status 状态
-     * @return 分类列表
-     */
-    List<Category> getByStatus(Integer status);
-
-    /**
-     * 获取分类树形结构（Category列表）
-     *
-     * @param parentId 父分类ID
      * @return 树形结构列表
      */
-    List<Category> getTree(Long parentId);
-
-    /**
-     * 获取分类树形结构（带子节点）
-     *
-     * @param parentId 父分类ID
-     * @return 树形结构列表
-     */
-    List<CategoryTreeVo> getTreeWithChildren(Long parentId);
+    List<CategoryTreeVo> getTreeWithChildren();
 
     /**
      * 获取指定分类ID及其所有子分类的ID列表

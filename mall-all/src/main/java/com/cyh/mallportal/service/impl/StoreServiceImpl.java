@@ -13,7 +13,7 @@ import com.cyh.mallportal.mapper.UserRoleMapper;
 import com.cyh.mallportal.service.StoreService;
 import com.cyh.mallportal.vo.StoreDetailVo;
 import com.cyh.mallportal.vo.StoreVo;
-import com.cyh.mallcommon.constant.MyConstants;
+import com.cyh.mallcommon.constant.RedisConstants;
 import com.cyh.mallcommon.exception.BusinessException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -504,9 +504,9 @@ public class StoreServiceImpl implements StoreService {
 
         // 5. 更新 Redis 缓存：移除 SELLER 角色
         String token = (String) redisTemplate.opsForValue()
-                .get(MyConstants.USER_ACTIVE_TOKEN_PREFIX + userId);
+                .get(RedisConstants.USER_ACTIVE_TOKEN_PREFIX + userId);
         if (token != null) {
-            String tokenKey = MyConstants.TOKEN_PREFIX + token;
+            String tokenKey = RedisConstants.TOKEN_PREFIX + token;
             Object userInfoObj = redisTemplate.opsForValue().get(tokenKey);
             if (userInfoObj instanceof Map) {
 
@@ -521,7 +521,7 @@ public class StoreServiceImpl implements StoreService {
                 // 写回 Redis，保持原过期时间
                 redisTemplate.opsForValue().set(
                         tokenKey, userInfo,
-                        MyConstants.TOKEN_EXPIRATION, TimeUnit.SECONDS
+                        RedisConstants.TOKEN_EXPIRATION, TimeUnit.SECONDS
                 );
             }
         }

@@ -11,6 +11,7 @@ import com.cyh.mallportal.service.SkuAttrService;
 import com.cyh.mallportal.service.SpuService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -34,6 +35,7 @@ public class SkuAttrServiceImpl implements SkuAttrService {
     private final SpuSaleAttrChoiceMapper spuSaleAttrChoiceMapper;
     private final AttributeValueMapper attributeValueMapper;
     private final SpuService spuService;
+    private final StringRedisTemplate stringRedisTemplate;
 
     /**
      * 校验SKU属性组合是否合法
@@ -190,6 +192,9 @@ public class SkuAttrServiceImpl implements SkuAttrService {
 
         spuService.updateMinPriceForSpu(spuId);
 
+        // 清除SKU缓存
+        clearSkuCache(spuId);
+
         return resultMap;
     }
 
@@ -244,6 +249,9 @@ public class SkuAttrServiceImpl implements SkuAttrService {
 
         spuService.updateMinPriceForSpu(spuId);
 
+        // 清除SKU缓存
+        clearSkuCache(spuId);
+
         return sku.getId();
     }
 
@@ -284,6 +292,9 @@ public class SkuAttrServiceImpl implements SkuAttrService {
         log.info("商家 {} 更新SKU {} 信息成功（不修改销售属性）", sellerId, skuId);
 
         spuService.updateMinPriceForSpu(sku.getSpuId());
+
+        // 清除SKU缓存
+        clearSkuCache(sku.getSpuId());
 
         return true;
     }
@@ -354,5 +365,20 @@ public class SkuAttrServiceImpl implements SkuAttrService {
                 throw new BusinessException("属性值组合[" + key + "] 对应的SKU已存在，请勿重复添加");
             }
         }
+    }
+
+    /**
+     * 清除指定SPU下所有SKU缓存（公开/商家/管理三端）
+     */
+    private void clearSkuCache(Long spuId) {
+        if (spuId == null) {
+            return;
+        }
+        Set<String> keys = new HashSet<>();
+        keys.add("sku:spu:" + spuId + ":public");
+        keys.add("sku:spu:" + spuId + ":store");
+        keys.add("sku:spu:" + spuId + ":admin");
+        stringRedisTemplate.delete(keys);
+        log.debug("清除SKU缓存, spuId: {}", spuId);
     }
 }

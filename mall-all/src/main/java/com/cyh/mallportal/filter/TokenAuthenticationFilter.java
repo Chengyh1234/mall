@@ -2,6 +2,7 @@ package com.cyh.mallportal.filter;
 
 import cn.hutool.json.JSONUtil;
 import com.cyh.mallcommon.constant.MyConstants;
+import com.cyh.mallcommon.constant.RedisConstants;
 import com.cyh.mallcommon.exception.ErrorCode;
 import com.cyh.mallcommon.utils.Result;
 import com.cyh.mallportal.entity.Role;
@@ -170,7 +171,7 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
         token = authHeader.substring(7);
 
         // 4. 从Redis获取用户信息
-        Object userInfoObj = redisTemplate.opsForValue().get(MyConstants.TOKEN_PREFIX + token);
+        Object userInfoObj = redisTemplate.opsForValue().get(RedisConstants.TOKEN_PREFIX + token);
 
 
         // 5. 如果Token存在但Redis中无用户信息，说明登录已失效
@@ -192,11 +193,11 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
             // 单点登录验证：检查sessionId是否匹配
             String tokenSessionId = (String) userInfo.get("sessionId");
             Long userId = ((Number) userInfo.get("userId")).longValue();
-            String currentSessionId = (String) redisTemplate.opsForValue().get(MyConstants.USER_CURRENT_SESSION_PREFIX + userId);
+            String currentSessionId = (String) redisTemplate.opsForValue().get(RedisConstants.USER_CURRENT_SESSION_PREFIX + userId);
 
             if (tokenSessionId == null || !tokenSessionId.equals(currentSessionId)) {
                 // 5.1. sessionId不匹配，说明用户已在其他设备登录，但是之前在redis中还记录，需要删除
-                redisTemplate.delete(MyConstants.TOKEN_PREFIX + token);
+                redisTemplate.delete(RedisConstants.TOKEN_PREFIX + token);
                 return;
             }
 
@@ -238,17 +239,17 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
             // 刷新Token过期时间：用户每次请求成功验证后，重置Redis中token的过期时间
             // 这样可以实现"用户活跃时会话永不过期"的效果
             redisTemplate.expire(
-                    MyConstants.TOKEN_PREFIX + token,
-                    MyConstants.TOKEN_EXPIRATION,
+                    RedisConstants.TOKEN_PREFIX + token,
+                    RedisConstants.TOKEN_EXPIRATION,
                     java.util.concurrent.TimeUnit.SECONDS
             );
             log.debug("刷新Token过期时间成功，token: {}, 过期时间: {}秒",
                     token.substring(0, Math.min(10, token.length())) + "...",
-                    MyConstants.TOKEN_EXPIRATION);
+                    RedisConstants.TOKEN_EXPIRATION);
             //刷新用户当前会话ID
             redisTemplate.expire(
-                    MyConstants.USER_CURRENT_SESSION_PREFIX + userId,
-                    MyConstants.TOKEN_EXPIRATION,
+                    RedisConstants.USER_CURRENT_SESSION_PREFIX + userId,
+                    RedisConstants.TOKEN_EXPIRATION,
                     java.util.concurrent.TimeUnit.SECONDS
             );
         }

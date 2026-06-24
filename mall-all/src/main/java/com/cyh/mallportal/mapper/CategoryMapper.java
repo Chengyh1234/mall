@@ -21,20 +21,4 @@ public interface CategoryMapper extends BaseMapper<Category> {
      * @return 子分类列表
      */
     List<Category> selectByParentId(@Param("parentId") Long parentId);
-
-    /**
-     * 根据分类级别查询
-     *
-     * @param level 分类级别（1-一级分类，2-二级分类，3-三级分类）
-     * @return 分类列表
-     */
-    List<Category> selectByLevel(@Param("level") Integer level);
-
-    /**
-     * 根据状态查询分类
-     *
-     * @param status 状态（1-启用，0-禁用）
-     * @return 分类列表
-     */
-    List<Category> selectByStatus(@Param("status") Integer status);
 }

@@ -2,6 +2,7 @@ package com.cyh.mallportal.controller;
 
 import cn.hutool.core.util.IdUtil;
 import com.cyh.mallcommon.constant.MyConstants;
+import com.cyh.mallcommon.constant.RedisConstants;
 import com.cyh.mallcommon.exception.BusinessException;
 import com.cyh.mallcommon.utils.Result;
 import com.cyh.mallcommon.validation.Password;
@@ -69,7 +70,7 @@ public class AuthController {
     public Result<Map<String, Object>> login(@RequestBody @Valid LoginRequest request) {
         // ========== 图形验证码校验 ==========
         // 从 Redis 中获取存储的验证码文本
-        String redisKey = MyConstants.CAPTCHA_PREFIX + request.getCaptchaKey();
+        String redisKey = RedisConstants.CAPTCHA_PREFIX + request.getCaptchaKey();
         String storedCaptcha = (String) redisTemplate.opsForValue().get(redisKey);
 
         // 验证码不存在或已过期
@@ -112,17 +113,17 @@ public class AuthController {
         // 单点登录：使旧会话失效
         // 存储用户当前会话
         redisTemplate.opsForValue().set(
-                MyConstants.USER_CURRENT_SESSION_PREFIX + user.getId(),
+                RedisConstants.USER_CURRENT_SESSION_PREFIX + user.getId(),
                 sessionId,
-                MyConstants.TOKEN_EXPIRATION,
+                RedisConstants.TOKEN_EXPIRATION,
                 TimeUnit.SECONDS
         );
 
         // 存储 userId → token 反向映射，用于权限变更时原地更新 Redis 缓存
         redisTemplate.opsForValue().set(
-                MyConstants.USER_ACTIVE_TOKEN_PREFIX + user.getId(),
+                RedisConstants.USER_ACTIVE_TOKEN_PREFIX + user.getId(),
                 token,
-                MyConstants.TOKEN_EXPIRATION,
+                RedisConstants.TOKEN_EXPIRATION,
                 TimeUnit.SECONDS
         );
 
@@ -144,9 +145,9 @@ public class AuthController {
         userInfo.put("roles", rolesMap);
 
         redisTemplate.opsForValue().set(
-                MyConstants.TOKEN_PREFIX + token,
+                RedisConstants.TOKEN_PREFIX + token,
                 userInfo,
-                MyConstants.TOKEN_EXPIRATION,
+                RedisConstants.TOKEN_EXPIRATION,
                 TimeUnit.SECONDS
         );
 
@@ -172,7 +173,7 @@ public class AuthController {
     @PostMapping("/admin/login")
     public Result<Map<String, Object>> adminLogin(@RequestBody @Valid LoginRequest request) {
         // ========== 图形验证码校验 ==========
-        String redisKey = MyConstants.CAPTCHA_PREFIX + request.getCaptchaKey();
+        String redisKey = RedisConstants.CAPTCHA_PREFIX + request.getCaptchaKey();
         String storedCaptcha = (String) redisTemplate.opsForValue().get(redisKey);
 
         if (!StringUtils.hasText(storedCaptcha)) {
@@ -209,17 +210,17 @@ public class AuthController {
         // 单点登录：使旧会话失效
         // 存储用户当前会话
         redisTemplate.opsForValue().set(
-                MyConstants.USER_CURRENT_SESSION_PREFIX + user.getId(),
+                RedisConstants.USER_CURRENT_SESSION_PREFIX + user.getId(),
                 sessionId,
-                MyConstants.TOKEN_EXPIRATION,
+                RedisConstants.TOKEN_EXPIRATION,
                 TimeUnit.SECONDS
         );
 
         // 存储 userId → token 反向映射，用于权限变更时原地更新 Redis 缓存
         redisTemplate.opsForValue().set(
-                MyConstants.USER_ACTIVE_TOKEN_PREFIX + user.getId(),
+                RedisConstants.USER_ACTIVE_TOKEN_PREFIX + user.getId(),
                 token,
-                MyConstants.TOKEN_EXPIRATION,
+                RedisConstants.TOKEN_EXPIRATION,
                 TimeUnit.SECONDS
         );
 
@@ -241,9 +242,9 @@ public class AuthController {
         userInfo.put("roles", rolesMap);
 
         redisTemplate.opsForValue().set(
-                MyConstants.TOKEN_PREFIX + token,
+                RedisConstants.TOKEN_PREFIX + token,
                 userInfo,
-                MyConstants.TOKEN_EXPIRATION,
+                RedisConstants.TOKEN_EXPIRATION,
                 TimeUnit.SECONDS
         );
 
@@ -270,7 +271,7 @@ public class AuthController {
         // ========== 图形验证码校验（防批量调用） ==========
         String captchaKey = request.getCaptchaKey();
         String captcha = request.getCaptcha();
-        String storedCaptcha = (String) redisTemplate.opsForValue().get(MyConstants.CAPTCHA_PREFIX + captchaKey);
+        String storedCaptcha = (String) redisTemplate.opsForValue().get(RedisConstants.CAPTCHA_PREFIX + captchaKey);
 
         if (!StringUtils.hasText(storedCaptcha)) {
             return Result.error("图形验证码已过期，请重新获取");
@@ -280,7 +281,7 @@ public class AuthController {
             return Result.error("图形验证码错误");
         }
 
-        redisTemplate.delete(MyConstants.CAPTCHA_PREFIX + captchaKey);
+        redisTemplate.delete(RedisConstants.CAPTCHA_PREFIX + captchaKey);
         // ========== 图形验证码校验结束 ==========
 
         // 1. 检查邮箱是否已被注册
@@ -291,7 +292,7 @@ public class AuthController {
         }
 
         // 2. 检查是否已发送过验证码（防止短时间内重复发送）
-        String redisKey = MyConstants.EMAIL_REGISTER_CODE_PREFIX + email;
+        String redisKey = RedisConstants.EMAIL_REGISTER_CODE_PREFIX + email;
         if (Boolean.TRUE.equals(redisTemplate.hasKey(redisKey))) {
             return Result.error("验证码已发送，请查看邮箱或稍后再试");
         }
@@ -303,7 +304,7 @@ public class AuthController {
         emailService.sendRegisterCode(email, code);
 
         // 5. 发送成功后存入 Redis，有效期分1钟
-        redisTemplate.opsForValue().set(redisKey, code, MyConstants.EMAIL_CODE_EXPIRATION, TimeUnit.SECONDS);
+        redisTemplate.opsForValue().set(redisKey, code, RedisConstants.EMAIL_CODE_EXPIRATION, TimeUnit.SECONDS);
 
         return Result.success("验证码已发送", null);
     }
@@ -317,7 +318,7 @@ public class AuthController {
     @PostMapping("/register")
     public Result<Map<String, Object>> register(@RequestBody @Valid RegisterRequest request) {
         // 1. 邮箱验证码校验
-        String redisKey = MyConstants.EMAIL_REGISTER_CODE_PREFIX + request.getEmail();
+        String redisKey = RedisConstants.EMAIL_REGISTER_CODE_PREFIX + request.getEmail();
         String storedCode = (String) redisTemplate.opsForValue().get(redisKey);
 
         if (!StringUtils.hasText(storedCode)) {
@@ -388,7 +389,7 @@ public class AuthController {
         // ========== 图形验证码校验（防批量调用） ==========
         String captchaKey = request.getCaptchaKey();
         String captcha = request.getCaptcha();
-        String storedCaptcha = (String) redisTemplate.opsForValue().get(MyConstants.CAPTCHA_PREFIX + captchaKey);
+        String storedCaptcha = (String) redisTemplate.opsForValue().get(RedisConstants.CAPTCHA_PREFIX + captchaKey);
 
         if (!StringUtils.hasText(storedCaptcha)) {
             return Result.error("图形验证码已过期，请重新获取");
@@ -398,7 +399,7 @@ public class AuthController {
             return Result.error("图形验证码错误");
         }
 
-        redisTemplate.delete(MyConstants.CAPTCHA_PREFIX + captchaKey);
+        redisTemplate.delete(RedisConstants.CAPTCHA_PREFIX + captchaKey);
         // ========== 图形验证码校验结束 ==========
 
         // 1. 确认该邮箱已注册
@@ -412,11 +413,11 @@ public class AuthController {
         String code = String.format("%06d", new Random().nextInt(999999));
 
         // 3. 发送邮件
-        String redisKey = MyConstants.EMAIL_LOGIN_CODE_PREFIX + email;
+        String redisKey = RedisConstants.EMAIL_LOGIN_CODE_PREFIX + email;
         emailService.sendLoginCode(email, code);
 
-        // 4. 发送成功后存入 Redis，有效期1分钟
-        redisTemplate.opsForValue().set(redisKey, code, MyConstants.EMAIL_CODE_EXPIRATION, TimeUnit.SECONDS);
+        // 4. 发送成功后存入 Redis，有效期2分钟
+        redisTemplate.opsForValue().set(redisKey, code, RedisConstants.EMAIL_CODE_EXPIRATION, TimeUnit.SECONDS);
 
         return Result.success("验证码已发送", null);
     }
@@ -433,7 +434,7 @@ public class AuthController {
         String code = request.getCode();
 
         // 1. 从 Redis 取出验证码并比对
-        String redisKey = MyConstants.EMAIL_LOGIN_CODE_PREFIX + email;
+        String redisKey = RedisConstants.EMAIL_LOGIN_CODE_PREFIX + email;
         String storedCode = (String) redisTemplate.opsForValue().get(redisKey);
 
         if (!StringUtils.hasText(storedCode)) {
@@ -486,16 +487,16 @@ public class AuthController {
 
         // 单点登录：使旧会话失效
         redisTemplate.opsForValue().set(
-                MyConstants.USER_CURRENT_SESSION_PREFIX + user.getId(),
+                RedisConstants.USER_CURRENT_SESSION_PREFIX + user.getId(),
                 sessionId,
-                MyConstants.TOKEN_EXPIRATION,
+                RedisConstants.TOKEN_EXPIRATION,
                 TimeUnit.SECONDS
         );
         // 存储 userId → token 反向映射，用于权限变更时原地更新 Redis 缓存
         redisTemplate.opsForValue().set(
-                MyConstants.USER_ACTIVE_TOKEN_PREFIX + user.getId(),
+                RedisConstants.USER_ACTIVE_TOKEN_PREFIX + user.getId(),
                 token,
-                MyConstants.TOKEN_EXPIRATION,
+                RedisConstants.TOKEN_EXPIRATION,
                 TimeUnit.SECONDS
         );
 
@@ -517,9 +518,9 @@ public class AuthController {
         userInfo.put("roles", rolesMap);
 
         redisTemplate.opsForValue().set(
-                MyConstants.TOKEN_PREFIX + token,
+                RedisConstants.TOKEN_PREFIX + token,
                 userInfo,
-                MyConstants.TOKEN_EXPIRATION,
+                RedisConstants.TOKEN_EXPIRATION,
                 TimeUnit.SECONDS
         );
 
@@ -545,7 +546,7 @@ public class AuthController {
         // ========== 图形验证码校验（防批量调用） ==========
         String captchaKey = request.getCaptchaKey();
         String captcha = request.getCaptcha();
-        String storedCaptcha = (String) redisTemplate.opsForValue().get(MyConstants.CAPTCHA_PREFIX + captchaKey);
+        String storedCaptcha = (String) redisTemplate.opsForValue().get(RedisConstants.CAPTCHA_PREFIX + captchaKey);
 
         if (!StringUtils.hasText(storedCaptcha)) {
             return Result.error("图形验证码已过期，请重新获取");
@@ -555,7 +556,7 @@ public class AuthController {
             return Result.error("图形验证码错误");
         }
 
-        redisTemplate.delete(MyConstants.CAPTCHA_PREFIX + captchaKey);
+        redisTemplate.delete(RedisConstants.CAPTCHA_PREFIX + captchaKey);
         // ========== 图形验证码校验结束 ==========
 
         // 1. 确认该邮箱已注册
@@ -569,11 +570,11 @@ public class AuthController {
         String code = String.format("%06d", new Random().nextInt(999999));
 
         // 3. 发送邮件
-        String redisKey = MyConstants.EMAIL_RESET_PWD_CODE_PREFIX + email;
+        String redisKey = RedisConstants.EMAIL_RESET_PWD_CODE_PREFIX + email;
         emailService.sendResetPasswordCode(email, code);
 
         // 4. 发送成功后存入 Redis，有效期1分钟
-        redisTemplate.opsForValue().set(redisKey, code, MyConstants.EMAIL_CODE_EXPIRATION, TimeUnit.SECONDS);
+        redisTemplate.opsForValue().set(redisKey, code, RedisConstants.EMAIL_CODE_EXPIRATION, TimeUnit.SECONDS);
 
         return Result.success("验证码已发送", null);
     }
@@ -591,7 +592,7 @@ public class AuthController {
         String newPassword = request.getNewPassword();
 
         // 1. 从 Redis 取出验证码并比对
-        String redisKey = MyConstants.EMAIL_RESET_PWD_CODE_PREFIX + email;
+        String redisKey = RedisConstants.EMAIL_RESET_PWD_CODE_PREFIX + email;
         String storedCode = (String) redisTemplate.opsForValue().get(redisKey);
 
         if (!StringUtils.hasText(storedCode)) {
@@ -620,7 +621,7 @@ public class AuthController {
 
         // 5. 清除该用户所有登录会话（强制重新登录）
         // 清除当前会话
-        redisTemplate.delete(MyConstants.USER_CURRENT_SESSION_PREFIX + user.getId());
+        redisTemplate.delete(RedisConstants.USER_CURRENT_SESSION_PREFIX + user.getId());
         // 清除 Token（通过模糊匹配删除所有以 token: 开头且包含该 userId 的 key）
         // 注：由于 Redis 的 key 结构限制，此处清理当前会话即可，
         // 旧的 token 会在过期后自动失效，或由客户端在下次请求时被过滤器拦截
@@ -639,16 +640,16 @@ public class AuthController {
             String token = authHeader.substring(7);
 
             // 获取用户信息，清除用户当前会话和反向映射
-            Object userInfoObj = redisTemplate.opsForValue().get(MyConstants.TOKEN_PREFIX + token);
+            Object userInfoObj = redisTemplate.opsForValue().get(RedisConstants.TOKEN_PREFIX + token);
             if (userInfoObj instanceof Map) {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> userInfo = (Map<String, Object>) userInfoObj;
                 Long userId = ((Number) userInfo.get("userId")).longValue();
-                redisTemplate.delete(MyConstants.USER_CURRENT_SESSION_PREFIX + userId);
-                redisTemplate.delete(MyConstants.USER_ACTIVE_TOKEN_PREFIX + userId);
+                redisTemplate.delete(RedisConstants.USER_CURRENT_SESSION_PREFIX + userId);
+                redisTemplate.delete(RedisConstants.USER_ACTIVE_TOKEN_PREFIX + userId);
             }
 
-            redisTemplate.delete(MyConstants.TOKEN_PREFIX + token);
+            redisTemplate.delete(RedisConstants.TOKEN_PREFIX + token);
         }
         SecurityContextHolder.clearContext();
         return Result.success("登出成功", null);

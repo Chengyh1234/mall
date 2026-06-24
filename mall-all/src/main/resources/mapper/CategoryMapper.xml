@@ -12,16 +12,6 @@
         ORDER BY sort ASC, id ASC
     </select>
 
-    <!-- 根据级别查询分类 -->
-    <select id="selectByLevel" resultType="com.cyh.mallportal.entity.Category">
-        SELECT id, name, parent_id,  icon
-        FROM categories
-        WHERE level = #{level}
-        AND status = 1
-        AND is_deleted = 0
-        ORDER BY sort ASC, id ASC
-    </select>
-
     <!-- 查询所有子分类ID（递归） -->
     <select id="selectChildIds" resultType="java.lang.Long">
         SELECT id FROM categories WHERE parent_id = #{parentId} AND status = 1 AND is_deleted = 0

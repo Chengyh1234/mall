@@ -1,8 +1,6 @@
 package com.cyh.mallportal.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cyh.mallportal.entity.Category;
 import com.cyh.mallportal.entity.Spu;
 import com.cyh.mallportal.mapper.CategoryMapper;
@@ -65,7 +63,7 @@ public class CategoryServiceImpl implements CategoryService {
         category.setUpdatedAt(LocalDateTime.now());
 
         categoryMapper.insert(category);
-        
+
         // 清除所有分类缓存
         categoryCacheService.clearAllCategoryCache();
         log.info("新增分类成功, ID: {}, 已清除分类缓存", category.getId());
@@ -104,7 +102,7 @@ public class CategoryServiceImpl implements CategoryService {
 
         // 清除所有分类缓存
         categoryCacheService.clearAllCategoryCache();
-        
+
         log.info("删除分类成功（软删除）: {}, 关联删除商品: {}, 已清除分类缓存", id, spuCount);
         return true;
     }
@@ -156,151 +154,40 @@ public class CategoryServiceImpl implements CategoryService {
 
     @Override
     public Category getById(Long id) {
-        // 尝试从缓存获取
-        Category cached = categoryCacheService.getCategoryById(id);
-        if (cached != null) {
-            log.debug("从缓存获取分类成功，分类ID: {}", id);
-            return cached;
-        }
-        
-        // 缓存不存在，从数据库查询
-        Category category = categoryMapper.selectById(id);
-        if (category != null) {
-            categoryCacheService.setCategoryById(category);
-            log.debug("从数据库查询分类并缓存，分类ID: {}", id);
-        }
-        return category;
-    }
-
-    @Override
-    public List<Category> getList(Category category) {
-        // 生成缓存键
-        String cacheKey = categoryCacheService.generateListCacheKey(category);
-        
-        // 尝试从缓存获取
-        List<Category> cached = categoryCacheService.getCategoryList(cacheKey);
-        if (cached != null) {
-            log.debug("从缓存获取分类列表成功，缓存键: {}", cacheKey);
-            return cached;
-        }
-        
-        // 缓存不存在，从数据库查询
-        LambdaQueryWrapper<Category> wrapper = buildWrapper(category);
-        wrapper.orderByAsc(Category::getSort);
-        List<Category> categories = categoryMapper.selectList(wrapper);
-        
-        // 将结果放入缓存（永久存在）
-        categoryCacheService.setCategoryList(cacheKey, categories);
-        log.debug("从数据库查询分类列表并缓存，缓存键: {}", cacheKey);
-        
-        return categories;
-    }
-
-    @Override
-    public List<Category> getPage(Category category, Integer page, Integer pageSize) {
-        int pageNum = page != null ? page : 1;
-        int pageSizeNum = pageSize != null ? pageSize : 10;
-        
-        // 生成缓存键
-        String cacheKey = categoryCacheService.generatePageCacheKey(category, pageNum, pageSizeNum);
-        
-        // 尝试从缓存获取
-        List<Category> cached = categoryCacheService.getCategoryList(cacheKey);
-        if (cached != null) {
-            log.debug("从缓存获取分类分页列表成功，缓存键: {}", cacheKey);
-            return cached;
-        }
-        
-        // 缓存不存在，从数据库查询
-        IPage<Category> pageInfo = new Page<>(pageNum, pageSizeNum);
-        LambdaQueryWrapper<Category> wrapper = buildWrapper(category);
-        wrapper.orderByAsc(Category::getSort);
-        categoryMapper.selectPage(pageInfo, wrapper);
-        List<Category> categories = pageInfo.getRecords();
-        
-        // 将结果放入缓存（永久存在）
-        categoryCacheService.setCategoryList(cacheKey, categories);
-        log.debug("从数据库查询分类分页列表并缓存，缓存键: {}", cacheKey);
-        
-        return categories;
+        return categoryMapper.selectById(id);
     }
 
     @Override
     public List<Category> getByParentId(Long parentId) {
-        // 尝试从缓存获取
-        List<Category> cached = categoryCacheService.getChildrenByParentId(parentId);
-        if (cached != null) {
-            log.debug("从缓存获取子分类列表成功，父分类ID: {}", parentId);
-            return cached;
-        }
-        
-        // 缓存不存在，从数据库查询
-        List<Category> children = categoryMapper.selectByParentId(parentId);
-        categoryCacheService.setChildrenByParentId(parentId, children);
-        log.debug("从数据库查询子分类列表并缓存，父分类ID: {}", parentId);
-        return children;
+        return categoryMapper.selectByParentId(parentId);
     }
 
     @Override
-    public List<Category> getByLevel(Integer level) {
+    public List<CategoryTreeVo> getTreeWithChildren() {
         // 尝试从缓存获取
-        List<Category> cached = categoryCacheService.getByLevel(level);
+        List<CategoryTreeVo> cached = categoryCacheService.getTreeWithChildren();
         if (cached != null) {
-            log.debug("从缓存获取级别分类列表成功，级别: {}", level);
-            return cached;
-        }
-        
-        // 缓存不存在，从数据库查询
-        List<Category> categories = categoryMapper.selectByLevel(level);
-        categoryCacheService.setByLevel(level, categories);
-        log.debug("从数据库查询级别分类列表并缓存，级别: {}", level);
-        return categories;
-    }
-
-    @Override
-    public List<Category> getByStatus(Integer status) {
-        // 尝试从缓存获取
-        List<Category> cached = categoryCacheService.getByStatus(status);
-        if (cached != null) {
-            log.debug("从缓存获取状态分类列表成功，状态: {}", status);
-            return cached;
-        }
-        
-        // 缓存不存在，从数据库查询
-        List<Category> categories = categoryMapper.selectByStatus(status);
-        categoryCacheService.setByStatus(status, categories);
-        log.debug("从数据库查询状态分类列表并缓存，状态: {}", status);
-        return categories;
-    }
-
-    @Override
-    public List<Category> getTree(Long parentId) {
-        if (parentId == null) {
-            parentId = 0L;
-        }
-        List<Category> categories = getByParentId(parentId);
-        for (Category category : categories) {
-            List<Category> children = getTree(category.getId());
-            if (!children.isEmpty()) {
-                // children 已递归填充，直接使用
-            }
-        }
-        return categories;
-    }
-
-    @Override
-    public List<CategoryTreeVo> getTreeWithChildren(Long parentId) {
-        // 尝试从缓存获取
-        List<CategoryTreeVo> cached = categoryCacheService.getTreeWithChildren(parentId);
-        if (cached != null) {
-            log.debug("从缓存获取分类树成功，父分类ID: {}", parentId);
+            log.debug("从缓存获取分类树成功");
             return cached;
         }
 
-        // 缓存不存在，从数据库查询并构建树
-        if (parentId == null) {
-            parentId = 0L;
-        }
+        // 缓存不存在，从根节点递归构建树
+        List<CategoryTreeVo> result = buildTreeRecursive(0L);
+
+        // 将结果放入缓存
+        categoryCacheService.setTreeWithChildren(result);
+        log.debug("从数据库查询分类树并缓存");
+
+        return result;
+    }
+
+    /**
+     * 递归构建分类树
+     *
+     * @param parentId 父分类ID
+     * @return 子节点树形结构列表
+     */
+    private List<CategoryTreeVo> buildTreeRecursive(Long parentId) {
         List<Category> categories = getByParentId(parentId);
         List<CategoryTreeVo> result = new ArrayList<>();
 
@@ -311,16 +198,12 @@ public class CategoryServiceImpl implements CategoryService {
             vo.setParentId(category.getParentId());
             vo.setIcon(category.getIcon());
 
-            List<CategoryTreeVo> children = getTreeWithChildren(category.getId());
+            List<CategoryTreeVo> children = buildTreeRecursive(category.getId());
             if (!children.isEmpty()) {
                 vo.setChildren(children);
             }
             result.add(vo);
         }
-
-        // 将结果放入缓存
-        categoryCacheService.setTreeWithChildren(parentId, result);
-        log.debug("从数据库查询分类树并缓存，父分类ID: {}", parentId);
 
         return result;
     }
@@ -344,7 +227,7 @@ public class CategoryServiceImpl implements CategoryService {
     /**
      * 递归收集子分类ID
      *
-     * @param parentId   父分类ID
+     * @param parentId     父分类ID
      * @param categoryIds 分类ID列表（会被修改）
      */
     private void collectChildCategoryIds(Long parentId, List<Long> categoryIds) {
@@ -355,33 +238,5 @@ public class CategoryServiceImpl implements CategoryService {
             // 递归收集子分类的子分类
             collectChildCategoryIds(child.getId(), categoryIds);
         }
-    }
-
-    /**
-     * 构建查询条件
-     *
-     * @param category 查询条件实体
-     * @return LambdaQueryWrapper
-     */
-    private LambdaQueryWrapper<Category> buildWrapper(Category category) {
-        LambdaQueryWrapper<Category> wrapper = new LambdaQueryWrapper<>();
-
-        if (category.getId() != null) {
-            wrapper.eq(Category::getId, category.getId());
-        }
-        if (category.getName() != null && !category.getName().isEmpty()) {
-            wrapper.like(Category::getName, category.getName());
-        }
-        if (category.getParentId() != null) {
-            wrapper.eq(Category::getParentId, category.getParentId());
-        }
-        if (category.getLevel() != null) {
-            wrapper.eq(Category::getLevel, category.getLevel());
-        }
-        if (category.getStatus() != null) {
-            wrapper.eq(Category::getStatus, category.getStatus());
-        }
-
-        return wrapper;
     }
 }

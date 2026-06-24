@@ -1,5 +1,6 @@
 package com.cyh.mallportal.service.impl;
 
+import com.cyh.mallcommon.constant.RedisConstants;
 import com.cyh.mallportal.entity.Brand;
 import com.cyh.mallportal.service.BrandCacheService;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -36,15 +37,9 @@ public class BrandCacheServiceImpl implements BrandCacheService {
     private final RedisTemplate<String, String> redisTemplate;
     private final ObjectMapper objectMapper;
 
-    private static final String BRAND_ID_PREFIX = "brand:id:";
-    private static final String BRAND_STATUS_PREFIX = "brand:status:";
-    private static final String BRAND_SORT_KEY = "brand:sort";
-    private static final String BRAND_LIST_PREFIX = "brand:list:";
-    private static final String BRAND_PAGE_PREFIX = "brand:page:";
-
     @Override
     public Brand getBrandById(Long id) {
-        String cacheKey = BRAND_ID_PREFIX + id;
+        String cacheKey = RedisConstants.BRAND_ID_PREFIX + id;
         try {
             String json = redisTemplate.opsForValue().get(cacheKey);
             if (StringUtils.hasText(json)) {
@@ -59,7 +54,7 @@ public class BrandCacheServiceImpl implements BrandCacheService {
 
     @Override
     public void setBrandById(Brand brand) {
-        String cacheKey = BRAND_ID_PREFIX + brand.getId();
+        String cacheKey = RedisConstants.BRAND_ID_PREFIX + brand.getId();
         try {
             String json = objectMapper.writeValueAsString(brand);
             redisTemplate.opsForValue().set(cacheKey, json);
@@ -71,7 +66,7 @@ public class BrandCacheServiceImpl implements BrandCacheService {
 
     @Override
     public List<Brand> getBrandsByStatus(Integer status) {
-        String cacheKey = BRAND_STATUS_PREFIX + status;
+        String cacheKey = RedisConstants.BRAND_STATUS_PREFIX + status;
         try {
             String json = redisTemplate.opsForValue().get(cacheKey);
             if (StringUtils.hasText(json)) {
@@ -86,7 +81,7 @@ public class BrandCacheServiceImpl implements BrandCacheService {
 
     @Override
     public void setBrandsByStatus(Integer status, List<Brand> brands) {
-        String cacheKey = BRAND_STATUS_PREFIX + status;
+        String cacheKey = RedisConstants.BRAND_STATUS_PREFIX + status;
         try {
             String json = objectMapper.writeValueAsString(brands);
             redisTemplate.opsForValue().set(cacheKey, json);
@@ -99,13 +94,13 @@ public class BrandCacheServiceImpl implements BrandCacheService {
     @Override
     public List<Brand> getBrandsBySort() {
         try {
-            String json = redisTemplate.opsForValue().get(BRAND_SORT_KEY);
+            String json = redisTemplate.opsForValue().get(RedisConstants.BRAND_SORT_KEY);
             if (StringUtils.hasText(json)) {
-                log.debug("从缓存获取排序品牌列表成功，缓存键: {}", BRAND_SORT_KEY);
+                log.debug("从缓存获取排序品牌列表成功，缓存键: {}", RedisConstants.BRAND_SORT_KEY);
                 return objectMapper.readValue(json, new TypeReference<List<Brand>>() {});
             }
         } catch (JsonProcessingException e) {
-            log.error("反序列化排序品牌列表缓存失败，缓存键: {}, 异常: {}", BRAND_SORT_KEY, e.getMessage());
+            log.error("反序列化排序品牌列表缓存失败，缓存键: {}, 异常: {}", RedisConstants.BRAND_SORT_KEY, e.getMessage());
         }
         return null;
     }
@@ -114,10 +109,10 @@ public class BrandCacheServiceImpl implements BrandCacheService {
     public void setBrandsBySort(List<Brand> brands) {
         try {
             String json = objectMapper.writeValueAsString(brands);
-            redisTemplate.opsForValue().set(BRAND_SORT_KEY, json);
-            log.debug("设置排序品牌列表缓存成功（永久），缓存键: {}, 品牌数量: {}", BRAND_SORT_KEY, brands.size());
+            redisTemplate.opsForValue().set(RedisConstants.BRAND_SORT_KEY, json);
+            log.debug("设置排序品牌列表缓存成功（永久），缓存键: {}, 品牌数量: {}", RedisConstants.BRAND_SORT_KEY, brands.size());
         } catch (JsonProcessingException e) {
-            log.error("序列化排序品牌列表缓存失败，缓存键: {}, 异常: {}", BRAND_SORT_KEY, e.getMessage());
+            log.error("序列化排序品牌列表缓存失败，缓存键: {}, 异常: {}", RedisConstants.BRAND_SORT_KEY, e.getMessage());
         }
     }
 
@@ -148,28 +143,28 @@ public class BrandCacheServiceImpl implements BrandCacheService {
 
     @Override
     public void clearAllBrandCache() {
-        var idKeys = redisTemplate.keys(BRAND_ID_PREFIX + "*");
+        var idKeys = redisTemplate.keys(RedisConstants.BRAND_ID_PREFIX + "*");
         if (idKeys != null && !idKeys.isEmpty()) {
             redisTemplate.delete(idKeys);
             log.info("清除所有品牌详情缓存成功，共清除 {} 个缓存", idKeys.size());
         }
 
-        var statusKeys = redisTemplate.keys(BRAND_STATUS_PREFIX + "*");
+        var statusKeys = redisTemplate.keys(RedisConstants.BRAND_STATUS_PREFIX + "*");
         if (statusKeys != null && !statusKeys.isEmpty()) {
             redisTemplate.delete(statusKeys);
             log.info("清除所有品牌状态缓存成功，共清除 {} 个缓存", statusKeys.size());
         }
 
-        redisTemplate.delete(BRAND_SORT_KEY);
+        redisTemplate.delete(RedisConstants.BRAND_SORT_KEY);
         log.info("清除品牌排序缓存成功");
 
-        var listKeys = redisTemplate.keys(BRAND_LIST_PREFIX + "*");
+        var listKeys = redisTemplate.keys(RedisConstants.BRAND_LIST_PREFIX + "*");
         if (listKeys != null && !listKeys.isEmpty()) {
             redisTemplate.delete(listKeys);
             log.info("清除所有品牌列表缓存成功，共清除 {} 个缓存", listKeys.size());
         }
 
-        var pageKeys = redisTemplate.keys(BRAND_PAGE_PREFIX + "*");
+        var pageKeys = redisTemplate.keys(RedisConstants.BRAND_PAGE_PREFIX + "*");
         if (pageKeys != null && !pageKeys.isEmpty()) {
             redisTemplate.delete(pageKeys);
             log.info("清除所有品牌分页缓存成功，共清除 {} 个缓存", pageKeys.size());
@@ -178,7 +173,7 @@ public class BrandCacheServiceImpl implements BrandCacheService {
 
     @Override
     public String generatePageCacheKey(Brand brand, Integer page, Integer pageSize) {
-        StringBuilder sb = new StringBuilder(BRAND_PAGE_PREFIX);
+        StringBuilder sb = new StringBuilder(RedisConstants.BRAND_PAGE_PREFIX);
         if (brand != null) {
             sb.append("id:").append(brand.getId() == null ? "all" : brand.getId());
             sb.append(":name:").append(StringUtils.hasText(brand.getName()) ? brand.getName().hashCode() : "none");
@@ -192,7 +187,7 @@ public class BrandCacheServiceImpl implements BrandCacheService {
 
     @Override
     public String generatePageCountKey(Brand brand) {
-        StringBuilder sb = new StringBuilder(BRAND_PAGE_PREFIX).append("total:");
+        StringBuilder sb = new StringBuilder(RedisConstants.BRAND_PAGE_PREFIX).append("total:");
         if (brand != null) {
             sb.append("id:").append(brand.getId() == null ? "all" : brand.getId());
             sb.append(":name:").append(StringUtils.hasText(brand.getName()) ? brand.getName().hashCode() : "none");
@@ -205,7 +200,7 @@ public class BrandCacheServiceImpl implements BrandCacheService {
 
     @Override
     public String generateListCacheKey(Brand brand) {
-        StringBuilder sb = new StringBuilder(BRAND_LIST_PREFIX);
+        StringBuilder sb = new StringBuilder(RedisConstants.BRAND_LIST_PREFIX);
         if (brand != null) {
             sb.append("id:").append(brand.getId() == null ? "all" : brand.getId());
             sb.append(":name:").append(StringUtils.hasText(brand.getName()) ? brand.getName().hashCode() : "none");

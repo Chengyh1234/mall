@@ -1,5 +1,6 @@
 package com.cyh.mallportal.service.impl;
 
+import com.cyh.mallcommon.constant.RedisConstants;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.cyh.mallportal.entity.Sku;
 import com.cyh.mallportal.mapper.SkuMapper;
@@ -24,9 +25,6 @@ public class InventoryRedisServiceImpl implements InventoryRedisService {
     private final RedisTemplate<String, String> redisTemplate;
     private final SkuMapper skuMapper;
 
-    private static final String STOCK_PREFIX = "sku:stock:";
-    private static final String FROZEN_PREFIX = "sku:frozen:";
-
     /**
      * 启动时从 MySQL 加载所有 SKU 库存到 Redis
      */
@@ -36,8 +34,8 @@ public class InventoryRedisServiceImpl implements InventoryRedisService {
         List<Sku> skuList = skuMapper.selectList(new LambdaQueryWrapper<>());
         int count = 0;
         for (Sku sku : skuList) {
-            redisTemplate.opsForValue().set(STOCK_PREFIX + sku.getId(), String.valueOf(sku.getStock()));
-            redisTemplate.opsForValue().set(FROZEN_PREFIX + sku.getId(), String.valueOf(sku.getFrozenStock() != null ? sku.getFrozenStock() : 0));
+            redisTemplate.opsForValue().set(RedisConstants.STOCK_PREFIX + sku.getId(), String.valueOf(sku.getStock()));
+            redisTemplate.opsForValue().set(RedisConstants.FROZEN_PREFIX + sku.getId(), String.valueOf(sku.getFrozenStock() != null ? sku.getFrozenStock() : 0));
             count++;
         }
         log.info("库存加载完成，共加载 {} 个 SKU", count);
@@ -51,8 +49,8 @@ public class InventoryRedisServiceImpl implements InventoryRedisService {
      */
     @Override
     public int getAvailableStock(Long skuId) {
-        String stockStr = redisTemplate.opsForValue().get(STOCK_PREFIX + skuId);
-        String frozenStr = redisTemplate.opsForValue().get(FROZEN_PREFIX + skuId);
+        String stockStr = redisTemplate.opsForValue().get(RedisConstants.STOCK_PREFIX + skuId);
+        String frozenStr = redisTemplate.opsForValue().get(RedisConstants.FROZEN_PREFIX + skuId);
         int stock = StringUtils.hasText(stockStr) ? Integer.parseInt(stockStr) : 0;
         int frozen = StringUtils.hasText(frozenStr) ? Integer.parseInt(frozenStr) : 0;
         return stock - frozen;
@@ -66,8 +64,8 @@ public class InventoryRedisServiceImpl implements InventoryRedisService {
     @Override
     public void syncStockToDb(Long skuId) {
         try {
-            String stockStr = redisTemplate.opsForValue().get(STOCK_PREFIX + skuId);
-            String frozenStr = redisTemplate.opsForValue().get(FROZEN_PREFIX + skuId);
+            String stockStr = redisTemplate.opsForValue().get(RedisConstants.STOCK_PREFIX + skuId);
+            String frozenStr = redisTemplate.opsForValue().get(RedisConstants.FROZEN_PREFIX + skuId);
             int stock = StringUtils.hasText(stockStr) ? Integer.parseInt(stockStr) : 0;
             int frozen = StringUtils.hasText(frozenStr) ? Integer.parseInt(frozenStr) : 0;
 

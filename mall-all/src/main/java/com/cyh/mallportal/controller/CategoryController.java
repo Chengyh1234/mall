@@ -8,7 +8,6 @@ import com.cyh.mallportal.entity.Category;
 import com.cyh.mallportal.service.CategoryService;
 import com.cyh.mallportal.service.FileService;
 import com.cyh.mallportal.vo.CategoryTreeVo;
-import com.cyh.mallportal.vo.CategoryVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.util.StringUtils;
@@ -179,124 +178,14 @@ public class CategoryController {
     }
 
     /**
-     * 根据ID获取分类详情
+     * 获取分类树形结构（从根节点构建整棵树，结果缓存到 Redis）
      *
-     * @param id 分类ID
-     * @return 分类信息
-     */
-    @GetMapping("/detail/{id}")
-    public Result<CategoryVo> getById(@PathVariable Long id) {
-        Category category = categoryService.getById(id);
-        if (category != null) {
-            return Result.success(toCategoryVo(category));
-        }
-        return Result.error("分类不存在");
-    }
-
-    /**
-     * 获取分类列表
-     *
-     * @param name     分类名称（模糊搜索）
-     * @param parentId 父分类ID
-     * @param level    分类级别
-     * @param status   状态
-     * @return 分类列表
-     */
-    @GetMapping("/list")
-    public Result<List<CategoryVo>> getList(@RequestParam(required = false) String name,
-                                          @RequestParam(required = false) Long parentId,
-                                          @RequestParam(required = false) Integer level,
-                                          @RequestParam(required = false) Integer status) {
-        Category category = new Category();
-        category.setName(name);
-        category.setParentId(parentId);
-        category.setLevel(level);
-        category.setStatus(status);
-
-        List<Category> list = categoryService.getList(category);
-        return Result.success(list.stream().map(this::toCategoryVo).toList());
-    }
-
-    /**
-     * 分页获取分类列表
-     *
-     * @param name     分类名称（模糊搜索）
-     * @param parentId 父分类ID
-     * @param level    分类级别
-     * @param status   状态
-     * @param page     页码
-     * @param pageSize 每页条数
-     * @return 分页结果
-     */
-    @GetMapping("/page")
-    public Result<Map<String, Object>> getPage(@RequestParam(required = false) String name,
-                                               @RequestParam(required = false) Long parentId,
-                                               @RequestParam(required = false) Integer level,
-                                               @RequestParam(required = false) Integer status,
-                                               @RequestParam(defaultValue = "1") Integer page,
-                                               @RequestParam(defaultValue = "10") Integer pageSize) {
-        Category category = new Category();
-        category.setName(name);
-        category.setParentId(parentId);
-        category.setLevel(level);
-        category.setStatus(status);
-
-        List<Category> list = categoryService.getPage(category, page, pageSize);
-        Map<String, Object> data = new HashMap<>();
-        data.put("list", list.stream().map(this::toCategoryVo).toList());
-        data.put("page", page);
-        data.put("pageSize", pageSize);
-        return Result.success(data);
-    }
-
-    /**
-     * 获取分类树形结构
-     *
-     * @param parentId 父分类ID（不传则从根节点开始）
      * @return 树形结构
      */
     @GetMapping("/tree")
-    public Result<List<CategoryTreeVo>> getTree(@RequestParam(required = false) Long parentId) {
-        List<CategoryTreeVo> tree = categoryService.getTreeWithChildren(parentId);
+    public Result<List<CategoryTreeVo>> getTree() {
+        List<CategoryTreeVo> tree = categoryService.getTreeWithChildren();
         return Result.success(tree);
-    }
-
-    /**
-     * 获取一级分类列表
-     *
-     * @return 一级分类列表
-     */
-    @GetMapping("/level1")
-    public Result<List<CategoryVo>> getLevel1() {
-        List<Category> list = categoryService.getByLevel(1);
-        return Result.success(list.stream().map(this::toCategoryVo).toList());
-    }
-
-    /**
-     * 获取子分类列表
-     *
-     * @param parentId 父分类ID
-     * @return 子分类列表
-     */
-    @GetMapping("/children/{parentId}")
-    public Result<List<CategoryVo>> getChildren(@PathVariable Long parentId) {
-        List<Category> list = categoryService.getByParentId(parentId);
-        return Result.success(list.stream().map(this::toCategoryVo).toList());
-    }
-
-    /**
-     * 将 Category 实体转换为 CategoryVo
-     */
-    private CategoryVo toCategoryVo(Category category) {
-        CategoryVo vo = new CategoryVo();
-        vo.setId(category.getId());
-        vo.setName(category.getName());
-        vo.setParentId(category.getParentId());
-        vo.setLevel(category.getLevel());
-        vo.setIcon(category.getIcon());
-        vo.setSort(category.getSort());
-        vo.setStatus(category.getStatus());
-        return vo;
     }
 
     /**

@@ -8,20 +8,30 @@ import com.cyh.mallportal.service.SpuService;
 import com.cyh.mallportal.vo.AdminVo;
 import com.cyh.mallportal.vo.SkuStoreVo;
 import com.cyh.mallportal.vo.SkuVo;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
+import com.cyh.mallcommon.constant.RedisConstants;
 import java.util.stream.Collectors;
 
 /**
  * SKU服务实现类
  * 提供商品库存单元业务逻辑的具体实现
+ * <p>
+ * 缓存设计说明：
+ * - 缓存 Key: sku:spu:{spuId}:public/store/admin 分别对应三种视角的SKU列表
+ * - 缓存 TTL: 10分钟（公开）/ 5分钟（商家/管理）
+ * - inStock 不从缓存读取，改为实时查询 Redis 库存 Key（sku:stock:{skuId}），确保库存状态实时准确
+ * - 所有 SKU 增、删、改、上架下架、库存变更操作均主动清除缓存，保证数据一致性
  */
 @Slf4j
 @Service
@@ -33,14 +43,213 @@ public class SkuServiceImpl implements SkuService {
     private final AttributeValueMapper attributeValueMapper;
     private final SkuSaleAttrValueMapper skuSaleAttrValueMapper;
     private final SpuService spuService;
+    private final StringRedisTemplate stringRedisTemplate;
+    private final ObjectMapper objectMapper;
 
+    // ==================== 带缓存的查询方法 ====================
 
     /**
-     * 删除SKU（逻辑删除）
-     *
-     * @param id SKU ID
-     * @return 是否删除成功
+     * 根据SPU ID获取公开SKU列表（包含销售属性）
+     * 命中缓存时直接从Redis返回，inStock实时从Redis库存Key查询
      */
+    @Override
+    public List<SkuVo> getBySpuIdWithAttributes(Long spuId) {
+        String key = RedisConstants.SKU_CACHE_PREFIX + spuId + RedisConstants.SKU_CACHE_PUBLIC_SUFFIX;
+
+        // Step1: 读缓存
+        String cached = stringRedisTemplate.opsForValue().get(key);
+        if (cached != null) {
+            try {
+                List<SkuVo> result = objectMapper.readValue(cached,
+                        objectMapper.getTypeFactory().constructCollectionType(List.class, SkuVo.class));
+                // 实时注入 inStock（从 Redis 库存 Key 查询）
+                fillInStock(result);
+                return result;
+            } catch (JsonProcessingException e) {
+                log.error("反序列化SKU缓存失败, key: {}", key, e);
+                stringRedisTemplate.delete(key);
+            }
+        }
+
+        // Step2: 缓存未命中，查库组装
+        List<SkuVo> result = doGetBySpuIdWithAttributes(spuId);
+        if (result == null) {
+            return new ArrayList<>();
+        }
+
+        // Step3: 写缓存（inStock不缓存，写为false）
+        result.forEach(vo -> vo.setInStock(false));
+        cacheResult(key, result, RedisConstants.SKU_CACHE_TTL_PUBLIC);
+
+        // Step4: 实时查询库存
+        fillInStock(result);
+
+        return result;
+    }
+
+    /**
+     * 商家端：根据SPU ID获取SKU列表（包含销售属性）
+     * 命中缓存时直接从Redis返回
+     */
+    @Override
+    public List<SkuStoreVo> getStoreBySpuIdWithAttributes(Long spuId) {
+        String key = RedisConstants.SKU_CACHE_PREFIX + spuId + RedisConstants.SKU_CACHE_STORE_SUFFIX;
+
+        String cached = stringRedisTemplate.opsForValue().get(key);
+        if (cached != null) {
+            try {
+                return objectMapper.readValue(cached,
+                        objectMapper.getTypeFactory().constructCollectionType(List.class, SkuStoreVo.class));
+            } catch (JsonProcessingException e) {
+                log.error("反序列化商家SKU缓存失败, key: {}", key, e);
+                stringRedisTemplate.delete(key);
+            }
+        }
+
+        List<SkuStoreVo> result = doGetStoreBySpuIdWithAttributes(spuId);
+        if (result == null) {
+            return new ArrayList<>();
+        }
+
+        result.forEach(vo -> {
+            vo.setInStock(false);
+            vo.setStock(null);
+        });
+        cacheResult(key, result, RedisConstants.SKU_CACHE_TTL_MGMT);
+
+        return result;
+    }
+
+    /**
+     * 管理员端：根据SPU ID获取SKU列表（包含销售属性）
+     * 命中缓存时直接从Redis返回
+     */
+    @Override
+    public List<AdminVo> getAdminBySpuIdWithAttributes(Long spuId) {
+        String key = RedisConstants.SKU_CACHE_PREFIX + spuId + RedisConstants.SKU_CACHE_ADMIN_SUFFIX;
+
+        String cached = stringRedisTemplate.opsForValue().get(key);
+        if (cached != null) {
+            try {
+                return objectMapper.readValue(cached,
+                        objectMapper.getTypeFactory().constructCollectionType(List.class, AdminVo.class));
+            } catch (JsonProcessingException e) {
+                log.error("反序列化管理SKU缓存失败, key: {}", key, e);
+                stringRedisTemplate.delete(key);
+            }
+        }
+
+        List<AdminVo> result = doGetAdminBySpuIdWithAttributes(spuId);
+        if (result == null) {
+            return new ArrayList<>();
+        }
+
+        result.forEach(vo -> {
+            vo.setInStock(false);
+            vo.setStock(null);
+            vo.setFrozenStock(null);
+        });
+        cacheResult(key, result, RedisConstants.SKU_CACHE_TTL_MGMT);
+
+        return result;
+    }
+
+    // ==================== 缓存清除方法 ====================
+
+    /**
+     * 清除指定SPU下所有SKU缓存（公开/商家/管理三端）
+     */
+    private void clearSkuCache(Long spuId) {
+        if (spuId == null) {
+            return;
+        }
+        String prefix = RedisConstants.SKU_CACHE_PREFIX + spuId;
+        Set<String> keys = new HashSet<>();
+        keys.add(prefix + RedisConstants.SKU_CACHE_PUBLIC_SUFFIX);
+        keys.add(prefix + RedisConstants.SKU_CACHE_STORE_SUFFIX);
+        keys.add(prefix + RedisConstants.SKU_CACHE_ADMIN_SUFFIX);
+        stringRedisTemplate.delete(keys);
+        log.debug("清除SKU缓存, spuId: {}", spuId);
+    }
+
+    // ==================== 非缓存查询方法（供缓存回源使用） ====================
+
+    /**
+     * 实际查库：获取公开SKU列表（不含缓存逻辑）
+     */
+    private List<SkuVo> doGetBySpuIdWithAttributes(Long spuId) {
+        List<Sku> skus = getBySpuId(spuId);
+        if (skus == null || skus.isEmpty()) {
+            return new ArrayList<>();
+        }
+        return skus.stream()
+                .filter(sku -> sku.getStatus() != null && sku.getStatus() == 1)
+                .map(this::convertToVo)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 实际查库：获取商家SKU列表（不含缓存逻辑）
+     */
+    private List<SkuStoreVo> doGetStoreBySpuIdWithAttributes(Long spuId) {
+        List<Sku> skus = getBySpuId(spuId);
+        if (skus == null || skus.isEmpty()) {
+            return new ArrayList<>();
+        }
+        return skus.stream()
+                .map(this::convertToStoreVo)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 实际查库：获取管理员SKU列表（不含缓存逻辑）
+     */
+    private List<AdminVo> doGetAdminBySpuIdWithAttributes(Long spuId) {
+        List<Sku> skus = getBySpuId(spuId);
+        if (skus == null || skus.isEmpty()) {
+            return new ArrayList<>();
+        }
+        return skus.stream()
+                .map(this::convertToAdminVo)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 实时填充 inStock：从 Redis 计算实时可售库存（stock - frozen）
+     */
+    private void fillInStock(List<SkuVo> skus) {
+        if (skus == null || skus.isEmpty()) {
+            return;
+        }
+        for (SkuVo vo : skus) {
+            String stockKey = "sku:stock:" + vo.getId();
+            String frozenKey = "sku:frozen:" + vo.getId();
+            String stockVal = stringRedisTemplate.opsForValue().get(stockKey);
+            String frozenVal = stringRedisTemplate.opsForValue().get(frozenKey);
+            try {
+                int stock = stockVal != null ? Integer.parseInt(stockVal) : 0;
+                int frozen = frozenVal != null ? Integer.parseInt(frozenVal) : 0;
+                vo.setInStock((stock - frozen) > 0);
+            } catch (NumberFormatException e) {
+                vo.setInStock(false);
+            }
+        }
+    }
+
+    /**
+     * 写入缓存并设置TTL
+     */
+    private void cacheResult(String key, Object value, long ttlMinutes) {
+        try {
+            String json = objectMapper.writeValueAsString(value);
+            stringRedisTemplate.opsForValue().set(key, json, ttlMinutes, TimeUnit.MINUTES);
+        } catch (JsonProcessingException e) {
+            log.error("序列化SKU缓存失败, key: {}", key, e);
+        }
+    }
+
+    // ==================== 原有方法（增删改查） ====================
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean delete(Long id) {
@@ -52,27 +261,22 @@ public class SkuServiceImpl implements SkuService {
             return false;
         }
 
-        // 逻辑删除：调用deleteById让MyBatis-Plus自动转换为UPDATE语句
         skuMapper.deleteById(id);
 
         spuService.updateMinPriceForSpu(sku.getSpuId());
+
+        // 清除缓存
+        clearSkuCache(sku.getSpuId());
 
         log.info("删除SKU成功: {}", id);
         return true;
     }
 
-    /**
-     * 根据SPU ID删除所有SKU（逻辑删除）
-     *
-     * @param spuId SPU ID
-     * @return 是否删除成功
-     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean deleteBySpuId(Long spuId) {
         log.info("删除SPU下所有SKU, SPU ID: {}", spuId);
 
-        // 先删除SKU的销售属性绑定
         List<Sku> skus = skuMapper.selectList(
                 new LambdaQueryWrapper<Sku>().eq(Sku::getSpuId, spuId));
         for (Sku sku : skus) {
@@ -80,12 +284,14 @@ public class SkuServiceImpl implements SkuService {
                     new LambdaQueryWrapper<SkuSaleAttrValue>().eq(SkuSaleAttrValue::getSkuId, sku.getId()));
         }
 
-        // 逻辑删除SKU
         LambdaQueryWrapper<Sku> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(Sku::getSpuId, spuId);
         skuMapper.delete(wrapper);
 
         spuService.updateMinPriceForSpu(spuId);
+
+        // 清除缓存
+        clearSkuCache(spuId);
 
         log.info("删除SPU下SKU完成并已清理销售属性绑定");
         return true;
@@ -100,7 +306,6 @@ public class SkuServiceImpl implements SkuService {
 
         log.info("批量删除SKU, IDs: {}", ids);
 
-        // 删除前获取每个SKU的spuId，用于后续更新minPrice
         Map<Long, Long> idToSpuIdMap = new HashMap<>();
         for (Long id : ids) {
             Sku sku = skuMapper.selectById(id);
@@ -109,13 +314,11 @@ public class SkuServiceImpl implements SkuService {
             }
         }
 
-        // 先删除SKU的销售属性绑定
         for (Long id : ids) {
             skuSaleAttrValueMapper.delete(
                     new LambdaQueryWrapper<SkuSaleAttrValue>().eq(SkuSaleAttrValue::getSkuId, id));
         }
 
-        // 逻辑删除SKU
         for (Long id : ids) {
             skuMapper.deleteById(id);
         }
@@ -123,18 +326,14 @@ public class SkuServiceImpl implements SkuService {
         Set<Long> affectedSpuIds = new HashSet<>(idToSpuIdMap.values());
         for (Long spuId : affectedSpuIds) {
             spuService.updateMinPriceForSpu(spuId);
+            // 清除缓存
+            clearSkuCache(spuId);
         }
 
         log.info("批量删除SKU完成, 数量: {}", ids.size());
         return ids.size();
     }
 
-    /**
-     * 更新SKU信息
-     *
-     * @param sku SKU实体
-     * @return 是否更新成功
-     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean update(Sku sku) {
@@ -150,6 +349,8 @@ public class SkuServiceImpl implements SkuService {
             Sku updatedSku = skuMapper.selectById(sku.getId());
             if (updatedSku != null) {
                 spuService.updateMinPriceForSpu(updatedSku.getSpuId());
+                // 清除缓存
+                clearSkuCache(updatedSku.getSpuId());
             }
         } else {
             log.warn("更新SKU失败: {}", sku.getId());
@@ -158,13 +359,6 @@ public class SkuServiceImpl implements SkuService {
         return success;
     }
 
-    /**
-     * 更新库存
-     *
-     * @param id    SKU ID
-     * @param stock 库存数量
-     * @return 是否更新成功
-     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean updateStock(Long id, Integer stock) {
@@ -180,16 +374,12 @@ public class SkuServiceImpl implements SkuService {
         sku.setUpdatedAt(LocalDateTime.now());
         int rows = skuMapper.updateById(sku);
 
+        // 清除缓存
+        clearSkuCache(sku.getSpuId());
+
         return rows > 0;
     }
 
-    /**
-     * 扣减库存
-     *
-     * @param id       SKU ID
-     * @param quantity 扣减数量
-     * @return 是否扣减成功
-     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean decreaseStock(Long id, Integer quantity) {
@@ -210,27 +400,19 @@ public class SkuServiceImpl implements SkuService {
         sku.setUpdatedAt(LocalDateTime.now());
         skuMapper.updateById(sku);
 
+        // 注：decreaseStock 由下单流程调用（高频），不清除缓存以免影响性能
+        // inStock 实时性通过 fillInStock() 从 Redis 库存 Key 保证
+        // 库存变更已同步到 Redis（InventoryRedisService）
+
         log.info("扣减库存成功, SKU: {}, 剩余库存: {}", id, sku.getStock());
         return true;
     }
 
-    /**
-     * 根据ID获取SKU详情
-     *
-     * @param id SKU ID
-     * @return SKU实体
-     */
     @Override
     public Sku getById(Long id) {
         return skuMapper.selectById(id);
     }
 
-    /**
-     * 根据SPU ID获取SKU列表
-     *
-     * @param spuId SPU ID
-     * @return SKU列表
-     */
     @Override
     public List<Sku> getBySpuId(Long spuId) {
         LambdaQueryWrapper<Sku> wrapper = new LambdaQueryWrapper<>();
@@ -239,11 +421,6 @@ public class SkuServiceImpl implements SkuService {
         return skuMapper.selectList(wrapper);
     }
 
-    /**
-     * 获取所有SKU列表
-     *
-     * @return SKU列表
-     */
     @Override
     public List<Sku> getAll() {
         LambdaQueryWrapper<Sku> wrapper = new LambdaQueryWrapper<>();
@@ -251,39 +428,6 @@ public class SkuServiceImpl implements SkuService {
         return skuMapper.selectList(wrapper);
     }
 
-    /**
-     * 获取SKU列表（分页）
-     *
-     * @param spuId    SPU ID（可选）
-     * @param status   状态（可选）
-     * @param page     页码
-     * @param pageSize 每页条数
-     * @return SKU列表
-     */
-    //@Override
-    //public List<Sku> getPage(Long spuId, Integer status, Integer page, Integer pageSize) {
-    //    LambdaQueryWrapper<Sku> wrapper = buildWrapper(spuId, status);
-    //    wrapper.orderByAsc(Sku::getId);
-    //
-    //    // 分页计算
-    //    int offset = (page - 1) * pageSize;
-    //    long totalLong = skuMapper.selectCount(wrapper);
-    //    int total = (int) totalLong;
-    //
-    //    List<Sku> allList = skuMapper.selectList(wrapper);
-    //    int fromIndex = Math.min(offset, total);
-    //    int toIndex = Math.min(offset + pageSize, total);
-    //
-    //    return allList.subList(fromIndex, toIndex);
-    //}
-
-    /**
-     * 获取SKU总数
-     *
-     * @param spuId  SPU ID（可选）
-     * @param status 状态（可选）
-     * @return 总数
-     */
     @Override
     public int count(Long spuId, Integer status) {
         LambdaQueryWrapper<Sku> wrapper = buildWrapper(spuId, status);
@@ -291,12 +435,6 @@ public class SkuServiceImpl implements SkuService {
         return (int) totalLong;
     }
 
-    /**
-     * 启用SKU（设置 status=1）
-     *
-     * @param id SKU ID
-     * @return 是否启用成功
-     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean enable(Long id) {
@@ -306,15 +444,14 @@ public class SkuServiceImpl implements SkuService {
         }
         sku.setStatus(1);
         sku.setUpdatedAt(LocalDateTime.now());
-        return skuMapper.updateById(sku) > 0;
+        boolean success = skuMapper.updateById(sku) > 0;
+
+        // 清除缓存
+        clearSkuCache(sku.getSpuId());
+
+        return success;
     }
 
-    /**
-     * 禁用SKU（设置 status=0）
-     *
-     * @param id SKU ID
-     * @return 是否禁用成功
-     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean disable(Long id) {
@@ -324,33 +461,14 @@ public class SkuServiceImpl implements SkuService {
         }
         sku.setStatus(0);
         sku.setUpdatedAt(LocalDateTime.now());
-        return skuMapper.updateById(sku) > 0;
+        boolean success = skuMapper.updateById(sku) > 0;
+
+        // 清除缓存
+        clearSkuCache(sku.getSpuId());
+
+        return success;
     }
 
-    /**
-     * 获取SPU的最低价格
-     *
-     * @param spuId SPU ID
-     * @return 最低价格
-     */
-    //    @Override
-//    public BigDecimal getMinPrice(Long spuId) {
-//        LambdaQueryWrapper<Sku> wrapper = new LambdaQueryWrapper<>();
-//        wrapper.eq(Sku::getSpuId, spuId);
-//        wrapper.eq(Sku::getStatus, 1);
-//        wrapper.orderByAsc(Sku::getPrice);
-//        wrapper.last("LIMIT 1");
-//
-//        Sku sku = skuMapper.selectOne(wrapper);
-//        return sku != null ? sku.getPrice() : BigDecimal.ZERO;
-//    }
-
-    /**
-     * 获取SPU的库存总量
-     *
-     * @param spuId SPU ID
-     * @return 库存总量
-     */
     @Override
     public Integer getTotalStock(Long spuId) {
         LambdaQueryWrapper<Sku> wrapper = new LambdaQueryWrapper<>();
@@ -365,91 +483,8 @@ public class SkuServiceImpl implements SkuService {
                 .sum();
     }
 
-    /**
-     * 根据SPU ID获取SKU列表（包含销售属性）
-     * 公开接口，仅返回启用状态（status=1）的SKU
-     *
-     * @param spuId SPU ID
-     * @return SKU列表（包含销售属性，公开字段）
-     */
-    @Override
-    public List<SkuVo> getBySpuIdWithAttributes(Long spuId) {
-        log.info("获取SPU的SKU列表（包含销售属性）, spuId: {}", spuId);
+    // ==================== VO转换方法 ====================
 
-        List<Sku> skus = getBySpuId(spuId);
-        if (skus == null || skus.isEmpty()) {
-            return new ArrayList<>();
-        }
-
-        return skus.stream()
-                .filter(sku -> sku.getStatus() != null && sku.getStatus() == 1) // 仅返回启用状态的SKU
-                .map(this::convertToVo)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * 商家端：根据SPU ID获取SKU列表（包含销售属性）
-     * 返回商家经营管理所需的完整字段，不限SKU上下架状态
-     *
-     * @param spuId SPU ID
-     * @return SKU列表（包含销售属性，商家端字段）
-     */
-    @Override
-    public List<SkuStoreVo> getStoreBySpuIdWithAttributes(Long spuId) {
-        log.info("商家端获取SPU的SKU列表（包含销售属性）, spuId: {}", spuId);
-
-        List<Sku> skus = getBySpuId(spuId);
-        if (skus == null || skus.isEmpty()) {
-            return new ArrayList<>();
-        }
-
-        return skus.stream()
-                .map(this::convertToStoreVo)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * 管理员端：根据SPU ID获取SKU列表（包含销售属性）
-     * 返回管理员监管所需的全部字段，不限SKU上下架和删除状态
-     *
-     * @param spuId SPU ID
-     * @return SKU列表（包含销售属性，管理员端字段）
-     */
-    @Override
-    public List<AdminVo> getAdminBySpuIdWithAttributes(Long spuId) {
-        log.info("管理员端获取SPU的SKU列表（包含销售属性）, spuId: {}", spuId);
-
-        List<Sku> skus = getBySpuId(spuId);
-        if (skus == null || skus.isEmpty()) {
-            return new ArrayList<>();
-        }
-
-        return skus.stream()
-                .map(this::convertToAdminVo)
-                .collect(Collectors.toList());
-    }
-
-    /**
-     * 根据ID获取SKU详情（包含销售属性）
-     *
-     * @param id SKU ID
-     * @return SKU详情（包含销售属性）
-     */
-    //@Override
-    //public SkuVo getByIdWithAttributes(Long id) {
-    //    log.info("获取SKU详情（包含销售属性）, id: {}", id);
-    //
-    //    Sku sku = getById(id);
-    //    if (sku == null) {
-    //        return null;
-    //    }
-    //
-    //    return convertToVo(sku);
-    //}
-
-    /**
-     * 将SKU实体转换为公开VO（普通用户可见）
-     */
     private SkuVo convertToVo(Sku sku) {
         SkuVo vo = SkuVo.builder()
                 .id(sku.getId())
@@ -458,85 +493,68 @@ public class SkuServiceImpl implements SkuService {
                 .marketPrice(sku.getMarketPrice())
                 .image(sku.getImage())
                 .weight(sku.getWeight())
-                .inStock(sku.getStock() != null && sku.getStock() > 0)
+                .inStock(false) // 不缓存，由 fillInStock 实时查询
                 .build();
 
-        // 获取销售属性
         List<Map<String, Object>> attributes = getSkuSaleAttributes(sku.getId());
         vo.setSaleAttributes(attributes);
 
         return vo;
     }
 
-    /**
-     * 将SKU实体转换为商家端VO
-     */
     private SkuStoreVo convertToStoreVo(Sku sku) {
         SkuStoreVo vo = new SkuStoreVo();
-        // 父类字段
         vo.setId(sku.getId());
         vo.setSpuId(sku.getSpuId());
         vo.setPrice(sku.getPrice());
         vo.setMarketPrice(sku.getMarketPrice());
         vo.setImage(sku.getImage());
         vo.setWeight(sku.getWeight());
-        vo.setInStock(sku.getStock() != null && sku.getStock() > 0);
-        // 商家字段
-        vo.setCostPrice(sku.getCostPrice());
-        vo.setStock(sku.getStock());
-        vo.setWarnStock(sku.getWarnStock());
-        vo.setStatus(sku.getStatus());
-        vo.setCreatedAt(sku.getCreatedAt());
-        vo.setUpdatedAt(sku.getUpdatedAt());
+        vo.setInStock(false);
+        // 商家字段不缓存（写为空）
+        vo.setCostPrice(null);
+        vo.setStock(null);
+        vo.setWarnStock(null);
+        vo.setStatus(null);
+        vo.setCreatedAt(null);
+        vo.setUpdatedAt(null);
 
-        // 获取销售属性
         List<Map<String, Object>> attributes = getSkuSaleAttributes(sku.getId());
         vo.setSaleAttributes(attributes);
 
         return vo;
     }
 
-    /**
-     * 将SKU实体转换为管理员端VO
-     */
     private AdminVo convertToAdminVo(Sku sku) {
         AdminVo vo = new AdminVo();
-        // 父类字段（含商家字段）
         vo.setId(sku.getId());
         vo.setSpuId(sku.getSpuId());
         vo.setPrice(sku.getPrice());
         vo.setMarketPrice(sku.getMarketPrice());
         vo.setImage(sku.getImage());
         vo.setWeight(sku.getWeight());
-        vo.setInStock(sku.getStock() != null && sku.getStock() > 0);
-        vo.setCostPrice(sku.getCostPrice());
-        vo.setStock(sku.getStock());
-        vo.setWarnStock(sku.getWarnStock());
-        vo.setStatus(sku.getStatus());
-        vo.setCreatedAt(sku.getCreatedAt());
-        vo.setUpdatedAt(sku.getUpdatedAt());
-        // 管理员字段
-        vo.setFrozenStock(sku.getFrozenStock());
-        vo.setIsDeleted(sku.getIsDeleted());
+        vo.setInStock(false);
+        vo.setCostPrice(null);
+        vo.setStock(null);
+        vo.setWarnStock(null);
+        vo.setStatus(null);
+        vo.setCreatedAt(null);
+        vo.setUpdatedAt(null);
+        vo.setFrozenStock(null);
+        vo.setIsDeleted(null);
 
-        // 获取销售属性
         List<Map<String, Object>> attributes = getSkuSaleAttributes(sku.getId());
         vo.setSaleAttributes(attributes);
 
         return vo;
     }
 
-    /**
-     * 获取SKU的销售属性列表
-     */
     private List<Map<String, Object>> getSkuSaleAttributes(Long skuId) {
-        // 1. 获取SKU关联的属性值关系
         List<SkuSaleAttrValue> skuAttrValues = skuSaleAttrValueMapper.getBySkuId(skuId);
         if (skuAttrValues == null || skuAttrValues.isEmpty()) {
             return new ArrayList<>();
         }
 
-        // 2. 批量获取所有属性值ID并查询属性值信息
         List<Long> attrValueIds = skuAttrValues.stream()
                 .map(SkuSaleAttrValue::getAttrValueId)
                 .distinct()
@@ -546,7 +564,6 @@ public class SkuServiceImpl implements SkuService {
         Map<Long, AttributeValue> attrValueMap = attrValues.stream()
                 .collect(Collectors.toMap(AttributeValue::getId, v -> v));
 
-        // 3. 批量获取所有属性ID并查询属性信息
         List<Long> attrIds = attrValues.stream()
                 .map(AttributeValue::getAttrId)
                 .distinct()
@@ -556,7 +573,6 @@ public class SkuServiceImpl implements SkuService {
         Map<Long, Attribute> attrMap = attributes.stream()
                 .collect(Collectors.toMap(Attribute::getId, a -> a));
 
-        // 4. 构建结果
         return skuAttrValues.stream()
                 .map(skuAttrValue -> {
                     AttributeValue attrValue = attrValueMap.get(skuAttrValue.getAttrValueId());
@@ -577,9 +593,6 @@ public class SkuServiceImpl implements SkuService {
                 .collect(Collectors.toList());
     }
 
-    /**
-     * 构建查询条件
-     */
     private LambdaQueryWrapper<Sku> buildWrapper(Long spuId, Integer status) {
         LambdaQueryWrapper<Sku> wrapper = new LambdaQueryWrapper<>();
         if (spuId != null) {
