@@ -126,6 +126,132 @@
       </div>
     </div>
 
+    <!-- ====== 店铺管理（含注销） ====== -->
+    <div class="store-section">
+      <div class="store-section-header">
+        <h2>店铺管理</h2>
+        <span class="store-section-desc">查看店铺信息和管理店铺状态</span>
+      </div>
+
+      <div class="store-info-card" v-if="storeInfo">
+        <div class="store-info-grid">
+          <div class="store-info-field">
+            <span class="store-info-label">店铺 ID</span>
+            <span class="store-info-value">#{{ storeInfo.id }}</span>
+          </div>
+          <div class="store-info-field">
+            <span class="store-info-label">店铺名称</span>
+            <span class="store-info-value">{{ storeInfo.name }}</span>
+          </div>
+          <div class="store-info-field">
+            <span class="store-info-label">店铺状态</span>
+            <span class="store-info-value">
+              <span class="store-status-badge" :class="storeInfo.status === 1 ? 'active' : 'inactive'">
+                <span class="store-status-dot" />
+                {{ storeInfo.status === 1 ? '营业中' : '已关闭' }}
+              </span>
+            </span>
+          </div>
+          <div class="store-info-field">
+            <span class="store-info-label">创建时间</span>
+            <span class="store-info-value">{{ storeInfo.createdAt || '—' }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 危险区域：注销店铺 -->
+      <div class="danger-zone">
+        <div class="danger-zone-header">
+          <svg class="danger-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          <div class="danger-zone-text">
+            <strong>危险操作</strong>
+            <p>注销店铺后，店铺将无法正常营业，所有商品将下架。如有进行中的订单，将无法注销。</p>
+          </div>
+        </div>
+        <el-button
+          type="danger"
+          :loading="deactivating"
+          :disabled="!storeInfo || storeInfo.status === 0"
+          @click="openDeactivateDialog"
+          class="deactivate-btn"
+        >
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:4px">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>
+          </svg>
+          注销店铺
+        </el-button>
+      </div>
+    </div>
+
+    <!-- 注销确认对话框 -->
+    <el-dialog
+      v-model="deactivateDialogVisible"
+      title="注销店铺确认"
+      width="480px"
+      destroy-on-close
+      class="deactivate-dialog"
+    >
+      <div class="deactivate-dialog-body">
+        <div class="deactivate-warning-banner">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#ef4444" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          <div>
+            <strong>此操作不可撤销</strong>
+            <p>注销后店铺将无法正常使用，所有商品会下架处理。</p>
+          </div>
+        </div>
+
+        <div class="deactivate-info">
+          <p>即将注销：<strong>{{ storeInfo?.name || '—' }}</strong></p>
+        </div>
+
+        <div class="deactivate-checklist">
+          <p class="checklist-title">注销前请确认：</p>
+          <label class="checklist-item">
+            <span class="checklist-marker">①</span>
+            <span>店铺下所有订单已完结（已完成/已取消/已退款）</span>
+          </label>
+          <label class="checklist-item">
+            <span class="checklist-marker">②</span>
+            <span>已处理完所有售后和退款</span>
+          </label>
+          <label class="checklist-item">
+            <span class="checklist-marker">③</span>
+            <span>确认不再需要使用该店铺</span>
+          </label>
+        </div>
+
+        <div class="deactivate-confirm-input">
+          <p class="confirm-label">请输入 <strong style="color:#ef4444">确认注销</strong> 以确认操作：</p>
+          <el-input
+            v-model="deactivateConfirmText"
+            placeholder="请输入「确认注销」"
+            maxlength="10"
+            @input="handleConfirmInput"
+          />
+        </div>
+      </div>
+      <template #footer>
+        <el-button @click="deactivateDialogVisible = false">取消</el-button>
+        <el-button
+          type="danger"
+          :loading="deactivating"
+          :disabled="deactivateConfirmText !== '确认注销'"
+          @click="handleDeactivate"
+        >
+          确认注销店铺
+        </el-button>
+      </template>
+    </el-dialog>
+
     <div class="ranking-table" v-if="productRanking.length > 0">
       <h3>商品销售排行明细</h3>
       <el-table :data="productRanking" border stripe>
@@ -158,7 +284,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import { useUserStore } from '@/stores/user'
 import * as echarts from 'echarts'
 import {
@@ -169,6 +295,7 @@ import {
   type SalesTrend,
   type ProductRankItem
 } from '@/api/dashboard'
+import { getMyStore, deactivateStore, type Store } from '@/api/shop'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -189,6 +316,61 @@ const kpi = reactive<KpiOverview>({
 const salesTrend = ref<SalesTrend>({ dates: [], values: [] })
 const productRanking = ref<ProductRankItem[]>([])
 const rankingPeriod = ref('last7Days')
+
+// ====== 店铺注销 ======
+const storeInfo = ref<Store | null>(null)
+const deactivating = ref(false)
+const deactivateDialogVisible = ref(false)
+const deactivateConfirmText = ref('')
+
+const loadStoreInfo = async () => {
+  try {
+    storeInfo.value = await getMyStore()
+  } catch {
+    // 可能没有店铺
+  }
+}
+
+const openDeactivateDialog = () => {
+  deactivateConfirmText.value = ''
+  deactivateDialogVisible.value = true
+}
+
+const handleConfirmInput = () => {
+  // 仅用于驱动响应式更新
+}
+
+const handleDeactivate = async () => {
+  if (deactivateConfirmText.value !== '确认注销') {
+    ElMessage.warning('请输入"确认注销"以确认操作')
+    return
+  }
+  if (!storeInfo.value?.id) {
+    ElMessage.error('店铺信息异常')
+    return
+  }
+  deactivating.value = true
+  try {
+    await deactivateStore(storeInfo.value.id)
+    ElMessage.success('店铺已注销')
+    deactivateDialogVisible.value = false
+    // 更新本地状态
+    storeInfo.value.status = 0
+
+    // 清除本地角色缓存 + 强制从后端拉取最新用户信息
+    localStorage.removeItem('user_roles')
+    await userStore.fetchUserInfo(true)
+
+    // 延迟跳转，让用户看到成功提示
+    setTimeout(() => {
+      router.push('/')
+    }, 1500)
+  } catch (err: any) {
+    // 错误已由拦截器处理
+  } finally {
+    deactivating.value = false
+  }
+}
 
 const trendChartRef = ref<HTMLDivElement | null>(null)
 const roseChartRef = ref<HTMLDivElement | null>(null)
@@ -223,7 +405,7 @@ const loadKpi = async () => {
     kpi.thisMonthProfit = data.thisMonthProfit || 0
     kpi.thisYearProfit = data.thisYearProfit || 0
   } catch {
-    ElMessage.error('获取KPI数据失败')
+    // 拦截器已处理后端错误提示
   }
 }
 
@@ -232,7 +414,7 @@ const loadSalesTrend = async () => {
     const data = await getSalesTrend()
     salesTrend.value = data
   } catch {
-    ElMessage.error('获取销售趋势失败')
+    // 拦截器已处理后端错误提示
   }
 }
 
@@ -245,7 +427,7 @@ const loadProductRanking = async () => {
     renderRoseChart()
     renderBarChart()
   } catch {
-    ElMessage.error('获取商品排行失败')
+    // 拦截器已处理后端错误提示
   }
 }
 
@@ -318,11 +500,13 @@ const renderRoseChart = () => {
   if (!roseChart) return
   const data = productRanking.value
   if (!data || data.length === 0) {
+    roseChart.clear()
     roseChart.setOption({ title: { text: '暂无数据', left: 'center', top: 'center', textStyle: { color: '#999', fontSize: 14 } } })
     return
   }
 
   roseChart.setOption({
+    title: { show: false, text: '' },
     tooltip: {
       trigger: 'item',
       formatter: (params: any) => {
@@ -363,6 +547,7 @@ const renderBarChart = () => {
   if (!barChart) return
   const data = productRanking.value
   if (!data || data.length === 0) {
+    barChart.clear()
     barChart.setOption({ title: { text: '暂无数据', left: 'center', top: 'center', textStyle: { color: '#999', fontSize: 14 } } })
     return
   }
@@ -371,6 +556,7 @@ const renderBarChart = () => {
   const amounts = data.map(item => item.salesAmount)
 
   barChart.setOption({
+    title: { show: false, text: '' },
     tooltip: {
       trigger: 'axis',
       axisPointer: { type: 'shadow' },
@@ -454,6 +640,7 @@ const cleanup = () => {
 onMounted(() => {
   window.addEventListener('resize', handleResize)
   loadAllData()
+  loadStoreInfo()
 })
 
 onUnmounted(() => {
@@ -724,6 +911,259 @@ onUnmounted(() => {
   background: linear-gradient(90deg, #667eea, #764ba2);
   border-radius: 3px;
   transition: width 0.6s ease;
+}
+
+/* ===========================
+   店铺管理（含注销）
+   =========================== */
+.store-section {
+  margin: 28px 0 24px;
+}
+
+.store-section-header {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.store-section-header h2 {
+  margin: 0;
+  font-size: 18px;
+  color: #1a1a2e;
+  font-weight: 600;
+}
+
+.store-section-desc {
+  font-size: 12px;
+  color: #bbb;
+}
+
+.store-info-card {
+  background: #fff;
+  border-radius: 14px;
+  padding: 22px 24px;
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.04);
+  margin-bottom: 20px;
+}
+
+.store-info-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.store-info-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.store-info-label {
+  font-size: 12px;
+  color: #94a3b8;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+.store-info-value {
+  font-size: 15px;
+  color: #1e293b;
+  font-weight: 500;
+}
+
+.store-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.store-status-badge.active {
+  background: #ecfdf5;
+  color: #10b981;
+}
+
+.store-status-badge.inactive {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.store-status-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+}
+
+.store-status-badge.active .store-status-dot {
+  background: #10b981;
+}
+
+.store-status-badge.inactive .store-status-dot {
+  background: #94a3b8;
+}
+
+/* Danger Zone */
+.danger-zone {
+  background: #fff;
+  border-radius: 14px;
+  padding: 22px 24px;
+  box-shadow: 0 2px 14px rgba(0, 0, 0, 0.04);
+  border: 1px solid #fecaca;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.danger-zone-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 1;
+}
+
+.danger-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.danger-zone-text strong {
+  display: block;
+  font-size: 15px;
+  color: #dc2626;
+  margin-bottom: 4px;
+}
+
+.danger-zone-text p {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.deactivate-btn {
+  flex-shrink: 0;
+  border-radius: 8px;
+  padding: 9px 20px;
+  font-weight: 500;
+}
+
+/* 注销对话框 */
+.deactivate-dialog :deep(.el-dialog__header) {
+  padding: 20px 24px 16px;
+  margin: 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.deactivate-dialog :deep(.el-dialog__title) {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.deactivate-dialog :deep(.el-dialog__body) {
+  padding: 24px;
+}
+
+.deactivate-dialog-body {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.deactivate-warning-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 16px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+}
+
+.deactivate-warning-banner strong {
+  display: block;
+  font-size: 14px;
+  color: #dc2626;
+  margin-bottom: 2px;
+}
+
+.deactivate-warning-banner p {
+  margin: 0;
+  font-size: 13px;
+  color: #991b1b;
+  line-height: 1.5;
+}
+
+.deactivate-warning-banner svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.deactivate-info {
+  padding: 10px 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #475569;
+}
+
+.deactivate-info p {
+  margin: 0;
+}
+
+.deactivate-info strong {
+  color: #1e293b;
+}
+
+.deactivate-checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  border-radius: 10px;
+}
+
+.checklist-title {
+  margin: 0 0 2px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #92400e;
+}
+
+.checklist-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 13px;
+  color: #78350f;
+  line-height: 1.5;
+  cursor: default;
+}
+
+.checklist-marker {
+  flex-shrink: 0;
+  font-style: normal;
+}
+
+.deactivate-confirm-input {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.confirm-label {
+  margin: 0;
+  font-size: 13px;
+  color: #475569;
 }
 
 @media (max-width: 1024px) {

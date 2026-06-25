@@ -187,11 +187,11 @@ const handleLogin = async () => {
       permissions: result.permissions
     })
 
-    // 验证是否为管理员角色
+    // 验证是否为超级管理员角色
     if (!userStore.isAdmin) {
-      // 非管理员登录，清除token并提示
+      // 非超级管理员登录，清除token并提示
       userStore.clearToken()
-      ElMessage.error('该账号没有管理权限，请使用管理员账号登录')
+      ElMessage.error('该账号没有超级管理员权限，请使用超级管理员账号登录')
       loading.value = false
       return
     }

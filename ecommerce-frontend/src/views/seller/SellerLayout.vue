@@ -3,7 +3,7 @@
     <NavBar />
     <div class="seller-body">
       <aside class="seller-sidebar">
-        <div class="sidebar-header">卖家中心</div>
+        <div class="sidebar-header">商家工作台</div>
         <el-menu
           :default-active="activeMenu"
           router
@@ -14,7 +14,7 @@
         >
           <el-menu-item index="/seller">
             <span class="menu-icon">📊</span>
-            <span>卖家中心</span>
+            <span>工作台</span>
           </el-menu-item>
           <el-menu-item index="/seller/products">
             <span class="menu-icon">📱</span>
@@ -65,9 +65,15 @@ const activeMenu = computed(() => {
 
 .seller-sidebar {
   width: 220px;
-  min-height: calc(100vh - 60px);
+  height: calc(100vh - 60px);
   background: #1e1e2d;
   flex-shrink: 0;
+  position: fixed;
+  left: 0;
+  top: 60px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
 }
 
 .sidebar-header {
@@ -108,6 +114,7 @@ const activeMenu = computed(() => {
 .seller-content {
   flex: 1;
   padding: 20px;
+  margin-left: 220px;
   overflow-x: hidden;
 }
 </style>

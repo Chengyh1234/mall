@@ -99,11 +99,15 @@ const handleLogout = async () => {
 
 .admin-sidebar {
   width: 220px;
-  min-height: 100vh;
+  height: 100vh;
   background: #1e1e2d;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 10;
 }
 
 .sidebar-header {
@@ -165,6 +169,7 @@ const handleLogout = async () => {
 .admin-content {
   flex: 1;
   padding: 20px;
+  margin-left: 220px;
   overflow-x: hidden;
 }
 </style>

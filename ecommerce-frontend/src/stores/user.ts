@@ -67,9 +67,10 @@ export const useUserStore = defineStore('user', () => {
   const setUserInfo = (info: UserInfo) => {
     userInfo.value = info
     lastFetchTime.value = Date.now()
-    // 持久化角色信息，刷新页面后恢复
+    // 只持久化角色 code，不存完整 Role 对象
     if (info.roles && info.roles.length > 0) {
-      localStorage.setItem(ROLES_STORAGE_KEY, JSON.stringify(info.roles))
+      const codes = info.roles.map(r => r.code)
+      localStorage.setItem(ROLES_STORAGE_KEY, JSON.stringify(codes))
     } else {
       localStorage.removeItem(ROLES_STORAGE_KEY)
     }
@@ -100,13 +101,19 @@ export const useUserStore = defineStore('user', () => {
       const data = await getUserInfo()
       const userData = data as UserInfo
       
-      // 尝试从 localStorage 恢复角色信息（登录时持久化的）
+      // 尝试从 localStorage 恢复角色 code（登录时持久化的）
       const savedRoles = localStorage.getItem(ROLES_STORAGE_KEY)
       if (savedRoles) {
         try {
           const parsed = JSON.parse(savedRoles)
           if (Array.isArray(parsed) && parsed.length > 0) {
-            userData.roles = parsed
+            // 支持两种格式：新版只存 code 字符串数组，旧版存完整 Role 对象数组
+            userData.roles = parsed.map((r: any) => {
+              if (typeof r === 'string') {
+                return { id: null, name: r, code: r, description: null, status: null, createdAt: null, updatedAt: null }
+              }
+              return r // 向后兼容旧格式
+            })
           }
         } catch {
           // JSON 解析失败，忽略
@@ -115,15 +122,7 @@ export const useUserStore = defineStore('user', () => {
       
       // 如果仍然没有角色信息，默认设置为普通用户角色
       if (!userData.roles || userData.roles.length === 0) {
-        userData.roles = [{
-          id: null,
-          name: '普通用户',
-          code: UserRole.USER,
-          description: null,
-          status: null,
-          createdAt: null,
-          updatedAt: null
-        }]
+        userData.roles = [{ id: null, name: UserRole.USER, code: UserRole.USER, description: null, status: null, createdAt: null, updatedAt: null }]
       }
       
       userInfo.value = userData
@@ -166,10 +165,9 @@ export const useUserStore = defineStore('user', () => {
     return roles.some(role => hasRole(role))
   }
 
-  // 是否是管理员（超级用户或管理员或运营）
+  // 是否是超级管理员（仅 SUPER_ADMIN）
   const isAdmin = computed(() => {
-    return hasRole(UserRole.SUPER_ADMIN) || hasRole(UserRole.ADMIN) || hasRole(UserRole.OPERATOR) ||
-           hasRole(UserRole.ROLE_ADMIN) || hasRole(UserRole.ROLE_OPERATOR)
+    return hasRole(UserRole.SUPER_ADMIN)
   })
 
   // 是否是卖家（增加用户名判断作为备选）

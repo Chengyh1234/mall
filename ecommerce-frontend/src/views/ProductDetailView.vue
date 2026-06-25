@@ -42,9 +42,9 @@
           <div class="product-info">
             <h1 class="product-title">{{ spu?.name }}</h1>
 
-            <div v-if="spu?.shopName" class="seller-info">
+            <div v-if="spu?.sellerUsername" class="seller-info">
               <el-icon><Shop /></el-icon>
-              <span class="shop-name">{{ spu.shopName }}</span>
+              <span class="shop-name">{{ spu.sellerUsername }}</span>
             </div>
 
             <div class="price-section">
@@ -56,14 +56,6 @@
             <div class="info-item">
               <span class="label">销量</span>
               <span class="value">{{ currentSku?.sales || spu?.sales || 0 }}件</span>
-            </div>
-
-            <div class="info-item">
-              <span class="label">库存</span>
-              <span :class="['value', { 'low-stock': currentSku?.stock && currentSku?.stock < 10 }]">
-                {{ currentSku?.stock || 0 }}件
-                <span v-if="currentSku?.stock && currentSku?.stock < 10" class="stock-warning">库存紧张</span>
-              </span>
             </div>
 
             <div class="spec-section">
@@ -90,7 +82,7 @@
               <el-input-number
                 v-model="quantity"
                 :min="1"
-                :max="currentSku?.stock || 999"
+                :max="currentSku?.inStock ? 999 : 1"
                 :step="1"
                 class="quantity-input"
               />
@@ -124,7 +116,8 @@ import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Shop } from '@element-plus/icons-vue'
 import NavBar from '@/components/NavBar.vue'
-import { getProductDetail, getSkuListWithAttributes, getSpuBasicAttributes, type SpuDetail, type Sku, type SpuSalesAttribute, type SpuBasicAttribute } from '@/api/product'
+import { getProductDetail, getSkuListWithAttributes, getSpuBasicAttributes, type Sku, type SpuSalesAttribute, type SpuBasicAttribute } from '@/api/product'
+import type { SpuDetailVO } from '@/api/spu'
 import { addToCart as addToCartApi } from '@/api/cart'
 import { getSpuImageUrl } from '@/utils/resource'
 
@@ -132,7 +125,7 @@ const router = useRouter()
 const route = useRoute()
 
 const loading = ref(false)
-const spu = ref<SpuDetail | null>(null)
+const spu = ref<SpuDetailVO | null>(null)
 const skus = ref<Sku[]>([])
 const salesAttributes = ref<SpuSalesAttribute[]>([])
 const basicAttributes = ref<SpuBasicAttribute[]>([])
@@ -184,6 +177,10 @@ const currentSku = computed(() => {
 
 const isCurrentSkuUnavailable = computed(() => {
   if (!currentSku.value) return true
+  // inStock 未提供时回退到 status/stock 判断
+  if (currentSku.value.inStock !== undefined) {
+    return !currentSku.value.inStock
+  }
   return currentSku.value.status === 0 || (currentSku.value.stock != null && currentSku.value.stock <= 0)
 })
 
@@ -215,7 +212,11 @@ const isSpecAvailable = (attrId: number, valueId: number) => {
   const selectedKeys = Object.keys(tempSelected)
 
   for (const sku of skus.value) {
-    if (sku.stock && sku.stock > 0 && sku.status !== 0) {
+    // 优先用 inStock；回退到 stock/status 判断
+    const isAvailable = sku.inStock !== undefined
+      ? sku.inStock
+      : (sku.stock == null || sku.stock > 0) && sku.status !== 0
+    if (isAvailable) {
       let match = true
       const saleAttrs = sku.saleAttributes || []
       for (const key of selectedKeys) {
@@ -248,7 +249,10 @@ const initSelectedSpecs = () => {
     return
   }
 
-  const firstAvailableSku = skus.value.find(sku => sku.status !== 0 && sku.stock > 0) || skus.value[0]
+  const firstAvailableSku = skus.value.find(sku => {
+    if (sku.inStock !== undefined) return sku.inStock && sku.status !== 0
+    return sku.status !== 0 && sku.stock != null && sku.stock > 0
+  }) || skus.value[0]
   if (firstAvailableSku && firstAvailableSku.saleAttributes) {
     for (const attr of firstAvailableSku.saleAttributes) {
       selectedSpecs.value[attr.attrId] = attr.valueId
@@ -272,7 +276,7 @@ const loadProductDetail = async () => {
       getSkuListWithAttributes(Number(productId)),
       getSpuBasicAttributes(Number(productId))
     ])
-    spu.value = spuData.spu
+    spu.value = spuData
     skus.value = skuData
 
     if (basicAttrData && Array.isArray(basicAttrData)) {
@@ -312,7 +316,7 @@ const loadProductDetail = async () => {
     currentImage.value = firstImage !== undefined ? firstImage : ''
     initSelectedSpecs()
   } catch {
-    ElMessage.error('获取商品详情失败')
+    // 拦截器已处理后端错误提示
   } finally {
     loading.value = false
   }
@@ -352,7 +356,13 @@ const addToCart = async () => {
     return
   }
 
-  if (quantity.value > (currentSku.value.stock || 0)) {
+  // 优先用 inStock 判断库存；inStock 未提供时回退到 stock 判断
+  if (currentSku.value.inStock !== undefined) {
+    if (!currentSku.value.inStock) {
+      ElMessage.error('商品已售罄')
+      return
+    }
+  } else if (quantity.value > (currentSku.value.stock || 0)) {
     ElMessage.error('库存不足')
     return
   }
@@ -367,9 +377,8 @@ const addToCart = async () => {
       skuSpecs: specsStr
     })
     ElMessage.success('已加入购物车')
-    router.push('/cart')
   } catch {
-    ElMessage.error('添加购物车失败')
+    // 拦截器已处理后端错误提示
   }
 }
 
@@ -379,19 +388,31 @@ const buyNow = () => {
     return
   }
 
-  if (quantity.value > (currentSku.value.stock || 0)) {
+  // 优先用 inStock 判断库存；inStock 未提供时回退到 stock 判断
+  if (currentSku.value.inStock !== undefined) {
+    if (!currentSku.value.inStock) {
+      ElMessage.error('商品已售罄')
+      return
+    }
+  } else if (quantity.value > (currentSku.value.stock || 0)) {
     ElMessage.error('库存不足')
     return
   }
 
-  router.push({
-    name: 'order-confirm',
-    query: {
-      productId: spu.value.id,
-      skuId: currentSku.value.id,
-      quantity: quantity.value
-    }
-  })
+  // 将商品信息存入 sessionStorage，供订单确认页使用
+  const specsStr = buildSkuSpecsStr()
+  const buyNowItem = {
+    cartId: 0,
+    spuId: spu.value.id,
+    skuId: currentSku.value.id,
+    name: spu.value.name,
+    image: currentSku.value.image || spu.value?.mainImage,
+    specs: specsStr,
+    price: currentSku.value.price,
+    quantity: quantity.value
+  }
+  sessionStorage.setItem('buyNowItems', JSON.stringify([buyNowItem]))
+  router.push('/order/confirm')
 }
 
 onMounted(() => {

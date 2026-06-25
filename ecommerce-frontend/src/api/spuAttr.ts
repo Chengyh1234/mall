@@ -92,10 +92,11 @@ export interface SpuAvailableBasicAttr {
   bound: boolean
   boundId?: number
   values: AttrValueInfo[]
-  currentValue?: {
-    valueId: number
+  currentValues?: {
+    valueId?: number
     value: string
-  }
+    imageUrl?: string
+  }[]
 }
 
 export interface SpuAvailableSaleAttr {
@@ -105,9 +106,11 @@ export interface SpuAvailableSaleAttr {
   bound: boolean
   boundId?: number
   values: AttrValueInfo[]
-  currentValue?: {
-    valueIds: number[]
-  }
+  currentValues?: {
+    valueId?: number
+    value: string
+    imageUrl?: string
+  }[]
 }
 
 export interface AttrValueInfo {

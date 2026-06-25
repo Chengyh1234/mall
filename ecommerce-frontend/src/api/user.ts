@@ -17,6 +17,8 @@ export interface UserProfile {
 }
 
 export interface UpdateProfileRequest {
+  username?: string
+  realName?: string
   email?: string
   phone?: string
   password?: string
@@ -107,5 +109,61 @@ export function uploadAvatar(file: File): Promise<UploadAvatarResponse> {
     headers: {
       'Content-Type': 'multipart/form-data'
     }
+  })
+}
+
+// ===== 运营管理 - 用户管理 =====
+
+export interface ManageUserPageRequest {
+  page: number
+  pageSize: number
+  keyword?: string
+  role?: string
+  status?: number
+}
+
+export interface ManageUserItem {
+  id: number
+  username: string
+  realName: string
+  email: string
+  phone: string
+  avatar: string
+  status: number
+  roles: string[]
+  createdAt: string
+  lastLoginTime: string
+}
+
+export interface ManageUserPageResult {
+  records: ManageUserItem[]
+  total: number
+  page: number
+  pageSize: number
+  pages: number
+}
+
+/** 分页查询用户列表 */
+export function getManageUserPage(params: ManageUserPageRequest): Promise<ManageUserPageResult> {
+  return request({
+    url: '/user/manage/page',
+    method: 'get',
+    params
+  })
+}
+
+/** 启用用户 */
+export function enableUser(userId: number): Promise<void> {
+  return request({
+    url: `/user/manage/enable/${userId}`,
+    method: 'put'
+  })
+}
+
+/** 禁用用户 */
+export function disableUser(userId: number): Promise<void> {
+  return request({
+    url: `/user/manage/disable/${userId}`,
+    method: 'put'
   })
 }

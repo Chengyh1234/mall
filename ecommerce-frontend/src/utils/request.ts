@@ -2,6 +2,9 @@ import axios from 'axios'
 import type { InternalAxiosRequestConfig, AxiosResponse } from 'axios'
 import { ElMessage } from 'element-plus'
 import router from '@/router'
+import { useUserStore } from '@/stores/user'
+import { BusinessError } from './business-error'
+import { ErrorCode, ERROR_CATEGORY_MAP, ErrorCategory, ERROR_DEFAULT_MSG } from './error-codes'
 
 /**
  * API统一响应格式
@@ -29,7 +32,7 @@ request.interceptors.request.use(
     
     // 如果是 FormData 类型，不设置 Content-Type，让浏览器自动处理
     if (!(config.data instanceof FormData)) {
-      if (config.headers) {
+      if (config.headers && !config.headers['Content-Type']) {
         config.headers['Content-Type'] = 'application/json;charset=UTF-8'
       }
     }
@@ -41,58 +44,105 @@ request.interceptors.request.use(
   }
 )
 
-// 响应拦截器
+// ========== 响应拦截器（统一错误处理） ==========
+
 request.interceptors.response.use(
   (response: AxiosResponse) => {
-    // 处理统一响应格式 { code, msg, data }
     const res = response.data
 
-    // 如果不是标准响应格式，直接返回
+    // 非标准格式（无 code 字段），直接透传
     if (!res || typeof res.code === 'undefined') {
       return res
     }
 
-    // 处理401未登录
-    if (res.code === 401) {
-      localStorage.removeItem('token')
-      router.push('/login')
-      ElMessage.error(res.msg || '登录已过期，请重新登录')
-      return Promise.reject(new Error(res.msg || 'Error'))
+    // 成功（HTTP 200 + code 200）
+    if (res.code === 200) {
+      return res.data
     }
 
-    // 处理403权限不足
-    if (res.code === 403) {
-      ElMessage.error(res.msg || '权限不足')
-      return Promise.reject(new Error(res.msg || 'Error'))
+    // ────── 业务错误处理 ──────
+
+    const category = ERROR_CATEGORY_MAP[res.code] || ErrorCategory.NOTIFY
+    const defaultMsg = ERROR_DEFAULT_MSG[res.code] || '操作失败'
+    const errMsg = res.msg || res.message || defaultMsg
+
+    switch (category) {
+      case ErrorCategory.AUTH:
+        // 认证失效 → 清除 Pinia 与 localStorage 登录态，跳转登录页
+        useUserStore().clearToken()
+        router.push('/login')
+        ElMessage.error(errMsg)
+        break
+
+      case ErrorCategory.USER_ACTION:
+        // 用户可修正的错误（参数错误、业务规则等）→ 仅弹提示
+        ElMessage.warning(errMsg)
+        break
+
+      case ErrorCategory.SYSTEM:
+        // 系统异常 → 弹错误提示
+        ElMessage.error(errMsg)
+        // TODO: 可扩展错误上报
+        break
+
+      default:
+        ElMessage.info(errMsg)
     }
 
-    // 处理其他错误
-    if (res.code !== 200) {
-      ElMessage.warning(res.msg || res.message || '请求失败')
-      return Promise.reject(new Error(res.msg || res.message || 'Error'))
-    }
-
-    // 返回data字段
-    return res.data
+    return Promise.reject(new BusinessError(res.code, errMsg))
   },
   (error: any) => {
+    // ────── HTTP 层面错误（网络断开、HTTP 状态码错误等） ──────
+
     if (error.response) {
-      if (error.response.status === 401) {
-        localStorage.removeItem('token')
-        router.push('/login')
-        ElMessage.error('登录已过期，请重新登录')
-      } else if (error.response.status === 403) {
-        ElMessage.error('权限不足')
+      const httpStatus = error.response.status
+      const body = error.response.data // 可能为 ApiResponse 格式
+
+      if (httpStatus === 401) {
+        // 根据业务码区分：40101=未登录，40102=密码错误，40103=登录失效
+        const bizCode = body?.code
+        const userStore = useUserStore()
+
+        if (bizCode === ErrorCode.NOT_LOGGED_IN) {
+          // 未登录 → 清登录态，静默跳转登录页，不弹提示
+          userStore.clearToken()
+          router.push('/login')
+        } else if (bizCode === ErrorCode.AUTH_FAILED) {
+          // 用户名或密码错误 → 清登录态，跳转登录页
+          userStore.clearToken()
+          router.push('/login')
+          ElMessage.warning(body?.msg || body?.message || ERROR_DEFAULT_MSG[ErrorCode.AUTH_FAILED])
+        } else if (bizCode === ErrorCode.LOGIN_EXPIRED) {
+          // 登录已失效 → 清登录态，跳转登录页
+          userStore.clearToken()
+          router.push('/login')
+          ElMessage.error(body?.msg || body?.message || ERROR_DEFAULT_MSG[ErrorCode.LOGIN_EXPIRED])
+        } else {
+          // 未知业务码的 401 → 清登录态，静默跳转
+          userStore.clearToken()
+          router.push('/login')
+        }
+      } else if (httpStatus === 403) {
+        // 权限不足 → 跳转 403 页面
+        ElMessage.warning(body?.msg || body?.message || ERROR_DEFAULT_MSG[ErrorCode.FORBIDDEN])
+        router.push('/forbidden')
+      } else if (httpStatus === 404) {
+        // 资源不存在 → 跳转 404 页面，展示后端错误信息
+        const errMsg = body?.msg || body?.message || ERROR_DEFAULT_MSG[ErrorCode.NOT_FOUND]
+        router.push({ name: 'not-found', query: { message: errMsg } })
+      } else if (httpStatus >= 500) {
+        ElMessage.error(body?.msg || body?.message || ERROR_DEFAULT_MSG[ErrorCode.SYSTEM_ERROR])
       } else {
-        // 处理其他HTTP错误状态码
-        const errorMsg = error.response.data?.msg || error.response.data?.message || '操作失败'
-        ElMessage.warning(errorMsg)
+        const errMsg = body?.msg || body?.message || `请求失败 (${httpStatus})`
+        ElMessage.warning(errMsg)
       }
     } else if (error.request) {
+      // 请求发出但无响应（网络断开/超时）
       ElMessage.error('网络错误，请检查网络连接')
     } else {
       ElMessage.warning(error.message || '操作失败')
     }
+
     return Promise.reject(error)
   }
 )

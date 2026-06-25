@@ -6,6 +6,7 @@ const Login = () => import('@/views/LoginView.vue')
 const Home = () => import('@/views/HomeView.vue')
 const ProductList = () => import('@/views/ProductListView.vue')
 const ProductDetail = () => import('@/views/ProductDetailView.vue')
+const ShopDetail = () => import('@/views/ShopDetailView.vue')
 const Cart = () => import('@/views/CartView.vue')
 const Profile = () => import('@/views/ProfileView.vue')
 const OrderList = () => import('@/views/OrderListView.vue')
@@ -18,6 +19,15 @@ const SellerHome = () => import('@/views/seller/SellerHome.vue')
 const SellerProducts = () => import('@/views/seller/SellerProducts.vue')
 const SellerOrders = () => import('@/views/seller/SellerOrders.vue')
 const SellerProfile = () => import('@/views/seller/SellerProfile.vue')
+
+// 开店申请
+const ShopApply = () => import('@/views/ShopApplyView.vue')
+
+// 403 页面
+const Forbidden = () => import('@/views/ForbiddenView.vue')
+
+// 404 页面
+const NotFound = () => import('@/views/NotFoundView.vue')
 
 // 管理员页面
 const AdminLogin = () => import('@/views/admin/AdminLoginView.vue')
@@ -73,6 +83,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: false }
   },
   {
+    path: '/shop/:id',
+    name: 'shop-detail',
+    component: ShopDetail,
+    meta: { requiresAuth: false }
+  },
+  {
     path: '/cart',
     name: 'cart',
     component: Cart,
@@ -85,8 +101,8 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true, roles: [UserRole.USER] },
     beforeEnter: (to, from, next) => {
       const userStore = useUserStore()
-      if (userStore.isLoggedIn && !userStore.hasRole(UserRole.USER)) {
-        next('/login')
+      if (userStore.isLoggedIn && (!userStore.hasRole(UserRole.USER) || userStore.isAdmin)) {
+        next('/forbidden')
       } else {
         next()
       }
@@ -105,9 +121,27 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: false }
   },
   {
+    path: '/forbidden',
+    name: 'forbidden',
+    component: Forbidden,
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/not-found',
+    name: 'not-found',
+    component: NotFound,
+    meta: { requiresAuth: false }
+  },
+  {
     path: '/order/confirm',
     name: 'order-confirm',
     component: OrderConfirm,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/shop/apply',
+    name: 'shop-apply',
+    component: ShopApply,
     meta: { requiresAuth: true }
   },
   // 卖家路由（嵌套布局）
@@ -150,55 +184,55 @@ const routes: RouteRecordRaw[] = [
         path: '',
         name: 'admin',
         component: AdminHome,
-        meta: { requiresAuth: true, roles: [UserRole.ADMIN, UserRole.OPERATOR] }
+        meta: { requiresAuth: true, roles: [UserRole.SUPER_ADMIN] }
       },
       {
         path: 'users',
         name: 'admin-users',
         component: AdminUsers,
-        meta: { requiresAuth: true, roles: [UserRole.ADMIN, UserRole.OPERATOR] }
+        meta: { requiresAuth: true, roles: [UserRole.SUPER_ADMIN] }
       },
       {
         path: 'products',
         name: 'admin-products',
         component: AdminProducts,
-        meta: { requiresAuth: true, roles: [UserRole.ADMIN, UserRole.OPERATOR] }
+        meta: { requiresAuth: true, roles: [UserRole.SUPER_ADMIN] }
       },
       {
         path: 'orders',
         name: 'admin-orders',
         component: AdminOrders,
-        meta: { requiresAuth: true, roles: [UserRole.ADMIN, UserRole.OPERATOR] }
+        meta: { requiresAuth: true, roles: [UserRole.SUPER_ADMIN] }
       },
       {
         path: 'shops',
         name: 'admin-shops',
         component: AdminShops,
-        meta: { requiresAuth: true, roles: [UserRole.ADMIN, UserRole.OPERATOR] }
+        meta: { requiresAuth: true, roles: [UserRole.SUPER_ADMIN] }
       },
       {
         path: 'banners',
         name: 'admin-banners',
         component: BannerManage,
-        meta: { requiresAuth: true, roles: [UserRole.ADMIN, UserRole.OPERATOR] }
+        meta: { requiresAuth: true, roles: [UserRole.SUPER_ADMIN] }
       },
       {
         path: 'attributes',
         name: 'admin-attributes',
         component: AdminAttributes,
-        meta: { requiresAuth: true, roles: [UserRole.ADMIN, UserRole.OPERATOR] }
+        meta: { requiresAuth: true, roles: [UserRole.SUPER_ADMIN] }
       },
       {
         path: 'category-attributes',
         name: 'admin-category-attributes',
         component: AdminCategoryAttributes,
-        meta: { requiresAuth: true, roles: [UserRole.ADMIN, UserRole.OPERATOR] }
+        meta: { requiresAuth: true, roles: [UserRole.SUPER_ADMIN] }
       },
       {
         path: 'categories',
         name: 'admin-categories',
         component: AdminCategories,
-        meta: { requiresAuth: true, roles: [UserRole.ADMIN, UserRole.OPERATOR] }
+        meta: { requiresAuth: true, roles: [UserRole.SUPER_ADMIN] }
       }
     ]
   },
@@ -214,6 +248,11 @@ const routes: RouteRecordRaw[] = [
     name: 'cs-orders',
     component: CsOrders,
     meta: { requiresAuth: true, roles: [UserRole.CUSTOMER_SERVICE] }
+  },
+  // 所有未匹配路径 → 404 页面
+  {
+    path: '/:pathMatch(.*)*',
+    redirect: '/not-found'
   }
 ]
 
@@ -235,21 +274,13 @@ router.beforeEach(async (to, from) => {
     return '/login'
   }
 
-  // 如果已登录访问登录页，根据角色重定向
-  if (to.name === 'login' && isLoggedIn) {
-    // 确保用户信息已加载以判断角色
-    if (!userStore.userInfo) {
-      try {
-        await userStore.fetchUserInfo()
-      } catch {
-        return '/home'
-      }
-    }
-    return userStore.isAdmin ? '/admin' : '/home'
+  // 如果已登录访问登录页，非管理员重定向到首页
+  if (to.name === 'login' && isLoggedIn && !userStore.isAdmin) {
+    return '/home'
   }
 
-  // 管理员访问首页时重定向到管理后台
-  if ((to.name === 'home' || to.path === '/') && isLoggedIn && userStore.isAdmin) {
+  // 管理员访问根路径时重定向到管理后台
+  if (to.path === '/' && isLoggedIn && userStore.isAdmin) {
     return '/admin'
   }
 
@@ -272,7 +303,11 @@ router.beforeEach(async (to, from) => {
     })
     
     if (!hasRequiredRole) {
-      return '/home'
+      // 卖家路由 → 跳转到免费开店
+      if (to.path.startsWith('/seller')) {
+        return '/shop/apply'
+      }
+      return '/forbidden'
     }
   }
 })

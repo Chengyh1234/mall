@@ -406,12 +406,11 @@ import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import { useUserStore } from '@/stores/user'
-import { getSpuPageBySeller, getSpuDetail, deleteSpu, addSpu, updateSpu, onShelfSpu, offShelfSpu } from '@/api/spu'
+import { getSpuPageBySeller, getSpuManageDetailForSeller, deleteSpu, addSpu, updateSpu, onShelfSpu, offShelfSpu } from '@/api/spu'
 import { getCategoryList, getCategoryTree } from '@/api/category'
 import { getBrandList } from '@/api/brand'
 import { deleteSku, deleteSkuBySpu, enableSku, disableSku } from '@/api/sku'
-import { getSkuListWithAttributes } from '@/api/product'
-import { getBasicAttributes, getSalesAttributes } from '@/api/seller'
+import { getStoreSkuListWithAttributes, getCategoryAttributes } from '@/api/product'
 import { batchBindSpuBasicAttr, batchBindSpuSaleAttr, getSpuAllAttrs, batchUpdateSpuBasicAttr, batchUpdateSpuSaleAttr } from '@/api/spuAttr'
 import { updateSkuCombined, batchUpdateSku, createSkuWithAttr, batchCreateSkuWithAttr } from '@/api/skuAttr'
 import { getSpuImageUrl } from '@/utils/resource'
@@ -669,7 +668,7 @@ const toggleSkuStatus = async (sku: SkuItem) => {
       ElMessage.success('已启用')
     }
   } catch {
-    ElMessage.error('操作失败')
+    // 拦截器已处理后端错误提示
   }
 }
 
@@ -704,7 +703,7 @@ const confirmSkuModify = async () => {
     skuModifyDialogVisible.value = false
     ElMessage.success('SKU修改成功')
   } catch {
-    ElMessage.error('SKU修改失败')
+    // 拦截器已处理后端错误提示
   } finally {
     submitting.value = false
   }
@@ -748,7 +747,7 @@ const batchModifySku = async () => {
     const result = await batchUpdateSku(updateList)
     ElMessage.success(`批量修改完成，成功 ${result.successCount}/${result.totalCount} 个`)
   } catch {
-    ElMessage.error('批量修改失败')
+    // 拦截器已处理后端错误提示
   } finally {
     submitting.value = false
   }
@@ -845,7 +844,7 @@ const batchAddAllSkuCombinations = async () => {
     }))
 
     if (newSkus.length > 0) {
-      const freshSkus = await getSkuListWithAttributes(spuId)
+      const freshSkus = await getStoreSkuListWithAttributes(spuId)
       newSkus.forEach(newSku => {
         const key = JSON.stringify([...newSku.attrValueIds].sort())
         const matched = freshSkus.find(sku => {
@@ -868,7 +867,7 @@ const batchAddAllSkuCombinations = async () => {
       ElMessage.success(`已添加 ${result.successCount} 个SKU组合`)
     }
   } catch {
-    ElMessage.error('添加SKU失败')
+    // 拦截器已处理后端错误提示
   } finally {
     submitting.value = false
   }
@@ -1042,7 +1041,7 @@ const confirmAddSingleSku = async () => {
     addSingleSkuDialogVisible.value = false
     ElMessage.success('SKU添加成功')
   } catch {
-    ElMessage.error('添加SKU失败')
+    // 拦截器已处理后端错误提示
   } finally {
     submitting.value = false
   }
@@ -1066,7 +1065,7 @@ const removeSkuRow = async (index: number) => {
     try {
       await deleteSku(sku.id)
     } catch {
-      ElMessage.error('删除失败')
+      // 拦截器已处理后端错误提示
       return
     }
   }
@@ -1103,7 +1102,7 @@ const handleDeleteAllSku = async () => {
     skuTableData.value = []
     ElMessage.success('全部删除成功')
   } catch {
-    ElMessage.error('删除失败')
+    // 拦截器已处理后端错误提示
   } finally {
     submitting.value = false
   }
@@ -1155,22 +1154,40 @@ const handleCategoryChange = async (categoryId: number) => {
   }
 
   try {
-    const [basic, sales] = await Promise.all([
-      getBasicAttributes(categoryId),
-      getSalesAttributes(categoryId)
-    ])
-    basicAttributes.value = basic || []
-    salesAttributes.value = sales || []
+    const attrs = await getCategoryAttributes(categoryId)
+    const allBasic = (attrs || []).filter((a: any) => a.type === 2 || a.attrType === 2)
+    const allSale = (attrs || []).filter((a: any) => a.type === 1 || a.attrType === 1)
+
+    basicAttributes.value = allBasic.map((attr: any) => ({
+      attrId: attr.attrId,
+      attrName: attr.attrName,
+      type: 2,
+      values: (attr.values || []).map((v: any) => ({
+        valueId: v.valueId,
+        value: v.value,
+        imageUrl: v.imageUrl
+      }))
+    }))
+    salesAttributes.value = allSale.map((attr: any) => ({
+      attrId: attr.attrId,
+      attrName: attr.attrName,
+      type: 1,
+      values: (attr.values || []).map((v: any) => ({
+        valueId: v.valueId,
+        value: v.value,
+        imageUrl: v.imageUrl
+      }))
+    }))
+
+    // 重置选中状态
     selectedBasicAttrs.value = {}
     customBasicAttrs.value = {}
     selectedSaleAttrValues.value = {}
-
-    basic.forEach(attr => {
+    basicAttributes.value.forEach(attr => {
       selectedBasicAttrs.value[attr.attrId] = 0
       customBasicAttrs.value[attr.attrId] = ''
     })
-
-    sales.forEach(attr => {
+    salesAttributes.value.forEach(attr => {
       selectedSaleAttrValues.value[attr.attrId] = []
     })
   } catch {
@@ -1269,47 +1286,108 @@ const nextStep = async () => {
     }
 
     currentStep.value = 1
-    await handleCategoryChange(productForm.categoryId!)
 
-    if (isEdit.value && productForm.id) {
-      try {
-        const spuAttrs = await getSpuAllAttrs(productForm.id)
-        if (spuAttrs) {
-          const bindIds: Record<number, number> = {}
-          spuAttrs.basicAttrs?.forEach((attr: any) => {
-            bindIds[attr.attrId] = attr.id
-            if (attr.manualValue) {
-              selectedBasicAttrs.value[attr.attrId] = -1
-              customBasicAttrs.value[attr.attrId] = attr.manualValue
-            } else if (attr.attrValueId) {
-              selectedBasicAttrs.value[attr.attrId] = attr.attrValueId
+    try {
+      const spuId = productForm.id!
+      const categoryId = productForm.categoryId
+
+      // 1. /attribute/category/{categoryId} 获取分类下全部属性（含所有可选值）
+      // 2. /spu/attr/all/{spuId} 获取 SPU 已选择的属性
+      const [catAttrs, spuAttrs] = await Promise.all([
+        getCategoryAttributes(categoryId),
+        getSpuAllAttrs(spuId)
+      ])
+
+      // ── 解析分类全部属性 → 按 type 拆分为基本属性 / 销售属性 ──
+      const allBasic = (catAttrs || []).filter((a: any) => a.type === 2 || a.attrType === 2)
+      const allSale = (catAttrs || []).filter((a: any) => a.type === 1 || a.attrType === 1)
+
+      basicAttributes.value = allBasic.map((attr: any) => ({
+        attrId: attr.attrId,
+        attrName: attr.attrName,
+        type: 2,
+        values: (attr.values || []).map((v: any) => ({
+          valueId: v.valueId,
+          value: v.value,
+          imageUrl: v.imageUrl
+        }))
+      }))
+      salesAttributes.value = allSale.map((attr: any) => ({
+        attrId: attr.attrId,
+        attrName: attr.attrName,
+        type: 1,
+        values: (attr.values || []).map((v: any) => ({
+          valueId: v.valueId,
+          value: v.value,
+          imageUrl: v.imageUrl
+        }))
+      }))
+
+      // ── 重置选择状态 ──
+      selectedBasicAttrs.value = {}
+      customBasicAttrs.value = {}
+      selectedSaleAttrValues.value = {}
+      basicAttrBindIds.value = {}
+      saleAttrBindIds.value = {}
+
+      // ── 从 /spu/attr/all/{spuId} 填充选中状态 ──
+      if (spuAttrs) {
+        const bindIds: Record<number, number> = {}
+        spuAttrs.basicAttrs?.forEach((attr: any) => {
+          bindIds[attr.attrId] = attr.id
+          if (attr.manualValue) {
+            selectedBasicAttrs.value[attr.attrId] = -1
+            customBasicAttrs.value[attr.attrId] = attr.manualValue
+          } else if (attr.attrValueId) {
+            selectedBasicAttrs.value[attr.attrId] = attr.attrValueId
+          }
+        })
+        basicAttrBindIds.value = bindIds
+
+        const saleBindIds: Record<number, number> = {}
+        spuAttrs.saleAttrs?.forEach((attr: any) => {
+          saleBindIds[attr.attrId] = attr.id
+          if (attr.selectedValues && attr.selectedValues.length > 0) {
+            selectedSaleAttrValues.value[attr.attrId] = attr.selectedValues.map((v: any) => v.valueId)
+          } else {
+            selectedSaleAttrValues.value[attr.attrId] = []
+          }
+        })
+        saleAttrBindIds.value = saleBindIds
+
+        // ── 构建销售属性列表（用于SKU组合生成）──
+        salesAttrsForSkuCombinations.value = (spuAttrs.saleAttrs || [])
+          .filter((attr: any) => attr.selectedValues && attr.selectedValues.length > 0)
+          .map((attr: any) => {
+            const fullSaleAttr = allSale.find((a: any) => a.attrId === attr.attrId)
+            return {
+              attrId: attr.attrId,
+              attrName: attr.attrName,
+              type: 2,
+              values: (fullSaleAttr?.values || [])
+                .filter((v: any) => attr.selectedValues.some((sv: any) => sv.valueId === v.valueId))
+                .map((v: any) => ({
+                  valueId: v.valueId,
+                  value: v.value,
+                  imageUrl: v.imageUrl,
+                  sort: 0
+                }))
             }
           })
-          basicAttrBindIds.value = bindIds
-
-          const saleBindIds: Record<number, number> = {}
-          spuAttrs.saleAttrs?.forEach((attr: any) => {
-            saleBindIds[attr.attrId] = attr.id
-            if (attr.selectedValues && attr.selectedValues.length > 0) {
-              selectedSaleAttrValues.value[attr.attrId] = attr.selectedValues.map((v: any) => v.valueId)
-            }
-          })
-          saleAttrBindIds.value = saleBindIds
-
-          salesAttrsForSkuCombinations.value = (spuAttrs.saleAttrs || []).map((attr: any) => ({
-            attrId: attr.attrId,
-            attrName: attr.attrName,
-            type: 2,
-            values: (attr.selectedValues || []).map((v: any) => ({
-              valueId: v.valueId,
-              value: v.value,
-              imageUrl: v.imageUrl || null,
-              sort: 0
-            }))
-          }))
-        }
-      } catch {
+      } else {
+        basicAttributes.value.forEach((attr: any) => {
+          if (selectedBasicAttrs.value[attr.attrId] === undefined) {
+            selectedBasicAttrs.value[attr.attrId] = 0
+            customBasicAttrs.value[attr.attrId] = ''
+          }
+        })
+        salesAttributes.value.forEach((attr: any) => {
+          if (selectedSaleAttrValues.value[attr.attrId] === undefined) {
+            selectedSaleAttrValues.value[attr.attrId] = []
+          }
+        })
       }
+    } catch {
     }
   }
 }
@@ -1464,8 +1542,7 @@ const saveBasicAttrs = async () => {
       ElMessage.warning('请选择基本属性')
     }
   } catch (error: any) {
-    const msg = error?.response?.data?.msg || error?.message || '保存基本属性失败'
-    ElMessage.error(msg)
+    // 拦截器已处理后端错误提示
   } finally {
     savingBasicAttrs.value = false
   }
@@ -1532,8 +1609,7 @@ const saveSaleAttrs = async () => {
       ElMessage.warning('请选择销售属性')
     }
   } catch (error: any) {
-    const msg = error?.response?.data?.msg || error?.message || '保存销售属性失败'
-    ElMessage.error(msg)
+    // 拦截器已处理后端错误提示
   } finally {
     savingSaleAttrs.value = false
   }
@@ -1557,7 +1633,7 @@ const loadSkuAndNextStep = async () => {
 
   loadingSkuStep.value = true
   try {
-    const skuList = await getSkuListWithAttributes(spuId)
+    const skuList = await getStoreSkuListWithAttributes(spuId)
 
     if (skuList && skuList.length > 0) {
       const attrMap = new Map<number, { attrId: number; attrName: string; values: Set<string> }>()
@@ -1638,8 +1714,7 @@ const loadSkuAndNextStep = async () => {
     currentStep.value = 2
     ElMessage.success('已加载SKU数据')
   } catch (error: any) {
-    const msg = error?.response?.data?.msg || error?.message || '加载SKU数据失败'
-    ElMessage.error(msg)
+    // 拦截器已处理后端错误提示
   } finally {
     loadingSkuStep.value = false
   }
@@ -1682,8 +1757,7 @@ const openAddModal = async () => {
 
 const viewProduct = async (row: SpuItem) => {
   try {
-    const response = await getSpuDetail(row.id) as any
-    const detail = response.data?.spu || response.spu || response
+    const detail = await getSpuManageDetailForSeller(row.id)
     const images = parseImages(detail.images)
     if (detail.mainImage) {
       images.unshift(detail.mainImage)
@@ -1701,8 +1775,7 @@ const editProduct = async (row: SpuItem) => {
   try {
     resetForm()
     
-    const response = await getSpuDetail(row.id) as any
-    const detail = response.data?.spu || response.spu || response
+    const detail = await getSpuManageDetailForSeller(row.id)
     
     isEdit.value = true
     productForm.id = detail.id
@@ -1741,13 +1814,43 @@ const editProduct = async (row: SpuItem) => {
       response: { data: img }
     }))
 
-    const [spuAttrs] = await Promise.all([
+    const categoryId = detail.categoryId
+    // /attribute/category/{categoryId} 获取分类下全部属性（含所有可选值）
+    // /spu/attr/all/{spuId} 获取 SPU 已选择的属性
+    const [catAttrs, spuAttrs] = await Promise.all([
+      getCategoryAttributes(categoryId),
       getSpuAllAttrs(detail.id)
     ])
 
+    // ── 按 type 拆分基本属性 / 销售属性 ──
+    const allBasic = (catAttrs || []).filter((a: any) => a.type === 2 || a.attrType === 2)
+    const allSale = (catAttrs || []).filter((a: any) => a.type === 1 || a.attrType === 1)
+
+    basicAttributes.value = allBasic.map((attr: any) => ({
+      attrId: attr.attrId,
+      attrName: attr.attrName,
+      type: 2,
+      values: (attr.values || []).map((v: any) => ({
+        valueId: v.valueId,
+        value: v.value,
+        imageUrl: v.imageUrl
+      }))
+    }))
+    salesAttributes.value = allSale.map((attr: any) => ({
+      attrId: attr.attrId,
+      attrName: attr.attrName,
+      type: 1,
+      values: (attr.values || []).map((v: any) => ({
+        valueId: v.valueId,
+        value: v.value,
+        imageUrl: v.imageUrl
+      }))
+    }))
+
+    // ── 填充选中状态（来自 /spu/attr/all/{spuId}）──
     if (spuAttrs) {
       const bindIds: Record<number, number> = {}
-      spuAttrs.basicAttrs.forEach(attr => {
+      spuAttrs.basicAttrs?.forEach((attr: any) => {
         bindIds[attr.attrId] = attr.id
         if (attr.manualValue) {
           selectedBasicAttrs.value[attr.attrId] = -1
@@ -1759,13 +1862,33 @@ const editProduct = async (row: SpuItem) => {
       basicAttrBindIds.value = bindIds
 
       const saleBindIds: Record<number, number> = {}
-      spuAttrs.saleAttrs.forEach(attr => {
+      spuAttrs.saleAttrs?.forEach((attr: any) => {
         saleBindIds[attr.attrId] = attr.id
         if (attr.selectedValues && attr.selectedValues.length > 0) {
-          selectedSaleAttrValues.value[attr.attrId] = attr.selectedValues.map(v => v.valueId)
+          selectedSaleAttrValues.value[attr.attrId] = attr.selectedValues.map((v: any) => v.valueId)
         }
       })
       saleAttrBindIds.value = saleBindIds
+
+      // ── 预构建销售属性（用于SKU组合生成）──
+      salesAttrsForSkuCombinations.value = (spuAttrs.saleAttrs || [])
+        .filter((attr: any) => attr.selectedValues && attr.selectedValues.length > 0)
+        .map((attr: any) => {
+          const fullSaleAttr = allSale.find((a: any) => a.attrId === attr.attrId)
+          return {
+            attrId: attr.attrId,
+            attrName: attr.attrName,
+            type: 2,
+            values: (fullSaleAttr?.values || [])
+              .filter((v: any) => attr.selectedValues.some((sv: any) => sv.valueId === v.valueId))
+              .map((v: any) => ({
+                valueId: v.valueId,
+                value: v.value,
+                imageUrl: v.imageUrl,
+                sort: 0
+              }))
+          }
+        })
     }
 
     await loadCategoriesAndBrands()

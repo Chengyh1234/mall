@@ -74,9 +74,11 @@ const fetchOrders = async () => {
     loading.value = true
     const params = props.status ? { status: props.status } : {}
     const result = await getOrderList(params)
-    orders.value = result as unknown as Order[]
+    // getOrderList 返回 PageResult<Order> = { list, page, pageSize, total }，需提取 list 数组
+    const rawList = (result as any)?.list || (result as any)?.records || result
+    orders.value = Array.isArray(rawList) ? rawList : []
   } catch {
-    ElMessage.error('获取订单列表失败')
+    /* 错误已由拦截器处理 */
   } finally {
     loading.value = false
   }

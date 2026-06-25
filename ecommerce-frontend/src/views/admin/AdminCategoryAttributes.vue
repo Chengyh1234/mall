@@ -457,6 +457,8 @@ onMounted(() => {
   display: flex;
   gap: 20px;
   align-items: flex-start;
+  height: calc(100vh - 180px);
+  overflow: hidden;
 }
 
 /* ===== 左侧分类面板 ===== */
@@ -467,8 +469,8 @@ onMounted(() => {
   border-radius: 10px;
   box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
   padding: 16px;
-  position: sticky;
-  top: 20px;
+  overflow-y: auto;
+  height: 100%;
 }
 .panel-header {
   font-size: 14px;
@@ -533,6 +535,8 @@ onMounted(() => {
 .attr-panel {
   flex: 1;
   min-width: 0;
+  overflow-y: auto;
+  height: 100%;
 }
 
 /* 空状态 */

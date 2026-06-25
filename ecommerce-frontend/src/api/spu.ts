@@ -1,33 +1,68 @@
 import request from '@/utils/request'
 
-export interface Spu {
+// ===== 公开（前台）商品 VO =====
+export interface SpuPageVO {
   id: number
-  sellerId: number
-  storeId?: number
   name: string
   categoryId: number
+  categoryName?: string
   brandId?: number
+  brandName?: string
   description?: string
   mainImage?: string
   images?: string
   unit?: string
   keywords?: string
   sales: number
-  status: number
-  isDeleted?: boolean
-  brandName?: string
-  categoryName?: string
   minPrice?: number
+}
+
+// ===== 商家端商品 VO =====
+export interface SpuSellerVO extends SpuPageVO {
+  sellerId: number
+  storeId?: number
+  status: number
   createdAt: string
   updatedAt?: string
 }
 
+// ===== 管理员端商品 VO =====
+export interface SpuAdminVO extends SpuSellerVO {
+  isDeleted?: boolean
+}
+
+// ===== 公开详情 VO（含卖家信息）=====
+export interface SpuDetailVO extends SpuPageVO {
+  sellerId?: number
+  sellerUsername?: string
+  sellerAvatar?: string
+}
+
+// ===== 商家端管理详情 VO =====
+export interface SpuSellerDetailVO extends SpuSellerVO {
+  sellerUsername?: string
+  sellerAvatar?: string
+  sellerRealName?: string
+  sellerPhone?: string
+}
+
+// ===== 管理员端管理详情 VO =====
+export interface SpuAdminDetailVO extends SpuAdminVO {
+  sellerUsername?: string
+  sellerAvatar?: string
+  sellerRealName?: string
+  sellerPhone?: string
+}
+
+// ===== 分页结果 =====
 export interface PageResult<T> {
   list: T[]
   page: number
   pageSize: number
   total: number
 }
+
+// ===== 新增 / 更新 =====
 
 export function addSpu(data: {
   spuDto: string
@@ -80,21 +115,38 @@ export function deleteSpu(id: number): Promise<void> {
   })
 }
 
-export function getSpuDetail(id: number): Promise<Spu> {
+// ===== 公开详情（前台商品详情页）=====
+export function getSpuDetail(id: number): Promise<SpuDetailVO> {
   return request({
     url: `/spu/detail/${id}`,
     method: 'get'
   })
 }
 
+// ===== 商家端管理详情 =====
+export function getSpuManageDetailForSeller(id: number): Promise<SpuSellerDetailVO> {
+  return request({
+    url: `/spu/manage-detail/seller/${id}`,
+    method: 'get'
+  })
+}
+
+// ===== 管理员端管理详情 =====
+export function getSpuManageDetailForAdmin(id: number): Promise<SpuAdminDetailVO> {
+  return request({
+    url: `/spu/manage-detail/admin/${id}`,
+    method: 'get'
+  })
+}
+
+// ===== 公开分页（首页、商品列表页）=====
 export function getSpuList(params: {
   page?: number
   pageSize?: number
   keyword?: string
   categoryId?: number
   brandId?: number
-  status?: number
-}): Promise<PageResult<Spu>> {
+}): Promise<PageResult<SpuPageVO>> {
   return request({
     url: '/spu/page',
     method: 'get',
@@ -102,15 +154,29 @@ export function getSpuList(params: {
   })
 }
 
-// 运营管理员分页获取全平台全部商品（含上架/下架，含分类名/品牌名）
+// ===== 管理员分页（全平台全部商品）=====
 export function getSpuPageAll(params: {
   page?: number
   pageSize?: number
   keyword?: string
   status?: number
-}): Promise<PageResult<Spu>> {
+}): Promise<PageResult<SpuAdminVO>> {
   return request({
     url: '/spu/page-all',
+    method: 'get',
+    params
+  })
+}
+
+// ===== 商家分页 =====
+export function getSpuPageBySeller(sellerId: number, params: {
+  page?: number
+  pageSize?: number
+  keyword?: string
+  status?: number
+}): Promise<PageResult<SpuSellerVO>> {
+  return request({
+    url: `/spu/page-by-seller/${sellerId}`,
     method: 'get',
     params
   })
@@ -121,21 +187,6 @@ export function updateSpuStatus(id: number, status: number): Promise<void> {
     url: `/spu/status/${id}`,
     method: 'put',
     params: { status }
-  })
-}
-
-export function getSpuPageBySeller(sellerId: number, params: {
-  page?: number
-  pageSize?: number
-  keyword?: string
-  categoryId?: number
-  brandId?: number
-  status?: number
-}): Promise<PageResult<Spu>> {
-  return request({
-    url: `/spu/page-by-seller/${sellerId}`,
-    method: 'get',
-    params
   })
 }
 

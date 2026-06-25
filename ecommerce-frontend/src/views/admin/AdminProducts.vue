@@ -195,13 +195,13 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
-import { getSpuPageAll, getSpuDetail, onShelfSpu, offShelfSpu, type Spu } from '@/api/spu'
+import { getSpuPageAll, getSpuManageDetailForAdmin, onShelfSpu, offShelfSpu, type SpuAdminVO } from '@/api/spu'
 import { getSpuImageUrl } from '@/utils/resource'
 
 const searchKeyword = ref('')
 const statusFilter = ref<number | ''>('')
 const loading = ref(false)
-const products = ref<Spu[]>([])
+const products = ref<SpuAdminVO[]>([])
 const pagination = reactive({
   page: 1,
   pageSize: 10,
@@ -209,7 +209,7 @@ const pagination = reactive({
 })
 
 const detailVisible = ref(false)
-const currentProduct = ref<Spu | null>(null)
+const currentProduct = ref<SpuAdminVO | null>(null)
 
 // 解析商品图片集
 const imageList = computed(() => {
@@ -236,13 +236,13 @@ const loadProducts = async () => {
       params.status = statusFilter.value
     }
     const result = await getSpuPageAll(params)
-    products.value = (result.list || []).map((item: Spu) => ({
+    products.value = (result.list || []).map((item: SpuAdminVO) => ({
       ...item,
       _statusLoading: false
     }))
     pagination.total = result.total || 0
   } catch {
-    ElMessage.error('获取商品列表失败')
+    // 拦截器已处理后端错误提示
   } finally {
     loading.value = false
   }
@@ -267,21 +267,21 @@ const toggleStatus = async (row: any, newStatus: boolean) => {
     row.status = targetStatus
     ElMessage.success(targetStatus === 1 ? '商品已上架' : '商品已下架')
   } catch {
-    ElMessage.error('操作失败')
+    // 拦截器已处理后端错误提示
   } finally {
     row._statusLoading = false
   }
 }
 
-const showDetail = async (row: Spu) => {
+const showDetail = async (row: SpuAdminVO) => {
   currentProduct.value = null
   detailVisible.value = true
   try {
-    const detail = await getSpuDetail(row.id)
-    // 后端返回 { spu: {...}, sellerId, ... }，提取 spu 对象
-    currentProduct.value = (detail as any).spu || detail
+    const detail = await getSpuManageDetailForAdmin(row.id)
+    // 后端直接返回 SpuAdminDetailVO 扁平对象
+    currentProduct.value = detail
   } catch {
-    ElMessage.error('获取商品详情失败')
+    // 拦截器已处理后端错误提示
   }
 }
 

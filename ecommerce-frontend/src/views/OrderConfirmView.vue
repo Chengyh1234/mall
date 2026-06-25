@@ -56,7 +56,7 @@
               class="product-item"
             >
               <div class="item-image">
-                <img :src="item.image" :alt="item.name" />
+                <img :src="getSpuImageUrl(item.image)" :alt="item.name" />
               </div>
               <div class="item-info">
                 <h4>{{ item.name }}</h4>
@@ -113,7 +113,7 @@
         <h2>支付订单</h2>
         
         <div class="order-info-card">
-          <div class="order-no">订单号：{{ orderNo }}</div>
+          <div class="order-no">订单号：{{ orderIdList.join(', ') }}</div>
           <div class="order-amount">支付金额：<span class="amount">¥{{ payAmount.toFixed(2) }}</span></div>
         </div>
 
@@ -141,7 +141,7 @@
         >
           <template #extra>
             <div class="success-info">
-              <p>订单号：{{ orderNo }}</p>
+              <p>订单号：{{ orderIdList.join(', ') }}</p>
               <p>支付金额：¥{{ payAmount.toFixed(2) }}</p>
             </div>
             <div class="success-buttons">
@@ -160,7 +160,8 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import NavBar from '@/components/NavBar.vue'
-import { createOrderFromCart, payOrder as payOrderApi } from '@/api/order'
+import { getSpuImageUrl } from '@/utils/resource'
+import { createOrderFromCart, createOrder, batchPay } from '@/api/order'
 import { getAddressList } from '@/api/address'
 
 const router = useRouter()
@@ -168,6 +169,7 @@ const router = useRouter()
 interface OrderItem {
   cartId: number
   spuId: number
+  skuId: number
   name: string
   image: string
   specs: string
@@ -191,9 +193,9 @@ const orderItems = ref<OrderItem[]>([])
 const addresses = ref<Address[]>([])
 const selectedAddressId = ref<number | null>(null)
 const paymentMethod = ref('alipay')
-const orderNo = ref('')
-const currentOrderId = ref(0)
+const orderIdList = ref<number[]>([])
 const loading = ref(false)
+const isBuyNow = ref(false)
 
 // 运费
 const shippingFee = computed(() => {
@@ -215,10 +217,16 @@ const payAmount = computed(() => {
 
 // 初始化
 onMounted(() => {
-  // 从sessionStorage获取订单商品
-  const itemsStr = sessionStorage.getItem('orderItems')
-  if (itemsStr) {
-    orderItems.value = JSON.parse(itemsStr)
+  // 优先读取 buyNowItems（立即购买），再读取 orderItems（购物车结算）
+  const buyNowStr = sessionStorage.getItem('buyNowItems')
+  const cartStr = sessionStorage.getItem('orderItems')
+
+  if (buyNowStr) {
+    orderItems.value = JSON.parse(buyNowStr)
+    sessionStorage.removeItem('buyNowItems')
+    isBuyNow.value = true
+  } else if (cartStr) {
+    orderItems.value = JSON.parse(cartStr)
     sessionStorage.removeItem('orderItems')
   } else {
     ElMessage.warning('请先选择商品')
@@ -270,49 +278,68 @@ const confirmOrder = async () => {
   
   try {
     loading.value = true
-    
-    const orderData = {
-      addressId: selectedAddressId.value,
-      payType: 'alipay',
-      buyerMessage: ''
+
+    if (isBuyNow.value) {
+      // 立即购买：直接创建订单
+      const res = await createOrder({
+        addressId: selectedAddressId.value,
+        totalAmount: totalAmount.value,
+        payAmount: payAmount.value,
+        items: orderItems.value.map(item => ({
+          skuId: item.skuId,
+          quantity: item.quantity,
+          productName: item.name,
+          productImage: item.image,
+          skuSpecs: item.specs,
+          price: item.price
+        }))
+      })
+      orderIdList.value = [res.orderId]
+    } else {
+      // 购物车结算
+      const result = await createOrderFromCart({
+        addressId: selectedAddressId.value,
+        payType: 'alipay',
+        buyerMessage: ''
+      })
+      orderIdList.value = result
     }
-    
-    const result = await createOrderFromCart(orderData)
-    orderNo.value = result.order?.orderNo || result.orderNo
-    currentOrderId.value = result.order?.id || result.orderId
-    
+
     ElMessage.success('订单创建成功')
     currentStep.value = 2
   } catch {
-    ElMessage.error('创建订单失败')
+    /* 错误已由拦截器处理 */
   } finally {
     loading.value = false
   }
 }
 
-// 支付订单
+// 支付订单（调用批量支付接口）
 const handlePayOrder = async () => {
   try {
     loading.value = true
-    
-    await payOrderApi(currentOrderId.value)
-    
-    ElMessage.success('支付成功')
-    currentStep.value = 3
+
+    const res = await batchPay({
+      orderIds: orderIdList.value,
+      payType: paymentMethod.value
+    })
+
+    if (res.successCount === res.totalCount) {
+      ElMessage.success('支付成功')
+      currentStep.value = 3
+    } else if (res.successCount > 0) {
+      ElMessage.warning(`部分支付成功（${res.successCount}/${res.totalCount}），失败原因：${res.fail.map(f => f.reason).join('；')}`)
+      currentStep.value = 3
+    } else if (res.fail.length > 0) {
+      ElMessage.error(res.fail[0].reason || '支付失败')
+    } else {
+      ElMessage.error('支付失败')
+    }
   } catch {
-    ElMessage.error('支付失败')
+    /* 错误已由拦截器处理 */
   } finally {
     loading.value = false
   }
-}
-
-// 生成订单号（模拟）
-const generateOrderNo = () => {
-  const now = new Date()
-  return 'ORD' + now.getFullYear() + 
-    String(now.getMonth() + 1).padStart(2, '0') + 
-    String(now.getDate()).padStart(2, '0') +
-    String(Math.random()).slice(-6)
 }
 
 // 返回首页

@@ -1,4 +1,5 @@
 import request from '@/utils/request'
+import type { SpuPageVO, SpuDetailVO } from '@/api/spu'
 
 export interface Product {
   id: number
@@ -21,17 +22,8 @@ export interface Product {
 export interface ProductPageResult {
   page: number
   pageSize: number
-  list: Product[]
-  total?: number
-}
-
-// 获取商品列表
-export function getProductList(params: Record<string, any>): Promise<{ list: Product[] }> {
-  return request({
-    url: '/spu/list',
-    method: 'get',
-    params
-  })
+  list: SpuPageVO[]
+  total: number
 }
 
 // 商品分页查询
@@ -66,7 +58,8 @@ export interface Sku {
   marketPrice?: number
   originalPrice?: number
   costPrice?: number
-  stock: number
+  stock?: number
+  inStock?: boolean
   warnStock?: number
   specs: string | SkuSpecs
   weight?: number
@@ -100,39 +93,8 @@ export interface SpecTemplate {
   values: SpecValue[]
 }
 
-// SPU详情
-export interface SpuDetail {
-  id: number
-  name: string
-  categoryId?: number
-  brandId?: number
-  description?: string
-  unit?: string
-  keywords?: string
-  sales?: number
-  status?: number
-  mainImage?: string
-  images?: string
-  createdAt?: string
-  updatedAt?: string
-  sellerId?: number
-  sellerName?: string
-  shopName?: string
-  shopLogo?: string
-}
-
-// 商品详情API响应
-export interface ProductDetailResponse {
-  spu: SpuDetail
-  sellerId?: number
-  sellerUsername?: string
-  sellerAvatar?: string
-  sellerRealName?: string
-  sellerPhone?: string
-}
-
-// 获取商品详情
-export function getProductDetail(id: number | string): Promise<ProductDetailResponse> {
+// 商品详情 — 后端直接返回 SpuDetailVO（扁平结构）
+export function getProductDetail(id: number | string): Promise<SpuDetailVO> {
   return request({
     url: `/spu/detail/${id}`,
     method: 'get'
@@ -148,10 +110,19 @@ export function getSkuList(spuId: number): Promise<Sku[]> {
   })
 }
 
-// 获取带销售属性的SKU列表
+// 获取带销售属性的SKU列表（前台公开）
 export function getSkuListWithAttributes(spuId: number): Promise<Sku[]> {
   return request({
     url: '/sku/list-with-attributes',
+    method: 'get',
+    params: { spuId }
+  })
+}
+
+// 获取带销售属性的SKU列表（卖家端，含库存等管理信息）
+export function getStoreSkuListWithAttributes(spuId: number): Promise<Sku[]> {
+  return request({
+    url: '/sku/store/list-with-attributes',
     method: 'get',
     params: { spuId }
   })
@@ -215,9 +186,9 @@ export interface SpuSalesAttribute {
 export interface SpuBasicAttribute {
   attrId: number
   attrName: string
+  valueId: number | null
   value: string
   imageUrl: string | null
-  attrType: number
 }
 
 // API响应格式
@@ -262,7 +233,7 @@ export function getCategoryAttributesByType(categoryId: number, type: number): P
 // 获取SPU基本属性
 export function getSpuBasicAttributes(spuId: number): Promise<ApiResponse<SpuBasicAttribute[]>> {
   return request({
-    url: `/attribute/spu/${spuId}/basic`,
+    url: `/spu/${spuId}/basic-attributes`,
     method: 'get'
   })
 }

@@ -5,7 +5,9 @@ const resourcePaths = {
   sku: '/uploads/images/sku',
   brands: '/uploads/images/brands',
   stores: '/uploads/images/stores',
-  avatars: '/uploads/images/avatars',
+  storeLogo: '/uploads/images/stores/logo',
+  storeBanner: '/uploads/images/stores/banner',
+  avatars: '/uploads/images/user/avatars',
   banners: '/uploads/images/banners'
 }
 
@@ -59,11 +61,11 @@ export function getBrandLogoUrl(dbPath: string): string {
 }
 
 export function getStoreLogoUrl(dbPath: string): string {
-  return getResourceUrl('stores', dbPath)
+  return getResourceUrl('storeLogo', dbPath)
 }
 
 export function getStoreBannerUrl(dbPath: string): string {
-  return getResourceUrl('stores', dbPath)
+  return getResourceUrl('storeBanner', dbPath)
 }
 
 export function getAvatarUrl(dbPath: string): string {

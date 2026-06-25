@@ -99,6 +99,7 @@
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox, type FormInstance, type FormRules, type UploadInstance, type UploadRawFile } from 'element-plus'
 import { getBannerList, addBanner, updateBanner, deleteBanner, updateBannerStatus, type BannerItem } from '@/api/banner'
+import { getBannerUrl } from '@/utils/resource'
 
 const loading = ref(false)
 const saving = ref(false)
@@ -136,11 +137,7 @@ const formRules: FormRules = {
 }
 
 const getImageUrl = (imageUrl: string) => {
-  if (!imageUrl) return ''
-  if (imageUrl.startsWith('/uploads/') || imageUrl.startsWith('/api/')) {
-    return `/api/file/preview?relativePath=${imageUrl.replace(/^\/uploads\/images\/banners\//, '')}&subDir=banners`
-  }
-  return `/api/file/preview?relativePath=${imageUrl}&subDir=banners`
+  return getBannerUrl(imageUrl)
 }
 
 const loadList = async () => {

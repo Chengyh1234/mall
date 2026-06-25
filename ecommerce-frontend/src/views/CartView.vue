@@ -173,7 +173,7 @@ const loadCartList = async () => {
       selected: item.selected
     }));
   } catch {
-    ElMessage.error('获取购物车失败');
+    /* 错误已由拦截器处理 */
   }
   finally {
     loading.value = false;
@@ -188,7 +188,7 @@ const handleSelectAll = async () => {
     cartItems.value.forEach(item => item.selected = selected);
   }
   catch (error) {
-    ElMessage.error('操作失败');
+    /* 错误已由拦截器处理 */
   }
 };
 
@@ -202,7 +202,7 @@ const handleSelectItem = async (id: number, selected: boolean) => {
       item.selected = newSelected;
     }
     catch (error) {
-      ElMessage.error('操作失败');
+      /* 错误已由拦截器处理 */
     }
   }
 };
@@ -219,7 +219,7 @@ const handleQuantityChange = async (id: number, quantity: number) => {
       ElMessage.success('数量更新成功');
     }
     catch (error) {
-      ElMessage.error('更新数量失败');
+      /* 错误已由拦截器处理 */
     }
   }
 };
@@ -234,7 +234,7 @@ const handleDelete = async (id: number) => {
       ElMessage.success('删除成功');
     }
     catch (error) {
-      ElMessage.error('删除失败');
+      /* 错误已由拦截器处理 */
     }
   }
 };
@@ -247,7 +247,7 @@ const handleDeleteSelected = async () => {
     ElMessage.success('删除成功');
   }
   catch (error) {
-    ElMessage.error('删除失败');
+    /* 错误已由拦截器处理 */
   }
 };
 
