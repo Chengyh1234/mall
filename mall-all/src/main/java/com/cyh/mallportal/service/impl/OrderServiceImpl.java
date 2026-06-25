@@ -22,6 +22,9 @@ import com.cyh.mallportal.mapper.SkuMapper;
 import com.cyh.mallportal.mapper.SpuMapper;
 import com.cyh.mallportal.service.CartItemService;
 import com.cyh.mallportal.service.InventoryRedisService;
+import com.cyh.mallportal.mq.event.OrderCreatedEvent;
+import com.cyh.mallportal.mq.event.OrderExpireEvent;
+import com.cyh.mallportal.mq.publisher.OrderEventPublisher;
 import com.cyh.mallportal.service.OrderDeliveryService;
 import com.cyh.mallportal.service.OrderService;
 import com.cyh.mallportal.service.StockLuaScript;
@@ -34,6 +37,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -66,6 +71,7 @@ public class OrderServiceImpl implements OrderService {
     private final StockLuaScript stockLuaScript;
     private final InventoryRedisService inventoryRedisService;
     private final SpuMapper spuMapper;
+    private final OrderEventPublisher orderEventPublisher;
 
     /**
      * 支付超时时间（分钟），默认 30 分钟
@@ -145,6 +151,7 @@ public class OrderServiceImpl implements OrderService {
         log.info("订单创建成功, 订单ID: {}, 订单号: {}, 支付截止: {}", order.getId(), orderNo, order.getExpireTime());
 
         // 5. 创建订单明细
+        List<Long> skuIds = new ArrayList<>();
         for (OrderItemDto itemDto : orderCreateDto.getItems()) {
             Sku sku = skuMapper.selectById(itemDto.getSkuId());
 
@@ -163,11 +170,30 @@ public class OrderServiceImpl implements OrderService {
             orderItem.setCreatedAt(LocalDateTime.now());
 
             orderItemMapper.insert(orderItem);
-
-            // 同步 Redis 库存到 MySQL
-            inventoryRedisService.syncStockToDb(itemDto.getSkuId());
+            skuIds.add(itemDto.getSkuId());
         }
 
+        // 事务提交后，异步处理库存同步等后置操作
+        Long finalOrderId = order.getId();
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                OrderCreatedEvent event = new OrderCreatedEvent()
+                        .setOrderId(finalOrderId)
+                        .setOrderNo(orderNo)
+                        .setUserId(userId)
+                        .setSkuIds(skuIds)
+                        .setFromCart(false);
+                orderEventPublisher.publishOrderCreated(event);
+
+                // 发送订单超时延迟消息（TTL 到期后自动取消）
+                orderEventPublisher.publishOrderExpire(
+                        new OrderExpireEvent()
+                                .setOrderId(finalOrderId)
+                                .setOrderNo(orderNo)
+                );
+            }
+        });
         log.info("订单明细创建完成, 订单ID: {}", order.getId());
         return order.getId();
     }
@@ -214,6 +240,9 @@ public class OrderServiceImpl implements OrderService {
 
         // 4. 遍历购物车商品，每个 SKU 生成 1 笔独立订单
         List<Long> resultList = new ArrayList<>();
+        List<Long> skuIds = new ArrayList<>();
+        // 收集订单ID → 订单号映射，用于 afterCommit 中发送延迟消息
+        Map<Long, String> orderIdToNo = new HashMap<>();
         for (CartItem item : selectedItems) {
             // 生成订单号
             String orderNo = generateOrderNo();
@@ -264,17 +293,35 @@ public class OrderServiceImpl implements OrderService {
             orderItem.setCreatedAt(LocalDateTime.now());
 
             orderItemMapper.insert(orderItem);
-
-            // 同步 Redis 库存到 MySQL
-            inventoryRedisService.syncStockToDb(item.getSkuId());
+            skuIds.add(item.getSkuId());
 
             // 只记录订单ID而非完整VO，前端如需详情可调用订单详情接口
             resultList.add(order.getId());
+            orderIdToNo.put(order.getId(), orderNo);
         }
 
-        // 5. 清空已选中的购物车商品
-        cartItemService.clearSelected(userId);
-        log.info("已选中购物车商品已清空, 用户ID: {}", userId);
+        // 事务提交后，异步处理库存同步和清空购物车
+        Long firstOrderId = resultList.isEmpty() ? 0L : resultList.get(0);
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                OrderCreatedEvent event = new OrderCreatedEvent()
+                        .setOrderId(firstOrderId)
+                        .setUserId(userId)
+                        .setSkuIds(skuIds)
+                        .setFromCart(true);
+                orderEventPublisher.publishOrderCreated(event);
+
+                // 为每笔独立订单发送超时延迟消息
+                for (Map.Entry<Long, String> entry : orderIdToNo.entrySet()) {
+                    orderEventPublisher.publishOrderExpire(
+                            new OrderExpireEvent()
+                                    .setOrderId(entry.getKey())
+                                    .setOrderNo(entry.getValue())
+                    );
+                }
+            }
+        });
 
         log.info("从购物车创建订单完成, 用户ID: {}, 共 {} 笔订单", userId, resultList.size());
         return resultList;
