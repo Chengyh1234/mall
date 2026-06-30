@@ -16,7 +16,20 @@ export interface SalesTrend {
   values: number[]
 }
 
+export interface TimeSeriesPoint {
+  label: string
+  salesAmount: number
+  orderCount: number
+  salesVolume: number
+}
+
+export interface TimeSeriesData {
+  period: string
+  dataPoints: TimeSeriesPoint[]
+}
+
 export interface ProductRankItem {
+  productId?: number
   name: string
   salesAmount: number
   salesCount: number
@@ -40,11 +53,21 @@ export function getSalesTrend(): Promise<SalesTrend> {
   })
 }
 
-export function getProductRanking(period: string = 'last7Days'): Promise<ProductRankItem[]> {
+export function getSalesTimeSeries(
+  period: string = 'last7Days'
+): Promise<TimeSeriesData> {
+  return request({
+    url: '/store-admin/dashboard/sales/timeseries',
+    method: 'get',
+    params: { period }
+  })
+}
+
+export function getProductRanking(period: string = 'last7Days', rankBy: 'amount' | 'count' = 'count'): Promise<ProductRankItem[]> {
   return request({
     url: '/store-admin/dashboard/sales/product-ranking',
     method: 'get',
-    params: { period }
+    params: { period, rankBy }
   })
 }
 
@@ -80,5 +103,29 @@ export function getAdminSalesStatistics(): Promise<SalesStatistics> {
   return request({
     url: '/admin/dashboard/sales',
     method: 'get'
+  })
+}
+
+/** 平台销售时序数据：各时段/每日的销售额、订单量、销量 */
+export interface AdminDataPoint {
+  label: string
+  salesAmount: number
+  orderCount: number
+  salesVolume: number
+}
+
+export interface AdminTimeSeriesData {
+  period: string
+  dataPoints: AdminDataPoint[]
+}
+
+/** 获取平台销售时序数据 */
+export function getAdminSalesTimeSeries(
+  period: string = 'last7Days'
+): Promise<AdminTimeSeriesData> {
+  return request({
+    url: '/admin/dashboard/sales/timeseries',
+    method: 'get',
+    params: { period }
   })
 }

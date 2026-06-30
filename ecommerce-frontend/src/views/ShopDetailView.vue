@@ -184,7 +184,7 @@
               @click="goToProduct(item.id)"
             >
               <div class="product-image-wrap">
-                <img :src="getSpuImageUrl(item.mainImage)" :alt="item.name" class="product-image" loading="lazy" />
+                <img :src="item.mainImage ? getSpuImageUrl(item.mainImage) : '/images/default-product.png'" :alt="item.name" class="product-image" loading="lazy" />
                 <div class="product-hover-overlay">
                   <span>查看详情</span>
                 </div>
@@ -312,7 +312,7 @@ const fetchProducts = async (page = 1) => {
       page,
       pageSize: pageSize.value,
       keyword: keyword.value.trim() || undefined,
-      categoryId: selectedCategoryPath.value || undefined,
+      categoryId: selectedCategoryPath.value.length > 0 ? selectedCategoryPath.value[selectedCategoryPath.value.length - 1] : undefined,
       minPrice: minPrice.value,
       maxPrice: maxPrice.value,
       sortBy: sortBy.value as any,

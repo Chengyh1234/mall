@@ -99,6 +99,13 @@ const handleMenuSelect = async (index: string) => {
       break
     case 'seller':
       if (!isLoggedIn.value) { router.push('/login'); return }
+      // 确保用户信息已加载，再判断是否有卖家身份
+      await userStore.fetchUserInfo()
+      if (!userStore.isSeller) {
+        ElMessage.warning('您尚未开通卖家身份，请先申请开店')
+        router.push('/shop/apply')
+        return
+      }
       router.push({ name: 'seller' })
       break
     case 'cart':

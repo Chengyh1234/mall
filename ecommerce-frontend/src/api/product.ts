@@ -215,7 +215,7 @@ export function getCategorySalesAttributes(categoryId: number): Promise<ApiRespo
 }
 
 // 获取分类基本属性
-export function getCategoryBasicAttributes(categoryId: number): Promise<ApiResponse<SpuBasicAttribute[]>> {
+export function getCategoryBasicAttributes(categoryId: number): Promise<SpuBasicAttribute[]> {
   return request({
     url: `/attribute/basic/${categoryId}`,
     method: 'get'
@@ -239,7 +239,7 @@ export function getSpuBasicAttributes(spuId: number): Promise<ApiResponse<SpuBas
 }
 
 // 获取SPU销售属性
-export function getSpuSalesAttributes(spuId: number): Promise<ApiResponse<SpuSalesAttribute[]>> {
+export function getSpuSalesAttributes(spuId: number): Promise<SpuSalesAttribute[]> {
   return request({
     url: `/attribute/spu/${spuId}/sales`,
     method: 'get'

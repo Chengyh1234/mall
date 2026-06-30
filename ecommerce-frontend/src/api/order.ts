@@ -76,6 +76,8 @@ export interface Order {
   receiverName: string
   receiverPhone: string
   receiverAddress: string
+  expireTime: string | null
+  refundAmount: number | null
   remark: string
   createdAt: string
   updatedAt: string

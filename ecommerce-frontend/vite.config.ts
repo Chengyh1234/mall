@@ -26,6 +26,28 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url))
     },
   },
+  build: {
+    target: 'esnext',
+    chunkSizeWarningLimit: 500,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules/element-plus') && !id.includes('node_modules/element-plus/icons-vue')) {
+            return 'element-plus'
+          }
+          if (id.includes('node_modules/@element-plus/icons-vue')) {
+            return 'element-icons'
+          }
+          if (id.includes('node_modules/echarts')) {
+            return 'echarts'
+          }
+          if (id.includes('node_modules/vue') || id.includes('node_modules/vue-router') || id.includes('node_modules/pinia') || id.includes('node_modules/axios')) {
+            return 'vendor'
+          }
+        },
+      },
+    },
+  },
   server: {
     port: 5173,  // 默认端口
     strictPort: true,  // 端口被占用时不自动切换

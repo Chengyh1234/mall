@@ -3,246 +3,224 @@
     <NavBar />
 
     <div class="profile-content">
-      <!-- 侧边栏菜单 -->
-      <el-aside class="sidebar" width="250px">
-        <el-menu
-          :default-active="activeSideMenu"
-          class="side-menu"
-          @select="handleSideMenuSelect"
-        >
-          <!-- 普通用户菜单（所有登录用户都有） -->
-          <el-menu-item index="overview">
-            <el-icon><DataAnalysis /></el-icon>
-            <span>我的看板</span>
-          </el-menu-item>
+      <!-- 侧边栏 -->
+      <aside class="sidebar">
+        <div class="sidebar-user">
+          <div class="sidebar-avatar">
+            <img :src="avatarUrl" alt="avatar" />
+          </div>
+          <div class="sidebar-user-info">
+            <span class="sidebar-user-name">{{ userInfo?.username || '用户' }}</span>
+          </div>
+        </div>
 
-          <el-menu-item index="orders">
-            <el-icon><Document /></el-icon>
-            <span>我的订单</span>
-          </el-menu-item>
-          
-          <el-menu-item index="cart">
-            <el-icon><ShoppingCart /></el-icon>
-            <span>我的购物车</span>
-          </el-menu-item>
-          
-          <el-sub-menu index="account">
-            <template #title>
-              <el-icon><Setting /></el-icon>
-              <span>账号设置</span>
-            </template>
-            <el-menu-item index="security">
-              <el-icon><Lock /></el-icon>
-              <span>安全设置</span>
-            </el-menu-item>
-            <el-menu-item index="info">
-              <el-icon><User /></el-icon>
-              <span>个人资料</span>
-            </el-menu-item>
-            <el-menu-item index="address">
-              <el-icon><Location /></el-icon>
-              <span>收货地址</span>
-            </el-menu-item>
-          </el-sub-menu>
-          
-          <el-menu-item index="logout" class="logout-item">
-            <el-icon><SwitchButton /></el-icon>
-            <span>退出登录</span>
-          </el-menu-item>
-        </el-menu>
-      </el-aside>
+        <nav class="sidebar-nav">
+          <button
+            v-for="item in menuItems"
+            :key="item.key"
+            :class="['nav-item', { active: activeSideMenu === item.key, danger: item.danger }]"
+            @click="handleSideMenuSelect(item.key)"
+          >
+            <span class="nav-icon" v-html="item.icon"></span>
+            <span class="nav-label">{{ item.label }}</span>
+            <span v-if="item.badge && item.badge > 0" class="nav-badge">{{ item.badge }}</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-footer">
+          <button class="nav-item danger" @click="handleLogout">
+            <span class="nav-icon">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            </span>
+            <span class="nav-label">退出登录</span>
+          </button>
+        </div>
+      </aside>
 
       <!-- 主内容区 -->
-      <el-main class="main-content">
+      <main class="main-content">
         <div v-loading="loading" class="content-box">
-          <!-- 订单概览 -->
-          <div v-if="activeSideMenu === 'overview'" class="overview-section">
-            <!-- 欢迎横幅 -->
-            <div class="welcome-banner">
-              <div class="banner-content">
-                <h1 class="welcome-title">嗨, {{ userInfo?.username || '用户' }}</h1>
-                <p class="welcome-sub">欢迎回来，这是你的订单动态</p>
-              </div>
-              <div class="banner-avatar">
-                <el-avatar :size="56" :src="avatarUrl" />
-              </div>
-            </div>
-
-            <!-- 统计卡片网格 -->
-            <div class="stat-grid">
-              <div
-                class="stat-card"
-                :class="{ clickable: true }"
-                @click="goToOrdersTab('pending_pay')"
-              >
-                <div class="stat-icon-wrap pending-pay">
-                  <el-icon class="stat-icon"><Timer /></el-icon>
-                </div>
-                <div class="stat-info">
-                  <span class="stat-value" v-html="loadingStatusCount ? '<span class=shimmer>--</span>' : statusCount.pendingPayment"></span>
-                  <span class="stat-label">待付款</span>
-                </div>
-                <div class="stat-footer">
-                  <span>等待支付</span>
-                  <el-icon><ArrowRight /></el-icon>
+          <!-- ===== 概览看板 ===== -->
+          <div v-if="activeSideMenu === 'overview'" class="overview-section animate-in">
+            <div class="bento-grid">
+              <!-- 欢迎卡片 -->
+              <div class="bento-cell welcome-cell">
+                <div class="welcome-card">
+                  <div class="welcome-text">
+                    <span class="welcome-eyebrow">{{ todayDate }}</span>
+                    <h1 class="welcome-title">{{ timeGreeting }}，{{ userInfo?.username || '用户' }}</h1>
+                    <p class="welcome-sub">欢迎回到你的个人中心</p>
+                  </div>
+                  <div class="welcome-avatar">
+                    <img :src="avatarUrl" alt="avatar" />
+                  </div>
+                  <div class="welcome-pattern"></div>
                 </div>
               </div>
 
-              <div
-                class="stat-card"
-                :class="{ clickable: true }"
-                @click="goToOrdersTab('pending_ship')"
-              >
-                <div class="stat-icon-wrap pending-ship">
-                  <el-icon class="stat-icon"><Van /></el-icon>
-                </div>
-                <div class="stat-info">
-                  <span class="stat-value" v-html="loadingStatusCount ? '<span class=shimmer>--</span>' : statusCount.pendingDelivery"></span>
-                  <span class="stat-label">待发货</span>
-                </div>
-                <div class="stat-footer">
-                  <span>等待商家发货</span>
-                  <el-icon><ArrowRight /></el-icon>
-                </div>
-              </div>
-
-              <div
-                class="stat-card"
-                :class="{ clickable: true }"
-                @click="goToOrdersTab('pending_receive')"
-              >
-                <div class="stat-icon-wrap pending-receive">
-                  <el-icon class="stat-icon"><Box /></el-icon>
-                </div>
-                <div class="stat-info">
-                  <span class="stat-value" v-html="loadingStatusCount ? '<span class=shimmer>--</span>' : statusCount.pendingReceipt"></span>
-                  <span class="stat-label">待收货</span>
-                </div>
-                <div class="stat-footer">
-                  <span>等待确认收货</span>
-                  <el-icon><ArrowRight /></el-icon>
+              <!-- 账户概览 -->
+              <div class="bento-cell account-cell">
+                <div class="account-card">
+                  <div class="account-header">
+                    <span class="account-label">账户状态</span>
+                    <span class="account-badge">正常</span>
+                  </div>
+                  <div class="account-meta">
+                    <div class="meta-item">
+                      <span class="meta-value" :class="{ active: profileData?.phone }">{{ profileData?.phone ? '已绑定' : '未绑定' }}</span>
+                      <span class="meta-label">手机号</span>
+                    </div>
+                    <div class="meta-item">
+                      <span class="meta-value" :class="{ active: profileData?.email }">{{ profileData?.email ? '已绑定' : '未绑定' }}</span>
+                      <span class="meta-label">邮箱</span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div
-                class="stat-card"
-                :class="{ clickable: true }"
-                @click="goToOrdersTab('refunding')"
-              >
-                <div class="stat-icon-wrap refunding">
-                  <el-icon class="stat-icon"><WarningFilled /></el-icon>
-                </div>
-                <div class="stat-info">
-                  <span class="stat-value" v-html="loadingStatusCount ? '<span class=shimmer>--</span>' : statusCount.refunding"></span>
-                  <span class="stat-label">退款中</span>
-                </div>
-                <div class="stat-footer">
-                  <span>等待退款处理</span>
-                  <el-icon><ArrowRight /></el-icon>
+              <!-- 订单状态卡片 -->
+              <div v-for="(stat, idx) in orderStats" :key="idx" class="bento-cell stat-cell">
+                <div class="stat-card-v2" @click="goToOrdersTab(stat.tab)">
+                  <div class="stat-header">
+                    <span class="stat-name">{{ stat.label }}</span>
+                    <div class="stat-icon-v2">
+                      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="stat.icon"></svg>
+                    </div>
+                  </div>
+                  <div class="stat-body">
+                    <span class="stat-value" v-html="loadingStatusCount ? '<span class=shimmer>--</span>' : stat.value"></span>
+                  </div>
+                  <div class="stat-footer">
+                    <span class="stat-hint">{{ stat.hint }}</span>
+                    <span class="stat-arrow">→</span>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <!-- 快捷入口 -->
-            <div class="quick-links">
-              <h3 class="section-title">快捷入口</h3>
-              <div class="links-grid">
-                <div class="quick-card" @click="handleSideMenuSelect('orders')">
-                  <el-icon class="q-icon"><Document /></el-icon>
-                  <span>全部订单</span>
-                </div>
-                <div class="quick-card" @click="handleSideMenuSelect('info')">
-                  <el-icon class="q-icon"><User /></el-icon>
-                  <span>个人资料</span>
-                </div>
-                <div class="quick-card" @click="handleSideMenuSelect('address')">
-                  <el-icon class="q-icon"><Location /></el-icon>
-                  <span>收货地址</span>
-                </div>
-                <div class="quick-card" @click="handleSideMenuSelect('cart')">
-                  <el-icon class="q-icon"><ShoppingCart /></el-icon>
-                  <span>购物车</span>
+              <!-- 快捷入口 -->
+              <div class="bento-cell quick-cell">
+                <div class="quick-panel">
+                  <h3 class="panel-title">快捷入口</h3>
+                  <div class="quick-list">
+                    <div v-for="(item, idx) in quickItems" :key="idx" class="quick-row" @click="handleSideMenuSelect(item.key)">
+                      <div class="quick-row-icon">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" v-html="item.icon"></svg>
+                      </div>
+                      <div class="quick-row-text">
+                        <span class="quick-row-label">{{ item.label }}</span>
+                        <span class="quick-row-desc">{{ item.desc }}</span>
+                      </div>
+                      <span class="quick-row-arrow">→</span>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- 个人资料 -->
-          <div v-if="activeSideMenu === 'info'" class="profile-section">
-            <div v-loading="profileLoading" class="profile-card">
-              <!-- 头部：头像 + 基本信息 -->
-              <div class="profile-head">
-                <div class="profile-avatar-area">
-                  <div class="avatar-frame" @click="handleAvatarClick" title="点击更换头像">
-                    <el-avatar :size="96" :src="avatarUrl" class="profile-avatar" />
-                    <div class="avatar-overlay">
-                      <el-icon><Camera /></el-icon>
-                      <span>更换头像</span>
-                    </div>
-                  </div>
-                  <input
-                    ref="fileInputRef"
-                    type="file"
-                    accept="image/jpeg,image/png,image/gif,image/webp"
-                    style="display: none"
-                    @change="handleAvatarChange"
-                  />
-                  <div class="avatar-name">
-                    <h2 class="profile-username">{{ profileData?.username || '-' }}</h2>
-                  </div>
-                </div>
-                <div class="profile-actions">
-                  <el-button type="primary" plain :icon="Edit" @click="showEditDialog = true">编辑资料</el-button>
-                </div>
+          <!-- ===== 个人资料 ===== -->
+          <div v-else-if="activeSideMenu === 'info'" class="profile-section animate-in">
+            <div v-loading="profileLoading" class="profile-card-v3">
+              <div class="profile-cover">
+                <div class="profile-cover-pattern"></div>
               </div>
 
-              <!-- 详细信息 -->
-              <div class="profile-body">
-                <div class="info-grid">
-                  <div class="info-cell">
-                    <span class="cell-label">用户ID</span>
-                    <span class="cell-value">{{ profileData?.id || '-' }}</span>
+              <div class="profile-head-v3">
+                <div class="profile-avatar-area-v3">
+                  <div class="avatar-frame-v3" @click="handleAvatarClick" title="点击更换头像">
+                    <img :src="avatarUrl" alt="avatar" class="profile-avatar-img" />
+                    <div class="avatar-overlay-v3">
+                      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                    </div>
                   </div>
-                  <div class="info-cell">
-                    <span class="cell-label">用户名</span>
-                    <span class="cell-value">{{ profileData?.username || '-' }}</span>
+                  <input ref="fileInputRef" type="file" accept="image/jpeg,image/png,image/gif,image/webp" style="display:none" @change="handleAvatarChange" />
+                  <button class="avatar-change-link" @click="handleAvatarClick">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                    更换头像
+                  </button>
+                </div>
+
+                <div class="profile-meta-v3">
+                  <h2 class="profile-username-v3">{{ profileData?.username || '-' }}</h2>
+                  <div class="profile-meta-row">
+                    <span class="profile-id">ID: {{ profileData?.id || '-' }}</span>
                   </div>
-                  <div class="info-cell">
-                    <span class="cell-label">真实姓名</span>
-                    <span class="cell-value">{{ profileData?.realName || '未设置' }}</span>
-                  </div>
-                  <div class="info-cell">
-                    <span class="cell-label">手机号</span>
-                    <span class="cell-value">{{ profileData?.phone || '未绑定' }}</span>
-                  </div>
-                  <div class="info-cell">
-                    <span class="cell-label">邮箱</span>
-                    <span class="cell-value">{{ profileData?.email || '未绑定' }}</span>
-                  </div>
-                  <div class="info-cell">
-                    <span class="cell-label">注册时间</span>
-                    <span class="cell-value mono">{{ formatTime(profileData?.createdAt) }}</span>
+                </div>
+
+                <button class="profile-edit-btn-v3" @click="showEditDialog = true">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  编辑资料
+                </button>
+              </div>
+
+              <div class="profile-body-v3">
+                <div class="info-section">
+                  <h4 class="info-section-title">基本信息</h4>
+                  <div class="info-grid-v3">
+                    <div class="info-cell-v3">
+                      <span class="cell-label-v3">用户名</span>
+                      <span class="cell-value-v3">{{ profileData?.username || '-' }}</span>
+                    </div>
+                    <div class="info-cell-v3">
+                      <span class="cell-label-v3">真实姓名</span>
+                      <span class="cell-value-v3">{{ profileData?.realName || '未设置' }}</span>
+                    </div>
+                    <div class="info-cell-v3">
+                      <span class="cell-label-v3">手机号</span>
+                      <span class="cell-value-v3">{{ profileData?.phone || '未绑定' }}</span>
+                    </div>
+                    <div class="info-cell-v3">
+                      <span class="cell-label-v3">邮箱</span>
+                      <span class="cell-value-v3">{{ profileData?.email || '未绑定' }}</span>
+                    </div>
+                    <div class="info-cell-v3 full">
+                      <span class="cell-label-v3">注册时间</span>
+                      <span class="cell-value-v3 mono">{{ formatTime(profileData?.createdAt) }}</span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
             <!-- 编辑资料弹窗 -->
-            <el-dialog v-model="showEditDialog" title="编辑个人资料" width="420px" destroy-on-close class="edit-dialog">
-              <el-form :model="editForm" label-width="80px" class="edit-form">
+            <el-dialog
+              v-model="showEditDialog"
+              width="440px"
+              :show-close="false"
+              destroy-on-close
+              class="profile-edit-dialog-v3"
+            >
+              <div class="edit-dialog-header">
+                <div class="edit-dialog-avatar" @click="handleAvatarClick">
+                  <img :src="avatarUrl" alt="avatar" />
+                  <div class="edit-avatar-overlay">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+                  </div>
+                </div>
+                <div class="edit-dialog-title">
+                  <h4>编辑个人资料</h4>
+                  <p>点击头像可更换</p>
+                </div>
+              </div>
+              <el-form :model="editForm" label-position="top" class="edit-form-v3">
                 <el-form-item label="用户名">
-                  <el-input v-model="editForm.username" placeholder="输入新的用户名" maxlength="20" />
+                  <el-input v-model="editForm.username" placeholder="输入新的用户名" maxlength="20" size="large" />
                 </el-form-item>
               </el-form>
               <template #footer>
-                <el-button @click="showEditDialog = false">取消</el-button>
-                <el-button type="primary" :loading="savingProfile" @click="handleSaveProfile">保存</el-button>
+                <div class="edit-dialog-footer">
+                  <button class="edit-cancel-btn" @click="showEditDialog = false">取消</button>
+                  <button class="edit-save-btn" :disabled="savingProfile" @click="handleSaveProfile">
+                    <span v-if="!savingProfile">保存</span>
+                    <span v-else>保存中...</span>
+                  </button>
+                </div>
               </template>
             </el-dialog>
           </div>
 
           <!-- 我的订单 -->
-          <div v-else-if="activeSideMenu === 'orders'" class="orders-section">
+          <div v-else-if="activeSideMenu === 'orders'" class="orders-section animate-in">
             <div class="order-header">
               <div class="order-header-top">
                 <h3>我的订单</h3>
@@ -269,114 +247,131 @@
 
             <div v-else-if="orders.length > 0" class="order-list">
               <div
-                v-for="order in orders"
+                v-for="(order, idx) in orders"
                 :key="order.id"
-                class="order-card"
+                :class="['order-card-v2', 'status-topline-' + order.status]"
+                :style="{ '--i': idx }"
                 @click="viewDetail(order)"
               >
-                <div class="order-card-header">
-                  <div class="header-left">
-                    <span class="order-time">{{ formatDate(order.createdAt) }}</span>
-                    <span class="order-no">{{ order.orderNo }}</span>
+                <div class="order-card-main">
+                  <div class="order-card-top">
+                    <div class="order-meta">
+                      <span class="order-time">{{ formatDate(order.createdAt) }}</span>
+                      <div class="order-no-wrap">
+                        <span class="order-no" :title="order.orderNo">{{ order.orderNo }}</span>
+                        <button class="order-copy-btn" title="复制订单号" @click="copyOrderNo(order.orderNo, $event)">
+                          <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+                        </button>
+                      </div>
+                    </div>
+                    <span class="status-pill" :class="'pill-' + order.status">
+                      <svg class="pill-icon" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" v-html="getStatusIcon(order.status)"></svg>
+                      {{ getStatusText(order.status) }}
+                    </span>
                   </div>
-                  <div class="header-right">
-                    <span class="status-pill" :class="'pill-' + order.status">{{ getStatusText(order.status) }}</span>
-                  </div>
-                </div>
 
-                <div class="order-card-body">
-                  <div class="order-items" v-if="order.items && order.items.length">
-                    <div class="order-item" v-for="(item, idx) in order.items" :key="idx">
-                      <div class="item-img-wrap">
-                        <img class="item-thumb" :src="orderItemImage(item.productImage || item.image)" />
+                  <div class="order-products">
+                    <div class="product-main" v-if="order.items && order.items.length">
+                      <img
+                        class="product-main-img"
+                        :src="orderItemImage(order.items[0]?.productImage || '')"
+                        :alt="order.items[0]?.productName || ''"
+                      />
+                      <div class="product-main-info">
+                        <div class="product-main-name">{{ order.items[0]?.productName }}</div>
+                        <div class="product-main-specs" v-if="order.items[0]?.skuSpecs">
+                          {{ order.items[0]?.skuSpecs }}
+                        </div>
+                        <div class="product-main-meta">
+                          <span class="product-main-price">¥{{ (order.items[0]?.price || 0).toFixed(2) }}</span>
+                          <span class="product-main-qty">×{{ order.items[0]?.quantity }}</span>
+                        </div>
                       </div>
-                      <div class="item-info">
-                        <div class="item-name">{{ item.productName || item.name }}</div>
-                        <div class="item-specs" v-if="item.skuSpecs || item.specs">{{ item.skuSpecs || item.specs }}</div>
+                    </div>
+                    <div v-else class="order-summary-fallback">
+                      共 {{ order.itemCount || '-' }} 件商品
+                    </div>
+
+                    <div class="product-side">
+                      <div class="extra-thumbs" v-if="order.items && order.items.length > 1">
+                        <img
+                          v-for="(item, i) in order.items.slice(1, 4)"
+                          :key="i"
+                          class="extra-thumb"
+                          :src="orderItemImage(item.productImage)"
+                          :alt="item.productName"
+                        />
+                        <span v-if="order.items.length > 4" class="extra-more">+{{ order.items.length - 4 }}</span>
                       </div>
-                      <div class="item-meta">
-                        <span class="item-price">¥{{ (item.price || 0).toFixed(2) }}</span>
-                        <span class="item-qty">&times;{{ item.quantity }}</span>
+                      <div class="order-amounts-mini">
+                        <div class="mini-row" v-if="order.discountAmount">
+                          <span>优惠</span>
+                          <span class="mini-discount">-¥{{ Number(order.discountAmount).toFixed(2) }}</span>
+                        </div>
+                        <div class="mini-row pay">
+                          <span>实付</span>
+                          <span class="mini-pay">¥{{ (order.payAmount || 0).toFixed(2) }}</span>
+                        </div>
                       </div>
-                      <div class="item-subtotal">¥{{ (item.totalAmount || item.price * item.quantity || 0).toFixed(2) }}</div>
                     </div>
                   </div>
-                  <div v-else class="order-summary">共 {{ order.itemCount || '-' }} 件商品</div>
-                  <div v-if="order.remark" class="order-remark">{{ order.remark }}</div>
-                </div>
 
-                <div class="order-card-footer">
-                  <div class="footer-left">
-                    <div v-if="order.status === 1 && order.expireTime" class="status-badge status-expire">
-                      <el-icon class="badge-icon"><Clock /></el-icon>
+                  <div class="order-card-hints">
+                    <div v-if="order.status === 1 && order.expireTime" class="status-hint hint-expire">
+                      <el-icon class="hint-icon"><Clock /></el-icon>
                       剩余 {{ formatExpireTime(order.expireTime, countdownNow) }}
                     </div>
-                    <div v-else-if="(order.status === 6 || order.status === 7) && order.refundAmount !== null" class="status-badge status-refund">
+                    <div v-else-if="(order.status === 6 || order.status === 7) && order.refundAmount !== null" class="status-hint hint-refund">
                       退款 ¥{{ Number(order.refundAmount).toFixed(2) }}
                     </div>
-                    <div v-else-if="order.status === 8 && order.rejectReason" class="status-badge status-cancel">
-                     拒绝原因：{{ order.rejectReason }}<span v-if="order.rejectedAt">（{{ formatDate(order.rejectedAt) }}）</span>
+                    <div v-else-if="order.status === 8 && order.rejectReason" class="status-hint hint-cancel">
+                      拒绝原因：{{ order.rejectReason }}
                     </div>
-                    <div v-else-if="order.deliveryCompany && order.deliveryNo" class="status-badge status-delivery">
-                      <el-icon class="badge-icon"><Van /></el-icon>
+                    <div v-else-if="order.deliveryCompany && order.deliveryNo" class="status-hint hint-delivery">
+                      <el-icon class="hint-icon"><Van /></el-icon>
                       {{ order.deliveryCompany }} {{ order.deliveryNo }}
                     </div>
-                    <div v-else-if="order.status === 5 && order.cancelReason" class="status-badge status-cancel">
+                    <div v-else-if="order.status === 5 && order.cancelReason" class="status-hint hint-cancel">
                       {{ order.cancelReason }}
                     </div>
-                    <div v-else-if="order.status === 2" class="status-badge status-pending-ship">
+                    <div v-else-if="order.status === 2" class="status-hint hint-pending">
                       等待卖家发货
                     </div>
+                    <div v-if="order.remark" class="status-hint hint-remark">
+                      备注：{{ order.remark }}
+                    </div>
                   </div>
+                </div>
 
-                  <div class="footer-right">
-                    <div class="amount-summary">
-                      <div class="amount-row">
-                        <span class="amount-label">总额</span>
-                        <span class="amount-value">¥{{ (order.totalAmount || 0).toFixed(2) }}</span>
-                      </div>
-                      <template v-if="order.discountAmount">
-                        <div class="amount-row discount-row">
-                          <span class="amount-label">优惠</span>
-                          <span class="amount-value discount">-¥{{ Number(order.discountAmount).toFixed(2) }}</span>
-                        </div>
-                      </template>
-                      <div class="amount-row pay-row">
-                        <span class="amount-label">实付</span>
-                        <span class="amount-value pay">¥{{ (order.payAmount || 0).toFixed(2) }}</span>
-                      </div>
-                    </div>
-                    <div class="order-actions" @click.stop>
-                      <template v-if="order.status === 1">
-                        <button class="action-btn secondary" @click="showCancelDialog(order)">取消</button>
-                        <button class="action-btn primary" @click="handlePay(order)">立即支付</button>
-                      </template>
-                      <template v-else-if="order.status === 2">
-                        <button class="action-btn ghost" @click="handleRefund(order)">申请退款</button>
-                      </template>
-                      <template v-else-if="order.status === 3">
-                        <button class="action-btn primary" @click="handleReceive(order)">确认收货</button>
-                        <button class="action-btn ghost" @click="handleRefund(order)">申请退款</button>
-                      </template>
-                      <template v-else-if="order.status === 4">
-                        <button class="action-btn ghost" @click="handleRefund(order)">申请退款</button>
-                        <button class="action-btn ghost danger" @click="handleDelete(order)">删除</button>
-                      </template>
-                      <template v-else-if="order.status === 5">
-                        <button class="action-btn ghost danger" @click="handleDelete(order)">删除</button>
-                      </template>
-                      <template v-else-if="order.status === 6">
-                        <button class="action-btn ghost" @click="handleCancelRefund(order)">取消退款</button>
-                        <span class="status-tip">退款审核中</span>
-                      </template>
-                      <template v-else-if="order.status === 7">
-                        <span class="status-tip refund-done">已退款</span>
-                      </template>
-                      <template v-else-if="order.status === 8">
-                        <button class="action-btn ghost" @click="handleCancelRefund(order)">取消退款</button>
-                      </template>
-                    </div>
-                  </div>
+                <div class="order-card-actions" @click.stop>
+                  <template v-if="order.status === 1">
+                    <button class="action-btn-v2 secondary" @click="showCancelDialog(order)">取消</button>
+                    <button class="action-btn-v2 primary" @click="handlePay(order)">立即支付</button>
+                  </template>
+                  <template v-else-if="order.status === 2">
+                    <button class="action-btn-v2 ghost" @click="handleRefund(order)">申请退款</button>
+                  </template>
+                  <template v-else-if="order.status === 3">
+                    <button class="action-btn-v2 primary" @click="handleReceive(order)">确认收货</button>
+                    <button class="action-btn-v2 ghost" @click="handleRefund(order)">申请退款</button>
+                  </template>
+                  <template v-else-if="order.status === 4">
+                    <button class="action-btn-v2 ghost" @click="handleRefund(order)">申请退款</button>
+                    <button class="action-btn-v2 ghost danger" @click="handleDelete(order)">删除</button>
+                  </template>
+                  <template v-else-if="order.status === 5">
+                    <button class="action-btn-v2 ghost danger" @click="handleDelete(order)">删除</button>
+                  </template>
+                  <template v-else-if="order.status === 6">
+                    <button class="action-btn-v2 ghost" @click="handleCancelRefund(order)">取消退款</button>
+                    <span class="status-tip">退款审核中</span>
+                  </template>
+                  <template v-else-if="order.status === 7">
+                    <span class="status-tip refund-done">已退款</span>
+                  </template>
+                  <template v-else-if="order.status === 8">
+                    <button class="action-btn-v2 ghost" @click="handleCancelRefund(order)">取消退款</button>
+                  </template>
                 </div>
               </div>
 
@@ -386,7 +381,7 @@
                   v-model:current-page="pagination.page"
                   v-model:page-size="pagination.pageSize"
                   :total="pagination.total"
-                  :page-sizes="[10, 20, 50]"
+                  :page-sizes="[12, 20, 50]"
                   layout="total, sizes, prev, pager, next"
                   background
                   small
@@ -404,82 +399,129 @@
           </div>
 
           <!-- 收货地址 -->
-          <div v-else-if="activeSideMenu === 'address'" class="address-section">
-            <div class="section-header">
-              <h3>收货地址</h3>
-              <el-button 
-                type="primary" 
-                size="small" 
-                @click="showAddAddressModal = true"
+          <div v-else-if="activeSideMenu === 'address'" class="address-section animate-in">
+            <div class="address-section-header">
+              <div class="address-section-title">
+                <h3>收货地址</h3>
+                <p>管理你的配送地址，让收货更便捷</p>
+              </div>
+              <button
+                class="address-add-btn"
+                @click="showAddAddressModalHandler"
                 :disabled="addresses.length >= 10"
               >
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                 添加地址
-              </el-button>
+              </button>
             </div>
             <div v-if="addresses.length > 0" class="address-list">
-              <div 
-                v-for="addr in addresses" 
-                :key="addr.id" 
+              <div
+                v-for="(addr, idx) in addresses"
+                :key="addr.id"
                 class="address-card"
+                :class="{ 'is-default': addr.isDefault === 1 }"
+                :style="{ '--i': idx }"
               >
-                <div class="address-header">
-                  <div class="address-user">
-                    <span class="name">{{ addr.receiverName }}</span>
-                    <span class="phone">{{ addr.receiverPhone }}</span>
+                <div class="address-card-glow"></div>
+                <div class="address-card-content">
+                  <div class="address-main">
+                    <div class="address-header">
+                      <div class="address-user">
+                        <span class="name">{{ addr.receiverName }}</span>
+                        <span class="phone">{{ addr.receiverPhone }}</span>
+                      </div>
+                      <div class="address-badges">
+                        <span v-if="addr.isDefault === 1" class="default-badge">
+                          <svg viewBox="0 0 24 24" width="12" height="12" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                          默认地址
+                        </span>
+                      </div>
+                    </div>
+                    <div class="address-detail">
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                      <span>{{ addr.province }}{{ addr.city }}{{ addr.district }}{{ addr.detailAddress }}</span>
+                    </div>
                   </div>
-                  <span v-if="addr.isDefault === 1" class="default-tag">默认</span>
-                </div>
-                <div class="address-detail">
-                  {{ addr.province }}{{ addr.city }}{{ addr.district }}{{ addr.detailAddress }}
-                </div>
-                <div class="address-actions">
-                  <el-button 
-                    v-if="addr.isDefault !== 1" 
-                    size="small" 
-                    @click="setDefault(addr.id)"
-                  >
-                    设为默认
-                  </el-button>
-                  <el-button size="small" @click="editAddress(addr)">编辑</el-button>
-                  <el-button size="small" type="danger" @click="deleteAddressHandler(addr.id)">删除</el-button>
+                  <div class="address-actions">
+                    <button
+                      v-if="addr.isDefault !== 1"
+                      class="address-action-btn primary"
+                      @click="confirmSetDefault(addr)"
+                    >
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                      设为默认
+                    </button>
+                    <button class="address-action-btn" @click="editAddress(addr)">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      编辑
+                    </button>
+                    <button class="address-action-btn danger" @click="confirmDeleteAddress(addr)">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                      删除
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
             <div v-else class="empty-address">
-              <el-empty description="暂无收货地址">
-                <el-button type="primary" @click="showAddAddressModal = true">添加地址</el-button>
-              </el-empty>
+              <div class="empty-address-icon">
+                <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+              </div>
+              <h4>暂无收货地址</h4>
+              <p>添加一个收货地址，开启便捷购物体验</p>
+              <button class="address-add-btn" @click="showAddAddressModalHandler">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                添加地址
+              </button>
             </div>
-            <p v-if="addresses.length >= 10" class="address-limit">* 最多可添加10个收货地址</p>
+            <p v-if="addresses.length >= 10" class="address-limit">* 最多可添加 10 个收货地址</p>
           </div>
 
           <!-- 安全设置 -->
-          <div v-else-if="activeSideMenu === 'security'" class="security-section">
-            <h3>安全设置</h3>
+          <div v-else-if="activeSideMenu === 'security'" class="security-section animate-in">
+            <div class="security-header">
+              <h3>安全设置</h3>
+              <p>保护你的账户信息与资金安全</p>
+            </div>
             <div class="security-list">
-              <div class="security-item">
-                <div class="security-icon">🔐</div>
+              <div class="security-item" style="--i: 0">
+                <div class="security-icon">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+                </div>
                 <div class="security-info">
-                  <h4>修改密码</h4>
+                  <h4>登录密码</h4>
                   <p>定期更换密码，保护账户安全</p>
                 </div>
-                <el-button type="primary" size="small" @click="showChangePasswordModal = true">修改</el-button>
+                <button class="security-action-btn" @click="showChangePasswordModal = true">
+                  <span>修改</span>
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
               </div>
-              <div class="security-item">
-                <div class="security-icon">📱</div>
-                <div class="security-info">
-                  <h4>修改手机号</h4>
-                  <p>{{ userInfo?.phone || '未绑定' }}</p>
+              <div class="security-item" style="--i: 1">
+                <div class="security-icon phone">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>
                 </div>
-                <el-button type="primary" size="small" @click="showChangePhoneModal = true">修改</el-button>
+                <div class="security-info">
+                  <h4>手机号</h4>
+                  <p>{{ userInfo?.phone ? maskPhone(userInfo.phone) : '未绑定手机号' }}</p>
+                </div>
+                <button class="security-action-btn" @click="showChangePhoneModal = true">
+                  <span>{{ userInfo?.phone ? '更换' : '绑定' }}</span>
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
               </div>
-              <div class="security-item">
-                <div class="security-icon">📧</div>
-                <div class="security-info">
-                  <h4>修改邮箱</h4>
-                  <p>{{ userInfo?.email || '未绑定' }}</p>
+              <div class="security-item" style="--i: 2">
+                <div class="security-icon email">
+                  <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
                 </div>
-                <el-button type="primary" size="small" @click="showChangeEmailModal = true">修改</el-button>
+                <div class="security-info">
+                  <h4>邮箱</h4>
+                  <p>{{ userInfo?.email ? maskEmail(userInfo.email) : '未绑定邮箱' }}</p>
+                </div>
+                <button class="security-action-btn" @click="showChangeEmailModal = true">
+                  <span>{{ userInfo?.email ? '更换' : '绑定' }}</span>
+                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                </button>
               </div>
             </div>
           </div>
@@ -490,55 +532,148 @@
             <p>请从左侧菜单选择要查看的内容</p>
           </div>
         </div>
-      </el-main>
+      </main>
     </div>
 
     <!-- 添加/编辑地址弹窗 -->
-    <el-dialog 
-      :title="editingAddress ? '编辑地址' : '添加地址'" 
+    <el-dialog
       v-model="showAddAddressModal"
-      width="500px"
+      width="90%"
+      :show-close="false"
+      class="address-edit-dialog"
+      destroy-on-close
     >
-      <el-form :model="addressForm" label-width="80px" class="address-form">
-        <el-form-item label="收货人" required>
-          <el-input v-model="addressForm.receiverName" placeholder="请输入收货人姓名" />
-        </el-form-item>
-        <el-form-item label="手机号" required>
-          <el-input v-model="addressForm.receiverPhone" placeholder="请输入手机号" />
-        </el-form-item>
-        <el-form-item label="所在地区" required>
-          <el-cascader 
-            v-model="addressForm.region" 
-            :options="regionOptions" 
-            placeholder="请选择省市区"
-            :props="{ checkStrictly: false }"
-          />
-        </el-form-item>
-        <el-form-item label="详细地址" required>
-          <el-input v-model="addressForm.detailAddress" placeholder="请输入详细地址" />
-        </el-form-item>
-        <el-form-item>
-          <el-checkbox v-model="addressForm.isDefault" :true-value="1" :false-value="0">设为默认地址</el-checkbox>
-        </el-form-item>
-      </el-form>
+      <div class="address-edit-header">
+        <div class="address-edit-icon">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        </div>
+        <div class="address-edit-title">
+          <h4>{{ editingAddress ? '编辑地址' : '添加地址' }}</h4>
+          <p>{{ editingAddress ? '更新你的收货地址信息' : '填写新的收货地址' }}</p>
+        </div>
+        <button class="address-edit-close" @click="closeAddressModal">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="address-form-body">
+        <div class="address-form-row">
+          <div class="address-form-field elegant">
+            <label class="address-field-label-elegant">收货人</label>
+            <div class="address-field-input-elegant">
+              <span class="addr-input-icon">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </span>
+              <input
+                v-model="addressForm.receiverName"
+                type="text"
+                placeholder="请输入收货人姓名"
+                maxlength="20"
+              >
+            </div>
+            <p v-if="!addressForm.receiverName && showAddressFormError" class="address-field-error-elegant">请填写收货人姓名</p>
+          </div>
+
+          <div class="address-form-field elegant">
+            <label class="address-field-label-elegant">手机号</label>
+            <div class="address-field-input-elegant">
+              <span class="addr-input-icon">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z"/></svg>
+              </span>
+              <input
+                v-model="addressForm.receiverPhone"
+                type="tel"
+                placeholder="请输入11位手机号"
+                maxlength="11"
+              >
+            </div>
+            <p v-if="showAddressFormError && !addressForm.receiverPhone" class="address-field-error-elegant">请填写手机号</p>
+            <p v-else-if="showAddressFormError && !isValidPhone(addressForm.receiverPhone)" class="address-field-error-elegant">手机号格式不正确，请输入11位有效手机号</p>
+          </div>
+        </div>
+
+        <div class="address-form-field elegant full">
+          <label class="address-field-label-elegant">所在地区</label>
+          <div class="address-field-input-elegant">
+            <span class="addr-input-icon">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            </span>
+            <el-cascader
+              v-model="addressForm.region"
+              :options="regionOptions"
+              placeholder="请选择省 / 市 / 区"
+              :props="{ checkStrictly: false }"
+              class="address-region-cascader-elegant"
+              popper-class="address-region-popper"
+            />
+          </div>
+          <p v-if="!addressForm.region.length && showAddressFormError" class="address-field-error-elegant">请选择所在地区</p>
+        </div>
+
+        <div class="address-form-field elegant full">
+          <label class="address-field-label-elegant">详细地址</label>
+          <div class="address-field-input-elegant textarea">
+            <span class="addr-input-icon">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 15s1-1 5-1 8 2 8 2V3s-4-2-8-2-5 1-5 1v15z"/><line x1="4" y1="4" x2="4" y2="20"/><path d="M10 11h6"/><path d="M13 8v6"/></svg>
+            </span>
+            <textarea
+              v-model="addressForm.detailAddress"
+              rows="2"
+              placeholder="请输入街道、门牌号、楼层、房间号等详细地址"
+              maxlength="100"
+            />
+          </div>
+          <p v-if="!addressForm.detailAddress && showAddressFormError" class="address-field-error-elegant">请填写详细地址</p>
+        </div>
+
+        <div class="address-form-field inline">
+          <label class="address-checkbox" @click="addressIsDefault = !addressIsDefault">
+            <span class="address-custom-checkbox" :class="{ checked: addressIsDefault }">
+              <svg v-if="addressIsDefault" viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </span>
+            <span class="address-checkbox-label">设为默认地址</span>
+          </label>
+          <p class="address-checkbox-tip">设置后下单时将优先使用该地址</p>
+        </div>
+      </div>
       <template #footer>
-        <el-button @click="closeAddressModal">取消</el-button>
-        <el-button type="primary" @click="saveAddress">保存</el-button>
+        <div class="address-edit-footer">
+          <button class="address-edit-cancel" @click="closeAddressModal">取消</button>
+          <button class="address-edit-save" :disabled="loading" @click="confirmSaveAddress">
+            <span v-if="loading">保存中...</span>
+            <span v-else>{{ editingAddress ? '修改' : '确认添加' }}</span>
+          </button>
+        </div>
       </template>
     </el-dialog>
 
     <!-- 修改密码弹窗 -->
-    <el-dialog title="修改密码" v-model="showChangePasswordModal" width="400px">
-      <el-form :model="passwordForm" label-width="80px">
+    <el-dialog
+      v-model="showChangePasswordModal"
+      width="420px"
+      :show-close="false"
+      class="security-dialog password-dialog"
+      destroy-on-close
+    >
+      <div class="security-dialog-header">
+        <div class="security-dialog-icon">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+        </div>
+        <div class="security-dialog-title">
+          <h4>修改登录密码</h4>
+          <p>建议使用字母、数字组合，提高安全性</p>
+        </div>
+      </div>
+      <el-form :model="passwordForm" label-position="top" class="security-form">
         <el-form-item label="原密码">
-          <el-input 
-            v-model="passwordForm.oldPassword" 
-            :type="showOldPassword ? 'text' : 'password'" 
+          <el-input
+            v-model="passwordForm.oldPassword"
+            :type="showOldPassword ? 'text' : 'password'"
             placeholder="请输入原密码"
+            size="large"
           >
             <template #suffix>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 class="password-toggle-btn"
                 @click="showOldPassword = !showOldPassword"
               >
@@ -554,14 +689,15 @@
           </el-input>
         </el-form-item>
         <el-form-item label="新密码">
-          <el-input 
-            v-model="passwordForm.newPassword" 
-            :type="showNewPassword ? 'text' : 'password'" 
+          <el-input
+            v-model="passwordForm.newPassword"
+            :type="showNewPassword ? 'text' : 'password'"
             placeholder="请输入新密码"
+            size="large"
           >
             <template #suffix>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 class="password-toggle-btn"
                 @click="showNewPassword = !showNewPassword"
               >
@@ -577,14 +713,15 @@
           </el-input>
         </el-form-item>
         <el-form-item label="确认密码">
-          <el-input 
-            v-model="passwordForm.confirmPassword" 
-            :type="showConfirmPassword ? 'text' : 'password'" 
-            placeholder="请确认新密码"
+          <el-input
+            v-model="passwordForm.confirmPassword"
+            :type="showConfirmPassword ? 'text' : 'password'"
+            placeholder="请再次输入新密码"
+            size="large"
           >
             <template #suffix>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 class="password-toggle-btn"
                 @click="showConfirmPassword = !showConfirmPassword"
               >
@@ -601,8 +738,10 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showChangePasswordModal = false">取消</el-button>
-        <el-button type="primary" @click="changePassword">确定</el-button>
+        <div class="security-dialog-footer">
+          <button class="security-cancel-btn" @click="showChangePasswordModal = false">取消</button>
+          <button class="security-submit-btn" @click="changePassword">确认修改</button>
+        </div>
       </template>
     </el-dialog>
 
@@ -652,10 +791,10 @@
           <div class="refund-order-no">{{ refundTarget.orderNo }}</div>
           <div class="refund-items-preview" v-if="refundTarget.items && refundTarget.items.length">
             <div class="refund-item-row" v-for="(item, i) in refundTarget.items.slice(0, 2)" :key="i">
-              <img class="refund-item-img" :src="orderItemImage(item.productImage || item.image)" />
+              <img class="refund-item-img" :src="orderItemImage(item.productImage)" />
               <div class="refund-item-detail">
-                <div class="refund-item-name">{{ item.productName || item.name }}</div>
-                <div class="refund-item-specs" v-if="item.skuSpecs || item.specs">{{ item.skuSpecs || item.specs }}</div>
+                <div class="refund-item-name">{{ item.productName }}</div>
+                <div class="refund-item-specs" v-if="item.skuSpecs">{{ item.skuSpecs }}</div>
               </div>
               <div class="refund-item-qty">&times;{{ item.quantity }}</div>
             </div>
@@ -693,142 +832,165 @@
       </template>
     </el-dialog>
 
-    <!-- 订单详情弹窗 -->
-    <el-dialog v-model="detailDialogVisible" width="740px" :close-on-click-modal="false" top="4vh" class="detail-dialog">
-      <template #header>
-        <div class="detail-dialog-header">
-          <span class="detail-status-pill" :class="'sp-' + (orderDetail?.status || 0)">
-            {{ orderDetail?.statusDesc || getStatusText(orderDetail?.status || 0) }}
-          </span>
-          <span class="detail-order-no">{{ orderDetail?.orderNo }}</span>
-        </div>
-      </template>
-
-      <div v-loading="detailLoading" class="detail-body">
+    <!-- 订单详情抽屉 -->
+    <el-drawer v-model="detailDialogVisible" direction="rtl" size="560px" :with-header="false" class="order-detail-drawer">
+      <div v-loading="detailLoading" class="detail-drawer-body">
         <template v-if="orderDetail">
-          <!-- ===== 商品列表 ===== -->
-          <div class="detail-items-section">
-            <div class="detail-sec-title">商品信息</div>
-            <div class="detail-item-row" v-for="(item, i) in orderDetail.items || []" :key="i">
+          <!-- 抽屉头部 -->
+          <div class="detail-drawer-header">
+            <div class="detail-header-top">
+              <span class="detail-status-pill" :class="'sp-' + (orderDetail?.status || 0)">
+                {{ orderDetail?.statusDesc || getStatusText(orderDetail?.status || 0) }}
+              </span>
+              <span class="detail-order-no">{{ orderDetail?.orderNo }}</span>
+            </div>
+            <div class="detail-header-time">{{ formatTime(orderDetail.createdAt) }}</div>
+          </div>
+
+          <!-- 状态时间线 -->
+          <div class="detail-timeline">
+            <div class="timeline-item" :class="{ active: orderDetail.status >= 1 }">
+              <div class="timeline-dot"></div>
+              <span>下单</span>
+            </div>
+            <div class="timeline-line" :class="{ active: orderDetail.status >= 2 && orderDetail.status !== 5 }"></div>
+            <div class="timeline-item" :class="{ active: orderDetail.status >= 2 && orderDetail.status !== 5 }">
+              <div class="timeline-dot"></div>
+              <span>付款</span>
+            </div>
+            <div class="timeline-line" :class="{ active: orderDetail.status >= 3 && orderDetail.status !== 5 }"></div>
+            <div class="timeline-item" :class="{ active: orderDetail.status >= 3 && orderDetail.status !== 5 }">
+              <div class="timeline-dot"></div>
+              <span>发货</span>
+            </div>
+            <div class="timeline-line" :class="{ active: orderDetail.status >= 4 }"></div>
+            <div class="timeline-item" :class="{ active: orderDetail.status >= 4 }">
+              <div class="timeline-dot"></div>
+              <span>完成</span>
+            </div>
+          </div>
+
+          <!-- 商品清单 -->
+          <div class="detail-section">
+            <div class="detail-sec-title">商品清单</div>
+            <div class="detail-item-card" v-for="(item, i) in orderDetail.items || []" :key="i">
               <img class="detail-item-img" :src="orderItemImage(item.productImage)" />
               <div class="detail-item-info">
                 <div class="detail-item-name">{{ item.productName }}</div>
                 <div class="detail-item-specs">{{ item.skuSpecs }}</div>
               </div>
-              <div class="detail-item-price">¥{{ item.price.toFixed(2) }}</div>
-              <div class="detail-item-qty">&times;{{ item.quantity }}</div>
+              <div class="detail-item-meta">
+                <span class="detail-item-price">¥{{ item.price.toFixed(2) }}</span>
+                <span class="detail-item-qty">×{{ item.quantity }}</span>
+              </div>
               <div class="detail-item-subtotal">¥{{ item.totalAmount.toFixed(2) }}</div>
             </div>
           </div>
 
-          <!-- ===== 金额汇总 ===== -->
-          <div class="detail-amounts">
-            <div class="amt-row">
-              <span>商品金额</span>
-              <span>¥{{ orderDetail.totalAmount.toFixed(2) }}</span>
-            </div>
-            <div class="amt-row" v-if="orderDetail.discountAmount">
-              <span>优惠</span>
-              <span class="amt-discount">-¥{{ orderDetail.discountAmount.toFixed(2) }}</span>
-            </div>
-            <div class="amt-row" v-if="orderDetail.freightAmount">
-              <span>运费</span>
-              <span>¥{{ orderDetail.freightAmount.toFixed(2) }}</span>
-            </div>
+          <!-- 金额汇总 -->
+          <div class="detail-section detail-amounts-v2">
+            <div class="amt-row"><span>商品金额</span><span>¥{{ orderDetail.totalAmount.toFixed(2) }}</span></div>
+            <div class="amt-row" v-if="orderDetail.discountAmount"><span>优惠</span><span class="amt-discount">-¥{{ orderDetail.discountAmount.toFixed(2) }}</span></div>
+            <div class="amt-row" v-if="orderDetail.freightAmount"><span>运费</span><span>¥{{ orderDetail.freightAmount.toFixed(2) }}</span></div>
             <div class="amt-divider"></div>
-            <div class="amt-row amt-pay">
-              <span>实付金额</span>
-              <span>¥{{ orderDetail.payAmount.toFixed(2) }}</span>
-            </div>
+            <div class="amt-row amt-pay"><span>实付金额</span><span>¥{{ orderDetail.payAmount.toFixed(2) }}</span></div>
           </div>
 
-          <!-- ===== 订单信息 ===== -->
-          <div class="detail-sec-title">订单信息</div>
-          <div class="detail-info-grid">
-            <div class="info-cell">
-              <span class="icl">订单编号</span>
-              <span class="icv mono">{{ orderDetail.orderNo }}</span>
-            </div>
-            <div class="info-cell">
-              <span class="icl">下单时间</span>
-              <span class="icv">{{ formatTime(orderDetail.createdAt) }}</span>
-            </div>
-            <div class="info-cell" v-if="orderDetail.payTime">
-              <span class="icl">支付时间</span>
-              <span class="icv">{{ formatTime(orderDetail.payTime) }}</span>
-            </div>
-            <div class="info-cell" v-if="orderDetail.receiveTime">
-              <span class="icl">收货时间</span>
-              <span class="icv">{{ formatTime(orderDetail.receiveTime) }}</span>
-            </div>
-            <div class="info-cell" v-if="orderDetail.payTypeDesc">
-              <span class="icl">支付方式</span>
-              <span class="icv">{{ orderDetail.payTypeDesc }}</span>
-            </div>
-            <div class="info-cell" v-if="orderDetail.remark">
-              <span class="icl">备注</span>
-              <span class="icv">{{ orderDetail.remark }}</span>
-            </div>
-            <div class="info-cell" v-if="orderDetail.expireTime && orderDetail.status === 1">
-              <span class="icl">支付截止</span>
-              <span class="icv expire">{{ formatTime(orderDetail.expireTime) }}</span>
-            </div>
-            <div class="info-cell" v-if="orderDetail.cancelReason">
-              <span class="icl">取消原因</span>
-              <span class="icv muted">{{ orderDetail.cancelReason }}</span>
-            </div>
-          </div>
-
-          <!-- ===== 收货信息 ===== -->
-          <div class="detail-sec-title">收货信息</div>
-          <div class="detail-info-grid">
-            <div class="info-cell">
-              <span class="icl">收货人</span>
-              <span class="icv">{{ orderDetail.receiverName }}</span>
-            </div>
-            <div class="info-cell">
-              <span class="icl">联系电话</span>
-              <span class="icv">{{ orderDetail.receiverPhone }}</span>
-            </div>
-            <div class="info-cell full">
-              <span class="icl">收货地址</span>
-              <span class="icv">{{ orderDetail.receiverAddress }}</span>
-            </div>
-          </div>
-
-          <!-- ===== 退款信息 ===== -->
-          <template v-if="orderDetail.status >= 6">
-            <div class="detail-sec-title">退款信息</div>
+          <!-- 订单信息 -->
+          <div class="detail-section">
+            <div class="detail-sec-title">订单信息</div>
             <div class="detail-info-grid">
-              <div class="info-cell" v-if="orderDetail.refundReason">
-                <span class="icl">退款原因</span>
-                <span class="icv">{{ orderDetail.refundReason }}</span>
+              <div class="info-cell">
+                <span class="icl">订单编号</span>
+                <span class="icv mono">{{ orderDetail.orderNo }}</span>
               </div>
-              <div class="info-cell" v-if="orderDetail.refundAmount">
-                <span class="icl">退款金额</span>
-                <span class="icv refund">¥{{ orderDetail.refundAmount.toFixed(2) }}</span>
+              <div class="info-cell">
+                <span class="icl">下单时间</span>
+                <span class="icv">{{ formatTime(orderDetail.createdAt) }}</span>
               </div>
-              <div class="info-cell" v-if="orderDetail.rejectReason">
-                <span class="icl">拒绝原因</span>
-                <span class="icv rejected">{{ orderDetail.rejectReason }}</span>
+              <div class="info-cell" v-if="orderDetail.payTime">
+                <span class="icl">支付时间</span>
+                <span class="icv">{{ formatTime(orderDetail.payTime) }}</span>
               </div>
-              <div class="info-cell" v-if="orderDetail.rejectedAt">
-                <span class="icl">拒绝时间</span>
-                <span class="icv">{{ formatTime(orderDetail.rejectedAt) }}</span>
+              <div class="info-cell" v-if="orderDetail.receiveTime">
+                <span class="icl">收货时间</span>
+                <span class="icv">{{ formatTime(orderDetail.receiveTime) }}</span>
+              </div>
+              <div class="info-cell" v-if="orderDetail.payTypeDesc">
+                <span class="icl">支付方式</span>
+                <span class="icv">{{ orderDetail.payTypeDesc }}</span>
+              </div>
+              <div class="info-cell" v-if="orderDetail.remark">
+                <span class="icl">备注</span>
+                <span class="icv">{{ orderDetail.remark }}</span>
+              </div>
+              <div class="info-cell" v-if="orderDetail.expireTime && orderDetail.status === 1">
+                <span class="icl">支付截止</span>
+                <span class="icv expire">{{ formatTime(orderDetail.expireTime) }}</span>
+              </div>
+              <div class="info-cell" v-if="orderDetail.cancelReason">
+                <span class="icl">取消原因</span>
+                <span class="icv muted">{{ orderDetail.cancelReason }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 收货信息 -->
+          <div class="detail-section">
+            <div class="detail-sec-title">收货信息</div>
+            <div class="detail-info-grid">
+              <div class="info-cell">
+                <span class="icl">收货人</span>
+                <span class="icv">{{ orderDetail.receiverName }}</span>
+              </div>
+              <div class="info-cell">
+                <span class="icl">联系电话</span>
+                <span class="icv">{{ orderDetail.receiverPhone }}</span>
+              </div>
+              <div class="info-cell full">
+                <span class="icl">收货地址</span>
+                <span class="icv">{{ orderDetail.receiverAddress }}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 退款信息 -->
+          <template v-if="orderDetail.status >= 6">
+            <div class="detail-section">
+              <div class="detail-sec-title">退款信息</div>
+              <div class="detail-info-grid">
+                <div class="info-cell" v-if="orderDetail.refundReason">
+                  <span class="icl">退款原因</span>
+                  <span class="icv">{{ orderDetail.refundReason }}</span>
+                </div>
+                <div class="info-cell" v-if="orderDetail.refundAmount">
+                  <span class="icl">退款金额</span>
+                  <span class="icv refund">¥{{ orderDetail.refundAmount.toFixed(2) }}</span>
+                </div>
+                <div class="info-cell" v-if="orderDetail.rejectReason">
+                  <span class="icl">拒绝原因</span>
+                  <span class="icv rejected">{{ orderDetail.rejectReason }}</span>
+                </div>
+                <div class="info-cell" v-if="orderDetail.rejectedAt">
+                  <span class="icl">拒绝时间</span>
+                  <span class="icv">{{ formatTime(orderDetail.rejectedAt) }}</span>
+                </div>
               </div>
             </div>
           </template>
 
-          <!-- ===== 发货记录 ===== -->
-          <div class="detail-sec-title" v-if="orderDetail.deliveries && orderDetail.deliveries.length">发货记录</div>
-          <div class="detail-deliveries" v-if="orderDetail.deliveries && orderDetail.deliveries.length">
-            <div class="del-timeline-row" v-for="(del, idx) in orderDetail.deliveries" :key="idx">
-              <div class="del-timeline-dot"></div>
-              <div class="del-timeline-line" v-if="idx < orderDetail.deliveries.length - 1"></div>
-              <div class="del-content">
-                <span class="del-company">{{ del.deliveryCompany }}</span>
-                <span class="del-no">{{ del.deliveryNo }}</span>
-                <span class="del-time">{{ formatTime(del.deliveryTime) }}</span>
+          <!-- 发货记录 -->
+          <div class="detail-section" v-if="orderDetail.deliveries && orderDetail.deliveries.length">
+            <div class="detail-sec-title">发货记录</div>
+            <div class="detail-deliveries">
+              <div class="del-timeline-row" v-for="(del, idx) in orderDetail.deliveries" :key="idx">
+                <div class="del-timeline-dot"></div>
+                <div class="del-timeline-line" v-if="idx < orderDetail.deliveries.length - 1"></div>
+                <div class="del-content">
+                  <span class="del-company">{{ del.deliveryCompany }}</span>
+                  <span class="del-no">{{ del.deliveryNo }}</span>
+                  <span class="del-time">{{ formatTime(del.deliveryTime) }}</span>
+                </div>
               </div>
             </div>
           </div>
@@ -836,45 +998,81 @@
 
         <el-empty v-else-if="!detailLoading" description="暂无订单详情" />
       </div>
-    </el-dialog>
+    </el-drawer>
 
     <!-- 修改手机号弹窗 -->
-    <el-dialog title="修改手机号" v-model="showChangePhoneModal" width="400px">
-      <el-form :model="phoneForm" label-width="80px">
+    <el-dialog
+      v-model="showChangePhoneModal"
+      width="420px"
+      :show-close="false"
+      class="security-dialog phone-dialog"
+      destroy-on-close
+    >
+      <div class="security-dialog-header">
+        <div class="security-dialog-icon phone">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07 19.5 19.5 0 01-6-6 19.79 19.79 0 01-3.07-8.67A2 2 0 014.11 2h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L8.09 9.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 16.92z"/></svg>
+        </div>
+        <div class="security-dialog-title">
+          <h4>{{ userInfo?.phone ? '更换手机号' : '绑定手机号' }}</h4>
+          <p>{{ userInfo?.phone ? `当前手机号：${maskPhone(userInfo.phone)}` : '绑定手机号可用于登录和找回密码' }}</p>
+        </div>
+      </div>
+      <el-form :model="phoneForm" label-position="top" class="security-form">
         <el-form-item label="原密码">
-          <el-input 
-            v-model="phoneForm.password" 
-            type="password" 
+          <el-input
+            v-model="phoneForm.password"
+            type="password"
             placeholder="请输入原密码"
+            size="large"
           />
         </el-form-item>
         <el-form-item label="新手机号">
-          <el-input v-model="phoneForm.newPhone" placeholder="请输入新手机号" />
+          <el-input v-model="phoneForm.newPhone" placeholder="请输入新手机号" size="large" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showChangePhoneModal = false">取消</el-button>
-        <el-button type="primary" @click="changePhone">确定</el-button>
+        <div class="security-dialog-footer">
+          <button class="security-cancel-btn" @click="showChangePhoneModal = false">取消</button>
+          <button class="security-submit-btn" @click="changePhone">确认{{ userInfo?.phone ? '更换' : '绑定' }}</button>
+        </div>
       </template>
     </el-dialog>
 
     <!-- 修改邮箱弹窗 -->
-    <el-dialog title="修改邮箱" v-model="showChangeEmailModal" width="400px">
-      <el-form :model="emailForm" label-width="80px">
+    <el-dialog
+      v-model="showChangeEmailModal"
+      width="420px"
+      :show-close="false"
+      class="security-dialog email-dialog"
+      destroy-on-close
+    >
+      <div class="security-dialog-header">
+        <div class="security-dialog-icon email">
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        </div>
+        <div class="security-dialog-title">
+          <h4>{{ userInfo?.email ? '更换邮箱' : '绑定邮箱' }}</h4>
+          <p>{{ userInfo?.email ? `当前邮箱：${maskEmail(userInfo.email)}` : '绑定邮箱可用于接收订单通知和找回密码' }}</p>
+        </div>
+      </div>
+      <el-form :model="emailForm" label-position="top" class="security-form">
         <el-form-item label="原密码">
-          <el-input 
-            v-model="emailForm.password" 
-            type="password" 
+          <el-input
+            v-model="emailForm.password"
+            type="password"
             placeholder="请输入原密码"
+            size="large"
           />
         </el-form-item>
         <el-form-item label="新邮箱">
-          <el-input v-model="emailForm.newEmail" placeholder="请输入新邮箱" />
+          <el-input v-model="emailForm.newEmail" placeholder="请输入新邮箱" size="large" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showChangeEmailModal = false">取消</el-button>
-        <el-button type="primary" @click="changeEmail">确定</el-button>
+        <div class="security-dialog-footer">
+          <button class="security-cancel-btn" @click="showChangeEmailModal = false">取消</button>
+          <button class="security-submit-btn" @click="changeEmail">确认{{ userInfo?.email ? '更换' : '绑定' }}</button>
+        </div>
       </template>
     </el-dialog>
   </div>
@@ -927,13 +1125,77 @@ const loading = ref(false)
 const activeSideMenu = ref('overview')
 const originalUserInfo = ref({})
 
+// 时间问候
+const timeGreeting = computed(() => {
+  const h = new Date().getHours()
+  if (h < 6) return '夜深了'
+  if (h < 9) return '早上好'
+  if (h < 12) return '上午好'
+  if (h < 14) return '中午好'
+  if (h < 18) return '下午好'
+  return '晚上好'
+})
+
+// 今日日期
+const todayDate = computed(() =>
+  new Date().toLocaleDateString('zh-CN', {
+    year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'
+  })
+)
+
+// 快捷入口数据
+const quickItems = [
+  {
+    key: 'orders',
+    label: '全部订单',
+    desc: '查看和管理你的订单',
+    icon: '<path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/>'
+  },
+  {
+    key: 'info',
+    label: '个人资料',
+    desc: '修改头像和昵称',
+    icon: '<path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/>'
+  },
+  {
+    key: 'address',
+    label: '收货地址',
+    desc: '管理配送地址',
+    icon: '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>'
+  },
+  {
+    key: 'cart',
+    label: '购物车',
+    desc: '查看已加入的商品',
+    icon: '<circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/>'
+  }
+]
+
+interface MenuItem {
+  key: string
+  label: string
+  icon: string
+  danger?: boolean
+  badge?: number
+}
+
+// 侧边栏菜单项
+const menuItems = computed<MenuItem[]>(() => [
+  { key: 'overview', label: '我的看板', icon: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>' },
+  { key: 'orders', label: '我的订单', icon: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>' },
+  { key: 'cart', label: '我的购物车', icon: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 002 1.61h9.72a2 2 0 002-1.61L23 6H6"/></svg>' },
+  { key: 'security', label: '安全设置', icon: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>' },
+  { key: 'info', label: '个人资料', icon: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>' },
+  { key: 'address', label: '收货地址', icon: '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>' }
+])
+
 // 用户信息
 const userInfo = computed(() => userStore.userInfo)
 
 // 用户头像URL
 const avatarUrl = computed(() => {
   const avatar = userStore.userInfo?.avatar
-  if (!avatar) return 'https://via.placeholder.com/80'
+  if (!avatar) return 'data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI4MCIgaGVpZ2h0PSI4MCIgdmlld0JveD0iMCAwIDgwIDgwIj48cmVjdCB3aWR0aD0iODAiIGhlaWdodD0iODAiIGZpbGw9IiNmMGM3YjMiLz48Y2lyY2xlIGN4PSI0MCIgY3k9IjMyIiByPSIxNiIgZmlsbD0iI2ZmZiIvPjxlbGxpcHNlIGN4PSI0MCIgY3k9IjcyIiByeD0iMjgiIHJ5PSIyMCIgZmlsbD0iI2ZmZiIvPjwvc3ZnPg=='
   if (avatar.startsWith('http://') || avatar.startsWith('https://')) return avatar
   if (avatar.startsWith('/api/')) return avatar
   return getAvatarUrl(avatar)
@@ -953,6 +1215,7 @@ const editForm = reactive({
 const roleText = computed(() => {
   if (!userStore.userInfo?.roles || userStore.userInfo.roles.length === 0) return '普通用户'
   const role = userStore.userInfo.roles[0]
+  if (!role) return '普通用户'
   if (role.code === 'SUPER_ADMIN') return '超级管理员'
   if (role.code === 'ADMIN' || role.code === 'ROLE_ADMIN') return '管理员'
   if (role.code === 'SELLER' || role.code === 'ROLE_SELLER') return '商家'
@@ -1029,6 +1292,38 @@ const loadStatusCount = async () => {
     loadingStatusCount.value = false
   }
 }
+
+// 看板订单状态卡片数据
+const orderStats = computed(() => [
+  {
+    tab: 'pending_pay',
+    label: '待付款',
+    value: statusCount.pendingPayment,
+    hint: '等待支付',
+    icon: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>'
+  },
+  {
+    tab: 'pending_ship',
+    label: '待发货',
+    value: statusCount.pendingDelivery,
+    hint: '等待发货',
+    icon: '<rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>'
+  },
+  {
+    tab: 'pending_receive',
+    label: '待收货',
+    value: statusCount.pendingReceipt,
+    hint: '等待收货',
+    icon: '<path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 002 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>'
+  },
+  {
+    tab: 'refunding',
+    label: '退款中',
+    value: statusCount.refunding,
+    hint: '处理中',
+    icon: '<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/>'
+  }
+])
 
 // 点击统计项跳转到我的订单对应标签
 const goToOrdersTab = (tab: string) => {
@@ -1181,7 +1476,7 @@ const stopCountdown = () => {
 // 分页状态
 const pagination = reactive({
   page: 1,
-  pageSize: 10,
+  pageSize: 12,
   total: 0
 })
 
@@ -1272,7 +1567,7 @@ const loadOrders = async (resetPage = false) => {
     }
     if (targetStatus !== undefined) params.status = targetStatus
     const data = await getOrderListWithItems(params)
-    const list = data?.list || data?.records || []
+    const list = data?.list || []
     orders.value = list
     pagination.total = data?.total || orders.value.length || 0
   } catch {
@@ -1363,6 +1658,10 @@ const handleLogout = async () => {
   }
 }
 
+// 地址默认复选框 (独立 boolean ref, 避免 reactive + el-checkbox true-value 响应问题)
+const addressIsDefault = ref(false)
+const showAddressFormError = ref(false)
+
 // 打开添加地址弹窗
 const showAddAddressModalHandler = () => {
   editingAddress.value = null
@@ -1372,6 +1671,8 @@ const showAddAddressModalHandler = () => {
   addressForm.region = []
   addressForm.detailAddress = ''
   addressForm.isDefault = 0
+  addressIsDefault.value = false
+  showAddressFormError.value = false
   showAddAddressModal.value = true
 }
 
@@ -1384,6 +1685,8 @@ const editAddress = (addr: Address) => {
   addressForm.region = [addr.province, addr.city, addr.district]
   addressForm.detailAddress = addr.detailAddress
   addressForm.isDefault = addr.isDefault
+  addressIsDefault.value = addr.isDefault === 1
+  showAddressFormError.value = false
   showAddAddressModal.value = true
 }
 
@@ -1391,15 +1694,56 @@ const editAddress = (addr: Address) => {
 const closeAddressModal = () => {
   showAddAddressModal.value = false
   editingAddress.value = null
+  showAddressFormError.value = false
 }
 
-// 保存地址
-const saveAddress = async () => {
-  if (!addressForm.receiverName || !addressForm.receiverPhone || !addressForm.region.length || !addressForm.detailAddress) {
+// 手机号格式校验（大陆手机号：1开头的11位数字）
+const isValidPhone = (phone: string): boolean => {
+  return /^1\d{10}$/.test(phone)
+}
+
+// 校验地址表单
+const validateAddressForm = (): boolean => {
+  showAddressFormError.value = true
+  return !!(
+    addressForm.receiverName &&
+    addressForm.receiverPhone && isValidPhone(addressForm.receiverPhone) &&
+    addressForm.region.length &&
+    addressForm.detailAddress
+  )
+}
+
+// 确认保存地址（编辑 / 添加）
+const confirmSaveAddress = () => {
+  if (!validateAddressForm()) {
     ElMessage.warning('请填写完整信息')
     return
   }
 
+  const title = editingAddress.value ? '确认修改地址' : '确认添加地址'
+  const message = editingAddress.value
+    ? '确定要修改当前地址信息吗？'
+    : '确定添加新的收货地址吗？'
+  const confirmText = editingAddress.value ? '确认修改' : '确认添加'
+
+  ElMessageBox.confirm(message, title, {
+    confirmButtonText: confirmText,
+    cancelButtonText: '取消',
+    type: editingAddress.value ? 'warning' : 'info',
+    customClass: 'lux-message-box',
+    confirmButtonClass: editingAddress.value ? 'lux-msg-confirm' : 'lux-msg-confirm',
+    cancelButtonClass: 'lux-msg-cancel'
+  })
+    .then(() => {
+      saveAddress()
+    })
+    .catch(() => {
+      /* 用户取消 */
+    })
+}
+
+// 保存地址
+const saveAddress = async () => {
   try {
     loading.value = true
     const data = {
@@ -1409,7 +1753,7 @@ const saveAddress = async () => {
       city: addressForm.region[1] || '',
       district: addressForm.region[2] || '',
       detailAddress: addressForm.detailAddress,
-      isDefault: addressForm.isDefault
+      isDefault: addressIsDefault.value ? 1 : 0
     }
 
     if (editingAddress.value) {
@@ -1422,7 +1766,7 @@ const saveAddress = async () => {
       await addAddress(data)
       ElMessage.success('地址添加成功')
     }
-    
+
     closeAddressModal()
     loadAddresses()
   } catch {
@@ -1443,6 +1787,28 @@ const setDefault = async (id: number) => {
   }
 }
 
+// 确认设置默认地址
+const confirmSetDefault = (addr: Address) => {
+  ElMessageBox.confirm(
+    `确定将「${addr.province}${addr.city}${addr.district}${addr.detailAddress}」设为默认收货地址吗？`,
+    '设为默认地址',
+    {
+      confirmButtonText: '确定设置',
+      cancelButtonText: '取消',
+      type: 'warning',
+      customClass: 'lux-message-box',
+      confirmButtonClass: 'lux-msg-confirm',
+      cancelButtonClass: 'lux-msg-cancel'
+    }
+  )
+    .then(() => {
+      setDefault(addr.id)
+    })
+    .catch(() => {
+      /* 用户取消 */
+    })
+}
+
 // 删除地址
 const deleteAddressHandler = async (id: number) => {
   try {
@@ -1452,6 +1818,28 @@ const deleteAddressHandler = async (id: number) => {
   } catch {
     /* 错误已由拦截器处理 */
   }
+}
+
+// 确认删除地址
+const confirmDeleteAddress = (addr: Address) => {
+  ElMessageBox.confirm(
+    `确定删除「${addr.receiverName}」的收货地址吗？删除后将无法恢复。`,
+    '删除地址',
+    {
+      confirmButtonText: '确定删除',
+      cancelButtonText: '取消',
+      type: 'error',
+      customClass: 'lux-message-box',
+      confirmButtonClass: 'lux-msg-confirm-danger',
+      cancelButtonClass: 'lux-msg-cancel'
+    }
+  )
+    .then(() => {
+      deleteAddressHandler(addr.id)
+    })
+    .catch(() => {
+      /* 用户取消 */
+    })
 }
 
 // 修改密码
@@ -1484,7 +1872,10 @@ const changePassword = async () => {
     passwordForm.newPassword = ''
     passwordForm.confirmPassword = ''
   } catch {
+    // 出现错误时清空已填写内容
     passwordForm.oldPassword = ''
+    passwordForm.newPassword = ''
+    passwordForm.confirmPassword = ''
   } finally {
     loading.value = false
   }
@@ -1496,10 +1887,10 @@ const changePhone = async () => {
     ElMessage.warning('请填写完整信息')
     return
   }
-  
+
   try {
     loading.value = true
-    await updateUserProfile({ 
+    await updateUserProfile({
       phone: phoneForm.newPhone,
       password: phoneForm.password
     })
@@ -1509,7 +1900,9 @@ const changePhone = async () => {
     phoneForm.newPhone = ''
     await userStore.fetchUserInfo()
   } catch {
+    // 出现错误时清空已填写内容
     phoneForm.password = ''
+    phoneForm.newPhone = ''
   } finally {
     loading.value = false
   }
@@ -1521,10 +1914,10 @@ const changeEmail = async () => {
     ElMessage.warning('请填写完整信息')
     return
   }
-  
+
   try {
     loading.value = true
-    await updateUserProfile({ 
+    await updateUserProfile({
       email: emailForm.newEmail,
       password: emailForm.password
     })
@@ -1534,7 +1927,9 @@ const changeEmail = async () => {
     emailForm.newEmail = ''
     await userStore.fetchUserInfo()
   } catch {
+    // 出现错误时清空已填写内容
     emailForm.password = ''
+    emailForm.newEmail = ''
   } finally {
     loading.value = false
   }
@@ -1664,7 +2059,7 @@ const handleCancelRefund = async (order: Order) => {
     await cancelRefund(order.id)
     ElMessage.success('退款申请已取消，订单已恢复')
     loadOrders()
-  } catch (e) {
+  } catch (e: any) {
     if (e !== 'cancel') ElMessage.error(e?.message || '取消退款失败')
   } finally {
     submitting.value = false
@@ -1727,6 +2122,45 @@ const formatExpireTime = (t?: string, now?: number) => {
   return m > 0 ? `${m}分${s}秒` : `${s}秒`
 }
 
+// 手机号脱敏
+const maskPhone = (phone: string) => {
+  return phone.replace(/(\d{3})\d{4}(\d{4})/, '$1****$2')
+}
+
+// 邮箱脱敏
+const maskEmail = (email: string) => {
+  const [name = '', domain] = email.split('@')
+  if (!domain) return email
+  const masked = name.length > 2 ? name.slice(0, 2) + '***' : '***'
+  return `${masked}@${domain}`
+}
+
+// 状态图标 SVG path
+const getStatusIcon = (status: number) => {
+  const icons: Record<number, string> = {
+    1: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>', // 待付款 - 时钟
+    2: '<path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/>', // 待发货 - 包裹
+    3: '<rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/>', // 待收货 - 卡车
+    4: '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>', // 已完成 - 对勾
+    5: '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>', // 已取消 - 叉
+    6: '<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>', // 退款中 - 刷新
+    7: '<path d="M17 1l4 4-4 4"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><path d="M7 23l-4-4 4-4"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/>', // 已退款 - 退回
+    8: '<circle cx="12" cy="12" r="10"/><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"/>', // 已拒绝 - 禁止
+  }
+  return icons[status] || '<circle cx="12" cy="12" r="10"/>'
+}
+
+// 复制订单号
+const copyOrderNo = async (no: string, e: Event) => {
+  e.stopPropagation()
+  try {
+    await navigator.clipboard.writeText(no)
+    ElMessage.success('订单号已复制')
+  } catch {
+    ElMessage.error('复制失败')
+  }
+}
+
 // 跳转到首页
 const goHome = () => {
   router.push('/home')
@@ -1764,421 +2198,1040 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
+/* 使用系统字体，不再加载外部 Google Fonts */
+
+/* ===========================
+   个人中心 — Studio Design System
+   使用项目 Design Token
+   =========================== */
+
+/* ===== 容器布局 ===== */
 .profile-container {
   min-height: 100vh;
   display: flex;
   flex-direction: column;
-  width: 100%;
-  margin: 0;
-  padding: 0;
+  background: var(--bg);
 }
 
 .profile-content {
   flex: 1;
   display: flex;
-  width: 100%;
-  max-width: 100%;
-  margin: 60px 0 0 0;
-  padding: 0;
+  margin-top: var(--header-height, 60px);
+  min-height: calc(100vh - var(--header-height, 60px));
 }
 
+/* ===== 侧边栏 — 浅色设计 ===== */
 .sidebar {
-  width: 250px;
-  background: white;
-  border-right: 1px solid #eee;
-  box-shadow: 2px 0 12px rgba(0, 0, 0, 0.05);
-  margin: 0;
-  padding: 0;
-  position: fixed;
-  left: 0;
-  top: 60px;
-  height: calc(100vh - 60px);
-  z-index: 10;
+  width: 240px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border-right: 1px solid var(--border-light);
+  display: flex;
+  flex-direction: column;
   overflow-y: auto;
+  position: sticky;
+  top: var(--header-height, 60px);
+  height: calc(100vh - var(--header-height, 60px));
 }
 
-.side-menu {
-  border-right: none;
-}
-
-.user-info {
-  padding: 30px 20px;
-  text-align: center;
-  border-bottom: 1px solid #eee;
-}
-
-.avatar-wrapper {
-  display: inline-block;
-  cursor: pointer;
-  border-radius: 50%;
-  transition: transform 0.2s;
-}
-
-.avatar-wrapper:hover {
-  transform: scale(1.05);
-}
-
-/* 头像弹出菜单 */
-.avatar-popover-menu {
-  padding: 4px 0;
-}
-
-.popover-item {
+.sidebar-user {
+  padding: var(--space-6) var(--space-5) var(--space-4);
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  cursor: pointer;
-  border-radius: 4px;
-  transition: background-color 0.2s;
-  font-size: 14px;
-  color: #333;
+  gap: var(--space-4);
+  border-bottom: 1px solid var(--border-light);
 }
 
-.popover-item:hover {
-  background-color: #f5f5f5;
-  color: #ff4400;
-}
-
-.popover-item .el-icon {
-  font-size: 16px;
-}
-
-/* ===== 个人资料卡片 ===== */
-.profile-section {
-  padding: 0;
-}
-
-.profile-card {
-  background: #fff;
-  border-radius: 12px;
-  border: 1px solid #e4e7ed;
+.sidebar-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-full);
   overflow: hidden;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-}
-
-.profile-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 28px 32px;
-  border-bottom: 1px solid #f0f1f5;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-
-.profile-avatar-area {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
-.avatar-frame {
-  position: relative;
-  border-radius: 50%;
-  cursor: pointer;
   flex-shrink: 0;
+  border: 2px solid var(--color-brand-100);
 }
 
-.avatar-frame:hover .avatar-overlay {
-  opacity: 1;
-}
-
-.profile-avatar {
+.sidebar-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
   display: block;
-  border: 3px solid #f0f1f5;
-  transition: filter 0.2s;
 }
 
-.avatar-frame:hover .profile-avatar {
-  filter: brightness(0.7);
-}
-
-.avatar-overlay {
-  position: absolute;
-  top: 3px;
-  left: 3px;
-  width: calc(100% - 6px);
-  height: calc(100% - 6px);
-  border-radius: 50%;
-  background: rgba(0, 0, 0, 0.55);
+.sidebar-user-info {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  opacity: 0;
-  transition: opacity 0.25s;
-  color: #fff;
-  font-size: 11px;
-  gap: 3px;
-  line-height: 1.2;
+  gap: 2px;
+  min-width: 0;
 }
 
-.avatar-overlay .el-icon {
-  font-size: 18px;
+.sidebar-user-name {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.avatar-name {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.profile-username {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 650;
-  color: #1a1a2e;
-  line-height: 1.3;
-}
-
-.profile-role-badge {
-  display: inline-flex;
-  align-items: center;
-  font-size: 12px;
-  font-weight: 500;
-  color: #4361ee;
-  background: #eef1ff;
-  padding: 2px 12px;
-  border-radius: 20px;
-  width: fit-content;
-  line-height: 22px;
-}
-
-.profile-actions {
-  display: flex;
-  gap: 10px;
-  flex-shrink: 0;
-}
-
-.profile-body {
-  padding: 28px 32px 32px;
-}
-
-.profile-body .info-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 24px 40px;
-}
-
-.info-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.cell-label {
-  font-size: 12px;
-  font-weight: 500;
-  color: #8e8ea0;
-  letter-spacing: 0.3px;
-  text-transform: uppercase;
-}
-
-.cell-value {
-  font-size: 15px;
-  color: #1a1a2e;
-  line-height: 1.5;
-}
-
-.cell-value.mono {
-  font-family: 'SF Mono', 'Cascadia Code', Consolas, monospace;
-  font-size: 14px;
-  color: #555;
-}
-
-/* 编辑资料弹窗 */
-.edit-form {
-  padding: 8px 0;
-}
-
-.user-details {
-  margin-top: 15px;
-}
-
-.user-details h3 {
-  margin: 10px 0 5px 0;
-  color: #333;
-  font-size: 18px;
-}
-
-.user-details p {
-  margin: 0;
-  color: #666;
-  font-size: 14px;
-}
-
-.logout-item {
-  color: #f56c6c;
-}
-
-.logout-item .el-icon {
-  color: #f56c6c;
-}
-
-.main-content {
+.sidebar-nav {
   flex: 1;
-  padding: 0;
-  margin: 0 0 0 250px;
-  background: #f5f5f5;
-}
-
-.content-box {
-  background: white;
-  min-height: calc(100vh - 60px);
-  padding: 30px;
-  margin: 0;
-}
-
-/* ===== 订单概览 ===== */
-.overview-section {
-  max-width: 720px;
-}
-
-/* 欢迎横幅 */
-.welcome-banner {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  border-radius: 14px;
-  padding: 28px 32px;
-  margin-bottom: 28px;
-  color: #fff;
-}
-
-.banner-content {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.welcome-title {
-  margin: 0;
-  font-size: 24px;
-  font-weight: 700;
-  line-height: 1.3;
-  color: #fff;
-}
-
-.welcome-sub {
-  margin: 0;
-  font-size: 14px;
-  opacity: 0.85;
-  color: #fff;
-}
-
-.banner-avatar {
-  flex-shrink: 0;
-}
-
-.banner-avatar .el-avatar {
-  border: 2px solid rgba(255, 255, 255, 0.4);
-  background: rgba(255, 255, 255, 0.15);
-}
-
-/* 统计卡片网格 */
-.stat-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 28px;
-}
-
-.stat-card {
-  background: #fff;
-  border: 1px solid #eaecf0;
-  border-radius: 14px;
-  padding: 20px 22px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  transition: box-shadow 0.2s, transform 0.15s, border-color 0.2s;
-  cursor: default;
-}
-
-.stat-card.clickable {
-  cursor: pointer;
-}
-
-.stat-card.clickable:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-  border-color: #cdd0d7;
-  transform: translateY(-2px);
-}
-
-.stat-card.clickable:active {
-  transform: scale(0.98);
-}
-
-.stat-icon-wrap {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-}
-
-.stat-icon-wrap.pending-pay {
-  background: #fff3e0;
-  color: #e67e22;
-}
-
-.stat-icon-wrap.pending-ship {
-  background: #e3f2fd;
-  color: #1976d2;
-}
-
-.stat-icon-wrap.pending-receive {
-  background: #e8f5e9;
-  color: #388e3c;
-}
-
-.stat-icon-wrap.refunding {
-  background: #fce4ec;
-  color: #c62828;
-}
-
-.stat-info {
+  padding: var(--space-3) var(--space-2);
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-.stat-value {
-  font-size: 32px;
-  font-weight: 750;
-  color: #1a1a2e;
-  line-height: 1.1;
-  font-variant-numeric: tabular-nums;
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: 10px var(--space-3);
+  border: none;
+  background: transparent;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--ink-muted);
+  transition: all var(--transition-fast);
+  width: 100%;
+  text-align: left;
+  font-family: inherit;
 }
 
-.stat-label {
-  font-size: 14px;
+.nav-item:hover {
+  background: var(--surface-soft);
+  color: var(--ink);
+}
+
+.nav-item.active {
+  background: var(--color-brand-50);
+  color: var(--color-brand-500);
+  font-weight: 600;
+}
+
+.nav-item.danger {
+  color: var(--color-danger);
+}
+
+.nav-item.danger:hover {
+  background: #fef2f2;
+  color: var(--color-danger);
+}
+
+.nav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.nav-label {
+  flex: 1;
+}
+
+.nav-badge {
+  background: var(--color-brand-500);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: var(--radius-full);
+  line-height: 1.6;
+}
+
+.sidebar-footer {
+  padding: var(--space-2);
+  border-top: 1px solid var(--border-light);
+}
+
+/* ===== 主内容区 ===== */
+.main-content {
+  flex: 1;
+  padding: 0;
+  background: transparent;
+}
+
+.content-box {
+  background: transparent;
+  min-height: calc(100vh - var(--header-height, 60px));
+  padding: var(--space-8) var(--space-10);
+}
+
+/* ===== 入场动画 ===== */
+.animate-in {
+  animation: fadeInUp 0.3s ease-out both;
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 0.85; }
+}
+
+/* ===== 概览看板 ===== */
+.overview-section {
+  width: 100%;
+}
+
+/* Bento 网格布局 */
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: var(--space-5);
+  align-items: stretch;
+}
+
+.bento-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.welcome-cell { grid-column: span 8; }
+.account-cell { grid-column: span 4; }
+.stat-cell { grid-column: span 3; }
+.quick-cell { grid-column: span 12; }
+
+/* 通用卡片基底 */
+.overview-section .welcome-card,
+.overview-section .account-card,
+.overview-section .stat-card-v2,
+.overview-section .quick-panel {
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-xl);
+  padding: var(--space-6);
+  height: 100%;
+  transition: all var(--transition-base);
+}
+
+/* 欢迎卡片 — 克制的高级感 */
+.welcome-card {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--space-6);
+  overflow: hidden;
+  background: linear-gradient(135deg, #fafafa 0%, #ffffff 100%) !important;
+}
+
+.welcome-pattern {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(circle at 90% 10%, rgba(255, 68, 0, 0.04) 0%, transparent 40%),
+    radial-gradient(circle at 10% 90%, rgba(0, 0, 0, 0.02) 0%, transparent 35%);
+  pointer-events: none;
+}
+
+.welcome-text {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  position: relative;
+  z-index: 1;
+}
+
+.welcome-eyebrow {
+  font-size: var(--text-xs);
   font-weight: 500;
-  color: #555;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.welcome-title {
+  margin: 0;
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.welcome-sub {
+  margin: 0;
+  font-size: var(--text-base);
+  color: var(--ink-muted);
+  font-weight: 400;
+}
+
+.welcome-avatar {
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+}
+
+.welcome-avatar img {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--border-light);
+  display: block;
+  box-shadow: var(--shadow-md);
+}
+
+/* 账户概览卡片 */
+.account-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.account-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--space-5);
+}
+
+.account-label {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--ink-muted);
+}
+
+.account-badge {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--color-success);
+  background: color-mix(in oklab, var(--color-success) 10%, white);
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+}
+
+.account-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-4);
+  margin-top: auto;
+}
+
+.meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.meta-value {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink-muted);
+}
+
+.meta-value.active {
+  color: var(--color-success);
+}
+
+.meta-label {
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+}
+
+/* 订单状态卡片 — 极简 */
+.stat-card-v2 {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  cursor: pointer;
+  position: relative;
+}
+
+.stat-card-v2::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--border-light);
+  transition: background var(--transition-base);
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+}
+
+.stat-card-v2:hover {
+  border-color: var(--color-brand-200);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.stat-card-v2:hover::before {
+  background: var(--color-brand-500);
+}
+
+.stat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.stat-name {
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--ink-muted);
+}
+
+.stat-icon-v2 {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-faint);
+  background: var(--surface-soft);
+  transition: all var(--transition-base);
+}
+
+.stat-card-v2:hover .stat-icon-v2 {
+  color: var(--color-brand-500);
+  background: var(--color-brand-50);
+}
+
+.stat-body {
+  display: flex;
+  align-items: baseline;
+}
+
+.stat-value {
+  font-size: var(--text-3xl);
+  font-weight: 700;
+  color: var(--ink);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .stat-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 12px;
-  color: #999;
-  border-top: 1px solid #f0f1f5;
-  padding-top: 10px;
   margin-top: auto;
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--border-light);
 }
 
-.stat-footer .el-icon {
-  font-size: 14px;
-  transition: transform 0.2s;
+.stat-hint {
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
 }
 
-.stat-card.clickable:hover .stat-footer .el-icon {
+.stat-arrow {
+  font-size: var(--text-sm);
+  color: var(--ink-faint);
+  transition: all var(--transition-fast);
+}
+
+.stat-card-v2:hover .stat-arrow {
+  color: var(--color-brand-500);
   transform: translateX(3px);
+}
+
+/* 加载骨架屏 */
+.shimmer {
+  display: inline-block;
+  width: 40px;
+  height: 36px;
+  background: linear-gradient(90deg, var(--surface-muted) 25%, var(--surface-soft) 50%, var(--surface-muted) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* 快捷入口面板 */
+.quick-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.panel-title {
+  margin: 0;
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.quick-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-3);
+}
+
+.quick-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border: 1px solid transparent;
+}
+
+.quick-row:hover {
+  background: var(--surface-soft);
+  border-color: var(--border-light);
+}
+
+.quick-row-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-muted);
+  background: var(--surface-muted);
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.quick-row:hover .quick-row-icon {
+  color: var(--color-brand-500);
+  background: var(--color-brand-50);
+}
+
+.quick-row-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+
+.quick-row-label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.quick-row-desc {
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+}
+
+.quick-row-arrow {
+  font-size: var(--text-sm);
+  color: var(--ink-faint);
+  transition: transform var(--transition-fast);
+}
+
+.quick-row:hover .quick-row-arrow {
+  color: var(--color-brand-500);
+  transform: translateX(3px);
+}
+
+/* ===== 个人资料 ===== */
+/* 个人资料 — 高级感浅色系主题变量 */
+.profile-section {
+  --lux-bg: #fafaf9;
+  --lux-surface: #ffffff;
+  --lux-surface-soft: #f5f5f4;
+  --lux-surface-warm: #faf7f2;
+  --lux-border: rgba(28, 25, 23, 0.08);
+  --lux-border-strong: rgba(28, 25, 23, 0.16);
+  --lux-gold: #ca8a04;
+  --lux-gold-soft: #d4a017;
+  --lux-gold-muted: #b7791f;
+  --lux-gold-50: rgba(202, 138, 4, 0.08);
+  --lux-gold-100: rgba(202, 138, 4, 0.14);
+  --lux-ink: #1c1917;
+  --lux-ink-soft: #44403c;
+  --lux-ink-muted: #78716c;
+  --lux-ink-faint: #a8a29e;
+  --lux-radius: 24px;
+  --lux-shadow: 0 20px 60px rgba(28, 25, 23, 0.08);
+  --lux-shadow-hover: 0 28px 80px rgba(28, 25, 23, 0.12);
+  --lux-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+
+  padding: 0;
+}
+
+.profile-card-v3 {
+  background: var(--lux-surface);
+  border: 1px solid var(--lux-border);
+  border-radius: var(--lux-radius);
+  overflow: hidden;
+  box-shadow: var(--lux-shadow);
+  position: relative;
+}
+
+/* 顶部柔和光泽 */
+.profile-card-v3::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 40%, rgba(202, 138, 4, 0.02) 50%, transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.profile-cover {
+  height: 150px;
+  background:
+    radial-gradient(circle at 15% 85%, rgba(202, 138, 4, 0.12) 0%, transparent 40%),
+    radial-gradient(circle at 85% 15%, rgba(212, 160, 23, 0.10) 0%, transparent 35%),
+    linear-gradient(135deg, #faf7f2 0%, #f5f0e8 50%, #faf8f3 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+/* 高级感网格纹理 */
+.profile-cover-pattern {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(202, 138, 4, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(202, 138, 4, 0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.5) 0%, transparent 100%);
+}
+
+/* 封面顶部金色细线 */
+.profile-cover::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(202, 138, 4, 0.4), transparent);
+  opacity: 0.8;
+}
+
+.profile-head-v3 {
+  display: flex;
+  align-items: flex-end;
+  padding: 0 var(--space-10) var(--space-8);
+  gap: var(--space-6);
+  position: relative;
+  z-index: 1;
+}
+
+.profile-avatar-area-v3 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  margin-top: -56px;
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+}
+
+.avatar-frame-v3 {
+  position: relative;
+  width: 112px;
+  height: 112px;
+  border-radius: 20px;
+  cursor: pointer;
+  flex-shrink: 0;
+  overflow: hidden;
+  border: 4px solid var(--lux-surface);
+  box-shadow: 0 0 0 1.5px var(--lux-gold-soft), 0 12px 32px rgba(28, 25, 23, 0.12);
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.avatar-frame-v3 img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.avatar-frame-v3:hover {
+  transform: scale(1.03);
+  box-shadow: 0 0 0 2px var(--lux-gold), 0 16px 40px rgba(202, 138, 4, 0.18);
+}
+
+.avatar-frame-v3:hover .avatar-overlay-v3 {
+  opacity: 1;
+}
+
+.avatar-overlay-v3 {
+  position: absolute;
+  inset: 0;
+  border-radius: 20px;
+  background: rgba(28, 25, 23, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  color: var(--lux-surface);
+}
+
+.avatar-change-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--lux-border);
+  background: var(--lux-surface);
+  color: var(--lux-gold);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: 0 2px 8px rgba(28, 25, 23, 0.04);
+}
+
+.avatar-change-link:hover {
+  background: var(--lux-gold-50);
+  border-color: rgba(202, 138, 4, 0.25);
+  color: var(--lux-gold-soft);
+}
+
+.profile-meta-v3 {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-bottom: 6px;
+  flex: 1;
+  min-width: 0;
+}
+
+.profile-username-v3 {
+  margin: 0;
+  font-size: var(--text-3xl);
+  font-weight: 700;
+  color: var(--lux-ink);
+  line-height: 1.15;
+  font-family: var(--lux-font);
+  letter-spacing: -0.01em;
+}
+
+.profile-meta-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.profile-id {
+  font-size: var(--text-xs);
+  color: var(--lux-ink-muted);
+  font-family: var(--font-mono);
+  background: var(--lux-surface-soft);
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--lux-border);
+}
+
+.profile-edit-btn-v3 {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 10px var(--space-5);
+  border: 1px solid var(--lux-gold);
+  background: var(--lux-surface);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--lux-gold);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-family: inherit;
+  margin-left: auto;
+  margin-bottom: 6px;
+  position: relative;
+  overflow: hidden;
+}
+
+.profile-edit-btn-v3::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, var(--lux-gold-100), transparent);
+  transform: translateX(-100%);
+  transition: transform 0.6s ease;
+}
+
+.profile-edit-btn-v3:hover {
+  background: var(--lux-gold-50);
+  color: var(--lux-gold-soft);
+  box-shadow: 0 4px 16px rgba(202, 138, 4, 0.15);
+}
+
+.profile-edit-btn-v3:hover::before {
+  transform: translateX(100%);
+}
+
+.profile-body-v3 {
+  padding: 0 var(--space-10) var(--space-10);
+  position: relative;
+  z-index: 1;
+}
+
+.info-section {
+  background: var(--lux-surface-soft);
+  border: 1px solid var(--lux-border);
+  border-radius: var(--radius-lg);
+  padding: var(--space-6);
+  position: relative;
+  overflow: hidden;
+}
+
+.info-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(202, 138, 4, 0.25), transparent);
+  opacity: 0.6;
+}
+
+.info-section-title {
+  margin: 0 0 var(--space-5) 0;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--lux-gold);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-family: var(--lux-font);
+}
+
+.info-grid-v3 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-4);
+}
+
+.info-cell-v3 {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: var(--space-4);
+  background: var(--lux-surface);
+  border: 1px solid var(--lux-border);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+  position: relative;
+}
+
+.info-cell-v3::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 100%;
+  background: linear-gradient(180deg, var(--lux-gold), transparent);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+}
+
+.info-cell-v3:hover {
+  border-color: rgba(202, 138, 4, 0.25);
+  background: var(--lux-surface);
+  transform: translateY(-2px);
+  box-shadow: var(--lux-shadow-hover);
+}
+
+.info-cell-v3:hover::before {
+  opacity: 0.5;
+}
+
+.info-cell-v3.full {
+  grid-column: 1 / -1;
+}
+
+.cell-label-v3 {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--lux-ink-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-family: var(--lux-font);
+}
+
+.cell-value-v3 {
+  font-size: var(--text-base);
+  font-weight: 500;
+  color: var(--lux-ink);
+  line-height: 1.4;
+  word-break: break-all;
+  font-family: var(--lux-font);
+}
+
+.cell-value-v3.mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  color: var(--lux-ink-muted);
+}
+
+/* 编辑资料弹窗 — 高级感浅色系主题 */
+.profile-edit-dialog-v3 :deep(.el-dialog) {
+  border-radius: var(--lux-radius);
+  overflow: hidden;
+  background: var(--lux-surface);
+  border: 1px solid var(--lux-border);
+  box-shadow: var(--lux-shadow-hover);
+}
+
+.profile-edit-dialog-v3 :deep(.el-dialog__header) { display: none; }
+.profile-edit-dialog-v3 :deep(.el-dialog__body) { padding: var(--space-6); position: relative; z-index: 1; }
+.profile-edit-dialog-v3 :deep(.el-dialog__footer) { padding: 0 var(--space-6) var(--space-6); position: relative; z-index: 1; }
+
+.edit-dialog-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.edit-dialog-avatar {
+  position: relative;
+  width: 76px;
+  height: 76px;
+  border-radius: 14px;
+  overflow: hidden;
+  cursor: pointer;
+  border: 2px solid var(--lux-gold-soft);
+  box-shadow: 0 8px 24px rgba(28, 25, 23, 0.1);
+  flex-shrink: 0;
+  transition: all var(--transition-fast);
+}
+
+.edit-dialog-avatar:hover {
+  box-shadow: 0 8px 28px rgba(202, 138, 4, 0.2);
+}
+
+.edit-dialog-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.edit-avatar-overlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 14px;
+  background: rgba(28, 25, 23, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+  color: var(--lux-surface);
+}
+
+.edit-dialog-avatar:hover .edit-avatar-overlay {
+  opacity: 1;
+}
+
+.edit-dialog-title h4 {
+  margin: 0 0 4px 0;
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--lux-ink);
+  font-family: var(--lux-font);
+  letter-spacing: -0.01em;
+}
+
+.edit-dialog-title p {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--lux-ink-muted);
+}
+
+.edit-form-v3 :deep(.el-form-item__label) {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--lux-ink-muted);
+  padding-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-family: var(--lux-font);
+}
+
+.edit-form-v3 :deep(.el-form-item) { margin-bottom: 0; }
+
+.edit-form-v3 :deep(.el-input__wrapper) {
+  border-radius: var(--radius-md);
+  background: var(--lux-surface-soft);
+  box-shadow: 0 0 0 1px var(--lux-border) inset;
+  padding: 2px 12px;
+}
+
+.edit-form-v3 :deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 1px var(--lux-gold) inset, 0 0 0 4px var(--lux-gold-50);
+}
+
+.edit-form-v3 :deep(.el-input__inner) {
+  height: 42px;
+  font-size: var(--text-sm);
+  color: var(--lux-ink);
+  background: transparent;
+}
+
+.edit-form-v3 :deep(.el-input__inner::placeholder) {
+  color: var(--lux-ink-faint);
+}
+
+.edit-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--space-3);
+}
+
+.edit-cancel-btn {
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--lux-border);
+  background: var(--lux-surface);
+  color: var(--lux-ink-muted);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.edit-cancel-btn:hover {
+  border-color: var(--lux-border-strong);
+  color: var(--lux-ink);
+  background: var(--lux-surface-soft);
+}
+
+.edit-save-btn {
+  padding: 10px 22px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--lux-gold);
+  background: linear-gradient(135deg, var(--lux-gold-muted), var(--lux-gold));
+  color: #fff;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.edit-save-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--lux-gold), var(--lux-gold-soft));
+  box-shadow: 0 4px 16px rgba(202, 138, 4, 0.2);
+}
+
+.edit-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* 加载闪烁占位 */
@@ -2186,102 +3239,35 @@ onUnmounted(() => {
   display: inline-block;
   min-width: 28px;
   animation: pulse 1.2s ease-in-out infinite;
-  color: #ccc;
-}
-@keyframes pulse {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 1; }
-}
-
-/* 快捷入口 */
-.quick-links {
-  margin-bottom: 20px;
-}
-
-.section-title {
-  margin: 0 0 14px 0;
-  font-size: 15px;
-  font-weight: 600;
-  color: #333;
-}
-
-.links-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-}
-
-.quick-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-  padding: 18px 10px;
-  background: #f8f9fb;
-  border: 1px solid #eaecf0;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: background 0.2s, border-color 0.2s, transform 0.15s;
-  font-size: 13px;
-  font-weight: 500;
-  color: #444;
-}
-
-.quick-card:hover {
-  background: #eef0f6;
-  border-color: #cdd0d7;
-  transform: translateY(-1px);
-}
-
-.quick-card:active {
-  transform: scale(0.97);
-}
-
-.quick-card .q-icon {
-  font-size: 22px;
-  color: #667eea;
-}
-
-.address-section h3,
-.security-section h3,
-.default-section h3,
-.orders-section h3,
-.cart-section h3 {
-  margin: 0 0 20px 0;
-  color: #333;
-  font-size: 24px;
+  color: var(--border);
 }
 
 /* ===== 订单区域 ===== */
-.orders-section {
-}
-
 .order-header {
-  margin-bottom: 24px;
+  margin-bottom: var(--space-6);
 }
 
 .order-header-top {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 18px;
+  margin-bottom: var(--space-4);
 }
 
 .order-header-top h3 {
   margin: 0;
-  font-size: 22px;
-  font-weight: 600;
-  color: #1a1a2e;
-  letter-spacing: -0.01em;
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--ink);
 }
 
 .order-total-count {
-  font-size: 13px;
-  color: #8e8ea0;
-  background: #f2f3f5;
-  padding: 2px 12px;
-  border-radius: 12px;
-  line-height: 22px;
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+  background: var(--surface-soft);
+  padding: 3px var(--space-3);
+  border-radius: var(--radius-full);
+  line-height: 1.8;
 }
 
 .order-tabs {
@@ -2296,175 +3282,255 @@ onUnmounted(() => {
   display: none;
 }
 
+.order-tabs :deep(.el-tabs--card > .el-tabs__header .el-tabs__nav) {
+  border: none;
+}
+
+.order-tabs :deep(.el-tabs--card > .el-tabs__header .el-tabs__item) {
+  border: none;
+  border-radius: var(--radius-md);
+  margin: 0 2px;
+  padding: 0 var(--space-4);
+  height: 34px;
+  line-height: 34px;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  color: var(--ink-muted);
+  transition: all var(--transition-fast);
+}
+
+.order-tabs :deep(.el-tabs--card > .el-tabs__header .el-tabs__item.is-active) {
+  background: var(--color-brand-50);
+  color: var(--color-brand-500);
+  font-weight: 600;
+}
+
+.order-tabs :deep(.el-tabs--card > .el-tabs__header .el-tabs__item:hover) {
+  color: var(--ink);
+}
+
 .order-loading {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .order-skeleton {
-  padding: 24px;
-  border-radius: 12px;
-  border: 1px solid #eaecf0;
+  padding: var(--space-6);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+  background: var(--surface);
 }
 
-/* ===== 订单卡片 ===== */
+/* ===== 订单列表 ===== */
 .order-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: var(--space-5);
 }
 
-.order-card {
-  background: #fff;
-  border-radius: 12px;
-  overflow: hidden;
-  border: 1px solid #e0e3e8;
-  cursor: pointer;
-  transition: box-shadow 0.25s, border-color 0.25s, transform 0.2s;
-  margin-bottom: 20px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.03);
-}
-
-.order-card:hover {
-  border-color: #c8ccd3;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06), 0 2px 4px rgba(0, 0, 0, 0.04);
-}
-
-/* --- 卡片头部 --- */
-.order-card-header {
+/* ===== 订单卡片 v2 ===== */
+.order-card-v2 {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 14px 22px;
-  background: #f4f5f8;
-  border-bottom: 1px solid #e6e9ef;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  cursor: pointer;
+  transition: all var(--transition-base);
   position: relative;
 }
 
-.header-left {
+/* 顶部状态色细线 */
+.order-card-v2::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: transparent;
+  z-index: 1;
+  transition: background var(--transition-base);
+}
+
+.order-card-v2.status-topline-1::before { background: var(--color-brand-500); }
+.order-card-v2.status-topline-2::before { background: var(--color-accent); }
+.order-card-v2.status-topline-3::before { background: var(--color-success); }
+.order-card-v2.status-topline-4::before { background: var(--ink-muted); }
+.order-card-v2.status-topline-5::before { background: var(--ink-faint); }
+.order-card-v2.status-topline-6::before { background: var(--color-warning); }
+.order-card-v2.status-topline-7::before { background: var(--color-success); }
+.order-card-v2.status-topline-8::before { background: var(--color-danger); }
+
+/* 左下角装饰（合并圆晕与小点） */
+.order-card-v2::after {
+  content: '';
+  position: absolute;
+  left: -18px;
+  bottom: -18px;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: radial-gradient(circle at center, var(--color-brand-100) 0%, var(--color-brand-50) 55%, transparent 70%);
+  box-shadow: 28px 28px 0 0 var(--color-brand-300);
+  opacity: 0.5;
+  pointer-events: none;
+  z-index: 0;
+  transition: opacity var(--transition-base);
+}
+
+.order-card-v2:hover::after {
+  opacity: 0.75;
+}
+
+.order-card-v2:hover {
+  border-color: var(--color-brand-200);
+  box-shadow: var(--shadow-md);
+}
+
+.order-card-main {
+  flex: 1;
+  padding: var(--space-5);
   display: flex;
-  align-items: center;
-  gap: 16px;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.order-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.order-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
   min-width: 0;
 }
 
 .order-time {
-  font-size: 13px;
-  color: #8e8ea0;
-  white-space: nowrap;
-  flex-shrink: 0;
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+}
+
+.order-no-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
 }
 
 .order-no {
-  font-size: 13px;
-  color: #6b6b80;
-  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: var(--text-xs);
+  color: var(--ink-muted);
+  font-family: var(--font-mono);
+  letter-spacing: 0.02em;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  letter-spacing: 0.02em;
 }
 
-/* 状态徽章 */
-.status-pill {
-  display: inline-block;
-  padding: 3px 14px;
-  border-radius: 100px;
-  font-size: 12px;
-  font-weight: 600;
-  letter-spacing: 0.01em;
-  line-height: 22px;
-}
-
-.pill-1 {
-  background: #fff5e6;
-  color: #d4850b;
-}
-
-.pill-2 {
-  background: #eef2ff;
-  color: #4a6cf7;
-}
-
-.pill-3 {
-  background: #e6f4ff;
-  color: #1a7bc4;
-}
-
-.pill-4 {
-  background: #e8f8e8;
-  color: #2b8a3e;
-}
-
-.pill-5 {
-  background: #fef0ef;
-  color: #c2413a;
-}
-
-.pill-6 {
-  background: #fff5e6;
-  color: #d4850b;
-}
-.pill-7 {
-  background: #e8f8e8;
-  color: #2b8a3e;
-}
-.pill-8 {
-  background: #fef0ef;
-  color: #c2413a;
-}
-
-/* --- 卡片主体 --- */
-.order-card-body {
-  padding: 16px 22px;
-  background: #fafbfc;
-}
-
-.order-items {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.order-item {
-  display: flex;
+.order-copy-btn {
+  display: inline-flex;
   align-items: center;
-  gap: 16px;
-  padding: 12px 14px;
-  background: #fff;
-  border-radius: 10px;
-  border: 1px solid #edf0f4;
-  transition: background 0.15s;
-}
-
-.order-item:hover {
-  background: #f0f2f6;
-}
-
-.item-img-wrap {
-  width: 80px;
-  height: 80px;
-  border-radius: 8px;
-  overflow: hidden;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: var(--radius-sm);
+  border: none;
+  background: transparent;
+  color: var(--ink-faint);
+  cursor: pointer;
+  opacity: 0;
+  transition: all var(--transition-fast);
   flex-shrink: 0;
-  background: #f0f2f5;
-  border: 1px solid #eaecf0;
 }
 
-.item-thumb {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
+.order-card-v2:hover .order-copy-btn,
+.order-copy-btn:focus {
+  opacity: 1;
 }
 
-.item-info {
+.order-copy-btn:hover {
+  background: var(--surface-soft);
+  color: var(--color-brand-500);
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  line-height: 1.6;
+  flex-shrink: 0;
+}
+
+.pill-icon {
+  flex-shrink: 0;
+}
+
+.status-pill.pill-1 { background: var(--color-brand-50); color: var(--color-brand-500); }
+.status-pill.pill-2 { background: var(--color-accent-50); color: var(--color-accent); }
+.status-pill.pill-3 { background: #e6f7e6; color: var(--color-success); }
+.status-pill.pill-4 { background: var(--surface-muted); color: var(--ink-muted); }
+.status-pill.pill-5 { background: var(--surface-muted); color: var(--ink-muted); }
+.status-pill.pill-6 { background: var(--color-brand-50); color: var(--color-brand-500); }
+.status-pill.pill-7 { background: #e6f7e6; color: var(--color-success); }
+.status-pill.pill-8 { background: #fef2f2; color: var(--color-danger); }
+
+.order-products {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4);
+  background: var(--surface-soft);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-light);
+}
+
+.product-main {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
   flex: 1;
   min-width: 0;
 }
 
-.item-name {
-  font-size: 15px;
-  color: #1a1a2e;
-  font-weight: 500;
+.product-main-img {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-md);
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 1px solid var(--border-light);
+  background: var(--surface);
+  transition: transform var(--transition-base);
+}
+
+.order-card-v2:hover .product-main-img {
+  transform: scale(1.03);
+}
+
+.product-main-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  padding-top: 2px;
+}
+
+.product-main-name {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink);
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
@@ -2472,833 +3538,1362 @@ onUnmounted(() => {
   overflow: hidden;
 }
 
-.item-specs {
-  font-size: 12px;
-  color: #8e8ea0;
-  margin-top: 4px;
+.product-main-specs {
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.item-meta {
-  text-align: right;
-  flex-shrink: 0;
-  min-width: 70px;
-}
-
-.item-price {
-  font-size: 15px;
-  color: #1a1a2e;
-  font-weight: 500;
-}
-
-.item-qty {
-  font-size: 12px;
-  color: #8e8ea0;
-  margin-left: 3px;
-}
-
-.item-subtotal {
-  font-size: 15px;
-  font-weight: 600;
-  color: #1a1a2e;
-  width: 90px;
-  text-align: right;
-  flex-shrink: 0;
-}
-
-.order-summary {
-  font-size: 13px;
-  color: #8e8ea0;
-}
-
-.order-remark {
-  margin-top: 8px;
-  font-size: 12px;
-  color: #6b6b80;
-  padding: 6px 10px;
-  background: #f8f9fb;
-  border-radius: 6px;
-  display: inline-block;
-}
-
-/* --- 卡片底部 --- */
-.order-card-footer {
-  border-top: 1px solid #e6e9ef;
-  background: #f4f5f8;
-  padding: 14px 22px;
+.product-main-meta {
   display: flex;
-  justify-content: space-between;
   align-items: center;
-  gap: 16px;
+  gap: var(--space-2);
+  margin-top: auto;
 }
 
-.footer-left {
+.product-main-price {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.product-main-qty {
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+}
+
+.order-summary-fallback {
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
   flex: 1;
-  min-width: 0;
+  display: flex;
+  align-items: center;
 }
 
-.status-badge {
+.product-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-3);
+  flex-shrink: 0;
+  min-width: 80px;
+}
+
+.extra-thumbs {
+  display: flex;
+  align-items: center;
+}
+
+.extra-thumb {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+  border: 2px solid var(--surface);
+  margin-left: -10px;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.extra-thumb:first-child {
+  margin-left: 0;
+}
+
+.extra-more {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-muted);
+  color: var(--ink-muted);
+  font-size: 10px;
+  font-weight: 600;
+  margin-left: -10px;
+  border: 2px solid var(--surface);
+}
+
+.order-amounts-mini {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
+.mini-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+}
+
+.mini-row.pay {
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.mini-discount {
+  color: var(--color-success);
+}
+
+.mini-pay {
+  color: var(--color-brand-500);
+}
+
+.order-card-hints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.status-hint {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  font-size: 13px;
+  gap: 4px;
+  font-size: var(--text-xs);
   line-height: 1.4;
   padding: 4px 10px;
-  border-radius: 6px;
-}
-
-.badge-icon {
-  font-size: 14px;
-}
-
-.status-expire {
-  color: #d4850b;
-  background: #fff9f0;
-}
-
-.status-refund {
-  color: #2b8a3e;
-  background: #f0faf0;
+  border-radius: var(--radius-sm);
   font-weight: 500;
 }
 
-.status-delivery {
-  color: #4a6cf7;
-  background: #f0f3ff;
-}
+.hint-icon { font-size: 13px; }
+.hint-expire { color: var(--color-warning); background: #fffbeb; }
+.hint-refund { color: var(--color-success); background: #ecfdf5; }
+.hint-delivery { color: var(--color-accent); background: var(--color-accent-50); }
+.hint-cancel { color: var(--ink-muted); background: var(--surface-muted); }
+.hint-pending { color: var(--color-accent); background: var(--color-accent-50); }
+.hint-remark { color: var(--ink-muted); background: var(--surface-soft); }
 
-.status-cancel {
-  color: #8e8ea0;
-  background: #f5f5f6;
-}
-
-.status-pending-ship {
-  color: #4a6cf7;
-  background: #f0f3ff;
-}
-
-/* --- 右侧 --- */
-.footer-right {
+.order-card-actions {
   display: flex;
-  align-items: center;
-  gap: 20px;
-  flex-shrink: 0;
-}
-
-.amount-summary {
-  text-align: right;
-}
-
-.amount-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   justify-content: flex-end;
-  line-height: 1.6;
-}
-
-.amount-label {
-  font-size: 12px;
-  color: #8e8ea0;
-}
-
-.amount-value {
-  font-size: 13px;
-  color: #1a1a2e;
-  font-weight: 500;
-  min-width: 70px;
-  text-align: right;
-}
-
-.discount-row .amount-value.discount {
-  color: #2b8a3e;
-}
-
-.pay-row {
-  margin-top: 1px;
-}
-
-.pay-row .amount-value.pay {
-  font-size: 17px;
-  font-weight: 700;
-  color: #ff4400;
-}
-
-/* 操作按钮 */
-.order-actions {
-  display: flex;
-  gap: 8px;
+  align-items: center;
+  gap: var(--space-2);
   flex-wrap: wrap;
-  justify-content: flex-end;
+  padding: var(--space-3) var(--space-5);
+  border-top: 1px solid var(--border-light);
+  background: var(--surface-soft);
 }
 
-.action-btn {
+.action-btn-v2 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 6px 16px;
-  border-radius: 6px;
-  font-size: 13px;
+  padding: 7px 14px;
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
   font-weight: 500;
   line-height: 1.4;
   cursor: pointer;
   border: 1px solid transparent;
-  transition: all 0.15s;
+  transition: all var(--transition-fast);
   white-space: nowrap;
   background: none;
   font-family: inherit;
 }
 
-.action-btn:active {
-  transform: scale(0.97);
-}
+.action-btn-v2:active { transform: scale(0.96); }
+.action-btn-v2.primary { background: var(--color-brand-500); color: #fff; border-color: var(--color-brand-500); }
+.action-btn-v2.primary:hover { background: var(--color-brand-600); border-color: var(--color-brand-600); }
+.action-btn-v2.secondary { background: var(--surface); color: var(--ink-muted); border-color: var(--border); }
+.action-btn-v2.secondary:hover { border-color: var(--color-brand-500); color: var(--color-brand-500); }
+.action-btn-v2.ghost { background: transparent; color: var(--ink-muted); border-color: var(--border); }
+.action-btn-v2.ghost:hover { border-color: var(--ink-muted); color: var(--ink); }
+.action-btn-v2.ghost.danger { color: var(--color-danger); }
+.action-btn-v2.ghost.danger:hover { border-color: var(--color-danger); color: var(--color-danger); }
 
-.action-btn.primary {
-  background: #ff4400;
-  color: #fff;
-  border-color: #ff4400;
-}
-
-.action-btn.primary:hover {
-  background: #e63d00;
-  border-color: #e63d00;
-}
-
-.action-btn.secondary {
-  background: #fff;
-  color: #6b6b80;
-  border-color: #d0d5dd;
-}
-
-.action-btn.secondary:hover {
-  border-color: #ff4400;
-  color: #ff4400;
-}
-
-.action-btn.ghost {
-  background: transparent;
-  color: #6b6b80;
-  border-color: #d0d5dd;
-}
-
-.action-btn.ghost:hover {
-  border-color: #6b6b80;
-  color: #1a1a2e;
-}
-
-.action-btn.ghost.danger {
-  color: #c2413a;
-}
-
-.action-btn.ghost.danger:hover {
-  border-color: #c2413a;
-  color: #c2413a;
-}
-
-.status-tip {
-  font-size: 13px;
-  color: #8e8ea0;
-}
-
-.status-tip.refund-done {
-  color: #2b8a3e;
-  font-weight: 500;
-}
+.status-tip { font-size: var(--text-xs); color: var(--ink-faint); }
+.status-tip.refund-done { color: var(--color-success); font-weight: 500; }
 
 /* ===== 分页 ===== */
 .pagination-wrap {
+  grid-column: 1 / -1;
   display: flex;
   justify-content: center;
-  margin-top: 24px;
-  padding: 8px 0 4px;
+  margin-top: var(--space-2);
+  padding: 4px 0;
 }
 
-.pagination-wrap :deep(.el-pagination) {
-  font-weight: 400;
-}
-
+.pagination-wrap :deep(.el-pagination) { font-weight: 400; }
 .pagination-wrap :deep(.el-pagination .el-pager li) {
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   min-width: 32px;
   height: 32px;
   line-height: 32px;
-  font-size: 13px;
+  font-size: var(--text-xs);
+  margin: 0 2px;
 }
-
-.pagination-wrap :deep(.el-pagination button) {
-  height: 32px;
-  min-width: 32px;
-  border-radius: 6px;
-}
-
-.pagination-wrap :deep(.el-pagination .el-pagination__sizes) {
-  font-size: 13px;
-}
-
-.pagination-wrap :deep(.el-pagination .el-select .el-input__wrapper) {
-  font-size: 13px;
-}
+.pagination-wrap :deep(.el-pagination button) { height: 32px; min-width: 32px; border-radius: var(--radius-md); }
+.pagination-wrap :deep(.el-pagination .el-pagination__sizes) { font-size: var(--text-xs); }
+.pagination-wrap :deep(.el-pagination .el-select .el-input__wrapper) { font-size: var(--text-xs); }
 
 /* ===== 空状态 ===== */
-.empty-orders {
-  padding: 60px 0;
+.empty-orders, .empty-address {
+  padding: var(--space-12) 0;
   text-align: center;
 }
 
-/* ===== 详情弹窗 ===== */
-/* ===== 订单详情弹窗 ===== */
-.detail-dialog :deep(.el-dialog__header) {
-  padding: 20px 28px 0;
-}
-.detail-dialog :deep(.el-dialog__body) {
-  padding: 16px 28px;
-}
-.detail-body {
-  min-height: 200px;
+/* ===== 订单详情抽屉 ===== */
+.order-detail-drawer :deep(.el-drawer) {
+  border-radius: var(--radius-xl) 0 0 var(--radius-xl);
+  overflow: hidden;
 }
 
-/* 头部状态条 */
-.detail-dialog-header {
+.order-detail-drawer :deep(.el-drawer__body) {
+  padding: 0;
+  overflow-y: auto;
+}
+
+.detail-drawer-body {
+  min-height: 100%;
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.detail-drawer-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-bottom: var(--space-5);
+  border-bottom: 1px solid var(--border-light);
+}
+
+.detail-header-top {
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: space-between;
+  gap: var(--space-3);
 }
+
 .detail-status-pill {
   display: inline-block;
-  padding: 3px 12px;
-  border-radius: 20px;
-  font-size: 13px;
+  padding: 4px 12px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
   font-weight: 600;
   line-height: 1.6;
 }
-.sp-1 { background: #fff7e6; color: #d4850b; }
-.sp-2 { background: #f0f5ff; color: #2b6af0; }
-.sp-3 { background: #e6f7ff; color: #0984ce; }
-.sp-4 { background: #f0fff0; color: #389e0d; }
-.sp-5 { background: #fff2f0; color: #cf1322; }
-.sp-6 { background: #fff7e6; color: #d4850b; }
-.sp-7 { background: #f0fff0; color: #389e0d; }
-.sp-8 { background: #fff2f0; color: #cf1322; }
+
+.sp-1 { background: var(--color-brand-50); color: var(--color-brand-500); }
+.sp-2 { background: var(--color-accent-50); color: var(--color-accent); }
+.sp-3 { background: #ecfdf5; color: var(--color-success); }
+.sp-4 { background: #ecfdf5; color: var(--color-success); }
+.sp-5 { background: #fef2f2; color: var(--color-danger); }
+.sp-6 { background: var(--color-brand-50); color: var(--color-brand-500); }
+.sp-7 { background: #ecfdf5; color: var(--color-success); }
+.sp-8 { background: #fef2f2; color: var(--color-danger); }
+
 .detail-order-no {
-  font-size: 13px;
-  color: #8e8ea0;
-  font-family: 'SF Mono', 'Consolas', monospace;
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+  font-family: var(--font-mono);
 }
 
-/* 商品列表行 */
-.detail-items-section {
-  margin-bottom: 16px;
+.detail-header-time {
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
 }
-.detail-sec-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: #1a1a2e;
-  margin-bottom: 10px;
-  padding-left: 10px;
-  border-left: 3px solid #ff4400;
-}
-.detail-item-row {
+
+/* 状态时间线 */
+.detail-timeline {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  background: #f8f9fb;
-  border-radius: 8px;
-  margin-bottom: 6px;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-2);
+  background: var(--surface-soft);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-light);
 }
-.detail-item-row:last-child {
-  margin-bottom: 0;
+
+.timeline-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+  transition: color var(--transition-fast);
 }
+
+.timeline-item.active {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.timeline-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--border);
+  transition: all var(--transition-fast);
+  position: relative;
+}
+
+.timeline-item.active .timeline-dot {
+  background: var(--color-brand-500);
+  box-shadow: 0 0 0 4px var(--color-brand-50);
+}
+
+.timeline-line {
+  flex: 1;
+  height: 2px;
+  background: var(--border-light);
+  margin: 0 4px;
+  margin-bottom: 20px;
+  transition: background var(--transition-fast);
+}
+
+.timeline-line.active {
+  background: var(--color-brand-500);
+}
+
+/* 详情区块 */
+.detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.detail-sec-title {
+  font-size: var(--text-xs);
+  font-weight: 700;
+  color: var(--ink);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.detail-item-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background: var(--surface-soft);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-light);
+}
+
 .detail-item-img {
   width: 56px;
   height: 56px;
-  border-radius: 6px;
+  border-radius: var(--radius-md);
   object-fit: cover;
   flex-shrink: 0;
-  border: 1px solid #eaecf0;
-  background: #fff;
+  border: 1px solid var(--border-light);
+  background: var(--surface);
 }
+
 .detail-item-info {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
 }
+
 .detail-item-name {
-  font-size: 13px;
+  font-size: var(--text-sm);
   font-weight: 500;
-  color: #1a1a2e;
+  color: var(--ink);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
 .detail-item-specs {
-  font-size: 12px;
-  color: #8e8ea0;
-  margin-top: 2px;
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
 }
-.detail-item-price,
-.detail-item-qty {
-  font-size: 13px;
-  color: #6b6b80;
+
+.detail-item-meta {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
   flex-shrink: 0;
 }
+
+.detail-item-price {
+  font-size: var(--text-xs);
+  color: var(--ink-muted);
+}
+
+.detail-item-qty {
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+}
+
 .detail-item-subtotal {
-  font-size: 14px;
-  font-weight: 600;
-  color: #1a1a2e;
-  width: 90px;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--ink);
+  width: 80px;
   text-align: right;
   flex-shrink: 0;
 }
 
 /* 金额汇总 */
-.detail-amounts {
-  background: #f8f9fb;
-  border-radius: 8px;
-  padding: 12px 16px;
-  margin-bottom: 20px;
+.detail-amounts-v2 {
+  background: var(--surface-soft);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
 }
-.amt-row {
+
+.detail-amounts-v2 .amt-row {
   display: flex;
   justify-content: space-between;
-  font-size: 13px;
-  color: #6b6b80;
-  padding: 3px 0;
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
+  padding: 4px 0;
 }
-.amt-discount {
-  color: #389e0d;
-}
-.amt-divider {
-  height: 1px;
-  background: #eaecf0;
-  margin: 6px 0;
-}
-.amt-pay {
-  font-size: 15px;
-  font-weight: 700;
-  color: #ff4400;
-}
+
+.amt-discount { color: var(--color-success); }
+.amt-divider { height: 1px; background: var(--border-light); margin: 8px 0; }
+.amt-pay { font-size: var(--text-base); font-weight: 700; color: var(--ink); }
+.amt-pay span:last-child { color: var(--color-brand-500); }
 
 /* 信息网格 */
 .detail-info-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 8px 20px;
-  margin-bottom: 20px;
+  gap: var(--space-3) var(--space-4);
+  padding: var(--space-4);
+  background: var(--surface-soft);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-lg);
 }
-.info-cell {
+
+.detail-info-grid .info-cell {
   display: flex;
   flex-direction: column;
-  gap: 1px;
-}
-.info-cell.full {
-  grid-column: 1 / -1;
-}
-.icl {
-  font-size: 12px;
-  color: #8e8ea0;
-}
-.icv {
-  font-size: 13px;
-  color: #1a1a2e;
-  word-break: break-all;
-}
-.icv.mono {
-  font-family: 'SF Mono', 'Consolas', monospace;
-  letter-spacing: 0.02em;
-}
-.icv.expire {
-  color: #d4850b;
-}
-.icv.muted {
-  color: #8e8ea0;
-}
-.icv.refund {
-  color: #389e0d;
-  font-weight: 600;
-}
-.icv.rejected {
-  color: #cf1322;
+  gap: 4px;
 }
 
-/* 发货时间线 */
-.detail-deliveries {
-  padding-left: 8px;
-  margin-bottom: 4px;
-}
-.del-timeline-row {
-  position: relative;
-  padding-left: 24px;
-  padding-bottom: 20px;
-}
-.del-timeline-row:last-child {
-  padding-bottom: 0;
-}
-.del-timeline-dot {
-  position: absolute;
-  left: 0;
-  top: 4px;
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: #409eff;
-  border: 2px solid #d6e4ff;
-  z-index: 1;
-}
-.del-timeline-line {
-  position: absolute;
-  left: 4px;
-  top: 16px;
-  width: 2px;
-  bottom: -2px;
-  background: #eaecf0;
-}
-.del-content {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.del-company {
-  font-size: 13px;
-  font-weight: 500;
-  color: #1a1a2e;
-}
-.del-no {
-  font-size: 13px;
-  color: #409eff;
-  font-family: 'SF Mono', 'Consolas', monospace;
-}
-.del-time {
-  font-size: 12px;
-  color: #8e8ea0;
-}
+.info-cell.full { grid-column: 1 / -1; }
+.icl { font-size: var(--text-xs); color: var(--ink-faint); }
+.icv { font-size: var(--text-sm); color: var(--ink); word-break: break-all; }
+.icv.mono { font-family: var(--font-mono); letter-spacing: 0.02em; }
+.icv.expire { color: var(--color-warning); }
+.icv.muted { color: var(--ink-faint); }
+.icv.refund { color: var(--color-success); font-weight: 600; }
+.icv.rejected { color: var(--color-danger); }
 
-/* 地址管理样式 */
+/* 发货记录 */
+.detail-deliveries { padding-left: 6px; }
+.del-timeline-row { position: relative; padding-left: 22px; padding-bottom: var(--space-4); }
+.del-timeline-row:last-child { padding-bottom: 0; }
+.del-timeline-dot { position: absolute; left: 0; top: 3px; width: 10px; height: 10px; border-radius: 50%; background: var(--color-brand-500); border: 2px solid var(--color-brand-100); z-index: 1; }
+.del-timeline-line { position: absolute; left: 4px; top: 15px; width: 2px; bottom: -2px; background: var(--border-light); }
+.del-content { display: flex; flex-direction: column; gap: 4px; }
+.del-company { font-size: var(--text-sm); font-weight: 500; color: var(--ink); }
+.del-no { font-size: var(--text-xs); color: var(--color-brand-500); font-family: var(--font-mono); }
+.del-time { font-size: var(--text-xs); color: var(--ink-faint); }
+
+/* ===== 地址管理 ===== */
 .section-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: var(--space-5);
+}
+
+.section-header h3 {
+  margin: 0;
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* ===== 收货地址 ===== */
+.address-section {
+  --addr-gold: #ca8a04;
+  --addr-gold-soft: #d4a017;
+  --addr-gold-50: rgba(202, 138, 4, 0.08);
+  --addr-gold-100: rgba(202, 138, 4, 0.14);
+  --addr-ink: #1c1917;
+  --addr-ink-muted: #78716c;
+  --addr-ink-faint: #a8a29e;
+  --addr-border: rgba(28, 25, 23, 0.08);
+  --addr-border-strong: rgba(28, 25, 23, 0.16);
+  --addr-surface: #ffffff;
+  --addr-surface-soft: #f5f5f4;
+  --addr-bg: #fafaf9;
+  --addr-radius: 20px;
+  --addr-shadow: 0 20px 60px rgba(28, 25, 23, 0.08);
+  --addr-shadow-hover: 0 28px 80px rgba(28, 25, 23, 0.12);
+}
+
+.address-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-6);
+  gap: var(--space-4);
+}
+
+.address-section-title h3 {
+  margin: 0 0 4px 0;
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  color: var(--addr-ink);
+  letter-spacing: -0.01em;
+}
+
+.address-section-title p {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--addr-ink-muted);
+}
+
+.address-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 10px 20px;
+  border: 1px solid var(--addr-gold);
+  background: var(--addr-surface);
+  color: var(--addr-gold);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  box-shadow: 0 2px 8px rgba(202, 138, 4, 0.08);
+}
+
+.address-add-btn:hover:not(:disabled) {
+  background: var(--addr-gold-50);
+  box-shadow: 0 4px 16px rgba(202, 138, 4, 0.15);
+}
+
+.address-add-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .address-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: var(--space-5);
 }
 
 .address-card {
-  padding: 20px;
-  border: 1px solid #eee;
-  border-radius: 8px;
-  transition: all 0.2s;
+  position: relative;
+  background: var(--addr-surface);
+  border: 1px solid var(--addr-border);
+  border-radius: var(--addr-radius);
+  overflow: hidden;
+  box-shadow: var(--addr-shadow);
+  transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.address-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--addr-gold), transparent);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.address-card.is-default {
+  border-color: rgba(202, 138, 4, 0.35);
+  box-shadow: var(--addr-shadow), 0 0 0 1px rgba(202, 138, 4, 0.08) inset;
+}
+
+.address-card.is-default::before {
+  opacity: 1;
+}
+
+.address-card-glow {
+  position: absolute;
+  top: -40%;
+  right: -20%;
+  width: 160px;
+  height: 160px;
+  background: radial-gradient(circle, rgba(202, 138, 4, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.35s ease;
 }
 
 .address-card:hover {
-  border-color: #ff4400;
-  box-shadow: 0 2px 8px rgba(255, 68, 0, 0.1);
+  transform: translateY(-4px);
+  box-shadow: var(--addr-shadow-hover);
+  border-color: rgba(202, 138, 4, 0.25);
+}
+
+.address-card:hover .address-card-glow {
+  opacity: 1;
+}
+
+.address-card-content {
+  position: relative;
+  z-index: 1;
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  min-height: 180px;
+}
+
+.address-main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  flex: 1;
 }
 
 .address-header {
   display: flex;
   justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-3);
+}
+
+.address-user { display: flex; align-items: baseline; gap: var(--space-3); flex-wrap: wrap; }
+.address-user .name { font-weight: 700; color: var(--addr-ink); font-size: var(--text-base); }
+.address-user .phone { color: var(--addr-ink-muted); font-size: var(--text-sm); font-family: var(--font-mono); }
+
+.address-badges { display: flex; gap: var(--space-2); flex-shrink: 0; }
+
+.default-badge {
+  display: inline-flex;
   align-items: center;
-  margin-bottom: 10px;
-}
-
-.address-user {
-  display: flex;
-  gap: 15px;
-}
-
-.address-user .name {
-  font-weight: 600;
-  color: #333;
-}
-
-.address-user .phone {
-  color: #666;
-  font-size: 14px;
-}
-
-.default-tag {
-  padding: 2px 8px;
-  background: #ff4400;
-  color: white;
-  font-size: 12px;
-  border-radius: 4px;
+  gap: 4px;
+  padding: 5px 10px;
+  background: linear-gradient(135deg, var(--addr-gold-muted, #b7791f), var(--addr-gold));
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: var(--radius-full);
+  box-shadow: 0 2px 8px rgba(202, 138, 4, 0.2);
 }
 
 .address-detail {
-  color: #666;
-  font-size: 14px;
-  margin-bottom: 15px;
-  line-height: 1.5;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  color: var(--addr-ink-muted);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}
+
+.address-detail svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--addr-gold);
 }
 
 .address-actions {
   display: flex;
-  gap: 10px;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--addr-border);
 }
 
-.address-actions .el-button {
-  padding: 4px 12px;
-  font-size: 12px;
+.address-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  border: 1px solid var(--addr-border);
+  background: var(--addr-surface);
+  color: var(--addr-ink-muted);
+  border-radius: var(--radius-md);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.address-action-btn:hover {
+  border-color: var(--addr-border-strong);
+  color: var(--addr-ink);
+  background: var(--addr-surface-soft);
+}
+
+.address-action-btn.primary {
+  border-color: rgba(202, 138, 4, 0.3);
+  color: var(--addr-gold);
+  background: var(--addr-gold-50);
+}
+
+.address-action-btn.primary:hover {
+  border-color: var(--addr-gold);
+  background: var(--addr-gold-100);
+  color: var(--addr-gold-soft);
+}
+
+.address-action-btn.danger {
+  border-color: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.04);
+}
+
+.address-action-btn.danger:hover {
+  border-color: rgba(239, 68, 68, 0.4);
+  background: rgba(239, 68, 68, 0.08);
+  color: #dc2626;
 }
 
 .empty-address {
-  padding: 60px 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-16) var(--space-6);
+  background: var(--addr-surface);
+  border: 1px dashed var(--addr-border);
+  border-radius: var(--addr-radius);
   text-align: center;
+  gap: var(--space-4);
+}
+
+.empty-address-icon {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: var(--addr-gold-50);
+  color: var(--addr-gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-2);
+}
+
+.empty-address h4 {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--addr-ink);
+}
+
+.empty-address p {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--addr-ink-muted);
 }
 
 .address-limit {
-  margin-top: 15px;
-  color: #999;
-  font-size: 13px;
+  margin-top: var(--space-4);
+  color: var(--addr-ink-faint);
+  font-size: var(--text-xs);
+  text-align: center;
 }
 
-/* 账户安全样式 */
+/* 地址编辑弹窗 —— 外层容器样式已迁移到页面底部全局样式块，解决 teleport 后 scoped 变量失效问题 */
+
+.address-edit-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  background: linear-gradient(135deg, var(--addr-bg) 0%, var(--addr-surface-soft) 100%);
+  border-bottom: 1px solid var(--addr-border);
+  position: relative;
+}
+
+.address-edit-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-lg);
+  background: var(--addr-gold-50);
+  color: var(--addr-gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.address-edit-title { flex: 1; min-width: 0; }
+.address-edit-title h4 {
+  margin: 0 0 4px 0;
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--addr-ink);
+  letter-spacing: -0.01em;
+}
+.address-edit-title p {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--addr-ink-muted);
+}
+
+.address-edit-close {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--addr-border);
+  background: var(--addr-surface);
+  color: var(--addr-ink-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+}
+
+.address-edit-close:hover {
+  background: var(--addr-surface-soft);
+  color: var(--addr-ink);
+  border-color: var(--addr-border-strong);
+}
+
+.address-form-body {
+  padding: var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+/* 横向表单布局 */
+.address-form-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-5);
+}
+
+.address-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.address-form-field.horizontal {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  align-items: center;
+  gap: 12px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.address-form-field.elegant {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.address-form-field.elegant.full {
+  grid-column: 1 / -1;
+}
+
+.address-field-label-elegant {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--addr-ink);
+  letter-spacing: 0.02em;
+  padding-left: 2px;
+}
+
+.address-field-label-elegant::after {
+  content: '*';
+  color: var(--addr-gold);
+  margin-left: 3px;
+}
+
+.address-field-input-elegant {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #fff;
+  border: 1px solid #e7e5e4;
+  border-radius: 14px;
+  padding: 0 16px;
+  min-height: 54px;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow:
+    0 1px 2px rgba(28, 25, 23, 0.04),
+    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+
+.address-field-input-elegant:hover {
+  border-color: #d6d3d1;
+  box-shadow: 0 2px 8px rgba(28, 25, 23, 0.05);
+}
+
+.address-field-input-elegant:focus-within {
+  border-color: var(--addr-gold);
+  box-shadow:
+    0 0 0 4px var(--addr-gold-50),
+    0 4px 12px rgba(202, 138, 4, 0.08);
+}
+
+.address-field-input-elegant.textarea {
+  align-items: flex-start;
+  padding-top: 14px;
+  padding-bottom: 14px;
+}
+
+.addr-input-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #a8a29e;
+  flex-shrink: 0;
+  transition: color 0.25s ease;
+}
+
+.address-field-input-elegant:focus-within .addr-input-icon {
+  color: var(--addr-gold);
+}
+
+.address-field-input-elegant input,
+.address-field-input-elegant textarea {
+  flex: 1;
+  width: 100%;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 15px;
+  color: var(--addr-ink);
+  line-height: 1.5;
+  min-width: 0;
+}
+
+.address-field-input-elegant input {
+  height: 54px;
+}
+
+.address-field-input-elegant textarea {
+  padding: 0;
+  resize: none;
+  font-family: inherit;
+}
+
+.address-field-input-elegant input::placeholder,
+.address-field-input-elegant textarea::placeholder {
+  color: #a8a29e;
+}
+
+.address-region-cascader-elegant {
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+}
+
+.address-region-cascader-elegant :deep(.el-input__wrapper) {
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  border: none;
+  padding: 0;
+  height: auto;
+}
+
+.address-region-cascader-elegant :deep(.el-input__inner) {
+  height: 54px;
+  font-size: 15px;
+  color: var(--addr-ink);
+}
+
+.address-region-cascader-elegant :deep(.el-input__inner::placeholder) {
+  color: #a8a29e;
+}
+
+.address-field-error-elegant {
+  margin: 0;
+  padding-left: 2px;
+  font-size: var(--text-xs);
+  color: #ef4444;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.address-field-error-elegant::before {
+  content: '';
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: #ef4444;
+}
+
+.address-form-field.inline {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  border-bottom: none;
+  padding-top: var(--space-2);
+}
+
+.address-field-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--addr-gold);
+}
+
+.address-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  cursor: pointer;
+  user-select: none;
+  padding: 10px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--addr-border);
+  background: var(--addr-surface);
+  transition: all var(--transition-fast);
+}
+
+.address-checkbox:hover {
+  border-color: var(--addr-gold);
+  background: var(--addr-gold-50);
+}
+
+.address-custom-checkbox {
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  border: 2px solid #d6d3d1;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  transition: all var(--transition-fast);
+  flex-shrink: 0;
+  box-shadow: inset 0 1px 2px rgba(28, 25, 23, 0.06);
+}
+
+.address-custom-checkbox.checked {
+  background: var(--addr-gold);
+  border-color: var(--addr-gold);
+  box-shadow: 0 2px 6px rgba(202, 138, 4, 0.25);
+}
+
+.address-checkbox-label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--addr-ink);
+}
+
+.address-checkbox-tip {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--addr-ink-faint);
+}
+
+.address-edit-footer {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.address-edit-cancel {
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--addr-border);
+  background: var(--addr-surface);
+  color: var(--addr-ink-muted);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.address-edit-cancel:hover {
+  border-color: var(--addr-border-strong);
+  color: var(--addr-ink);
+  background: var(--addr-surface-soft);
+}
+
+.address-edit-save {
+  padding: 10px 24px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--addr-gold);
+  background: linear-gradient(135deg, var(--addr-gold-muted, #b7791f), var(--addr-gold));
+  color: #fff;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.address-edit-save:hover:not(:disabled) {
+  background: linear-gradient(135deg, var(--addr-gold), var(--addr-gold-soft));
+  box-shadow: 0 4px 16px rgba(202, 138, 4, 0.2);
+}
+
+.address-edit-save:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ===== 安全设置 ===== */
+.security-header {
+  margin-bottom: var(--space-5);
+}
+
+.security-header h3 {
+  margin: 0 0 6px 0;
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.security-header p {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--ink-faint);
+}
+
 .security-list {
   display: flex;
   flex-direction: column;
-  gap: 15px;
+  gap: var(--space-3);
 }
 
 .security-item {
   display: flex;
   align-items: center;
-  padding: 20px;
-  background: #fafafa;
-  border-radius: 8px;
+  padding: var(--space-5) var(--space-6);
+  background: var(--surface);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-xl);
+  gap: var(--space-5);
+  transition: all var(--transition-base);
+  position: relative;
+  overflow: hidden;
+}
+
+.security-item:hover {
+  border-color: var(--color-brand-200);
+  box-shadow: var(--shadow-md);
 }
 
 .security-icon {
-  font-size: 32px;
-  margin-right: 20px;
-}
-
-.security-info {
-  flex: 1;
-}
-
-.security-info h4 {
-  margin: 0 0 5px 0;
-  color: #333;
-  font-size: 15px;
-}
-
-.security-info p {
-  margin: 0;
-  color: #666;
-  font-size: 14px;
-}
-
-.default-section {
-  text-align: center;
-  padding: 100px 0;
-}
-
-.default-section p {
-  color: #666;
-  font-size: 16px;
-  margin-top: 10px;
-}
-
-/* ===== 订单弹窗通用 ===== */
-.dialog-body {
-  padding: 8px 0;
-}
-
-.dialog-tip {
-  font-size: 14px;
-  color: #606266;
-  margin: 0 0 16px;
-}
-
-.dialog-tip.warn {
-  color: #e6a23c;
-}
-
-.full-select {
-  width: 100%;
-}
-
-/* ===== 退款弹窗 ===== */
-.refund-dialog :deep(.el-dialog__header) {
-  padding: 20px 24px 0;
-}
-
-.refund-dialog :deep(.el-dialog__body) {
-  padding: 16px 24px;
-}
-
-.refund-dialog :deep(.el-dialog__footer) {
-  padding: 0 24px 20px;
-}
-
-.refund-dialog-header {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-lg);
   display: flex;
-  align-items: flex-start;
-  gap: 12px;
-}
-
-.refund-dialog-icon {
-  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  background: #fff5e6;
-  color: #d4850b;
-  font-size: 18px;
   flex-shrink: 0;
+  background: var(--color-brand-50);
+  color: var(--color-brand-500);
 }
 
-.refund-dialog-title {
-  font-size: 17px;
+.security-icon.phone {
+  background: var(--color-accent-50);
+  color: var(--color-accent);
+}
+
+.security-icon.email {
+  background: #e6f7e6;
+  color: var(--color-success);
+}
+
+.security-info { flex: 1; min-width: 0; }
+.security-info h4 { margin: 0 0 4px 0; color: var(--ink); font-size: var(--text-base); font-weight: 600; }
+.security-info p { margin: 0; color: var(--ink-faint); font-size: var(--text-xs); }
+
+.security-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink-muted);
+  font-size: var(--text-xs);
   font-weight: 600;
-  color: #1a1a2e;
-  line-height: 1.4;
-}
-
-.refund-dialog-sub {
-  font-size: 12px;
-  color: #8e8ea0;
-  margin-top: 2px;
-}
-
-.refund-body {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-/* 订单信息卡片 */
-.refund-order-info {
-  background: #f8f9fb;
-  border: 1px solid #edf0f4;
-  border-radius: 10px;
-  padding: 14px;
-}
-
-.refund-order-no {
-  font-size: 12px;
-  color: #6b6b80;
-  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
-  margin-bottom: 10px;
-  letter-spacing: 0.02em;
-}
-
-.refund-items-preview {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.refund-item-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.refund-item-img {
-  width: 44px;
-  height: 44px;
-  border-radius: 6px;
-  object-fit: cover;
-  flex-shrink: 0;
-  border: 1px solid #eaecf0;
-  background: #fff;
-}
-
-.refund-item-detail {
-  flex: 1;
-  min-width: 0;
-}
-
-.refund-item-name {
-  font-size: 13px;
-  color: #1a1a2e;
-  font-weight: 500;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.refund-item-specs {
-  font-size: 11px;
-  color: #8e8ea0;
-  margin-top: 1px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.refund-item-qty {
-  font-size: 12px;
-  color: #8e8ea0;
+  cursor: pointer;
+  transition: all var(--transition-fast);
   flex-shrink: 0;
 }
 
-.refund-more-items {
-  font-size: 12px;
-  color: #8e8ea0;
-  padding-left: 54px;
+.security-action-btn:hover {
+  border-color: var(--color-brand-500);
+  color: var(--color-brand-500);
+  background: var(--color-brand-50);
 }
 
-.refund-amount-row {
+/* ===== 安全设置弹窗 ===== */
+.security-dialog :deep(.el-dialog) {
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+
+.security-dialog :deep(.el-dialog__header) { display: none; }
+.security-dialog :deep(.el-dialog__body) { padding: var(--space-6); }
+.security-dialog :deep(.el-dialog__footer) { padding: 0 var(--space-6) var(--space-6); }
+
+.security-dialog-header {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.security-dialog-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid #edf0f4;
+  justify-content: center;
+  flex-shrink: 0;
+  background: var(--color-brand-50);
+  color: var(--color-brand-500);
 }
 
-.refund-amount-label {
-  font-size: 13px;
-  color: #8e8ea0;
+.security-dialog-icon.phone {
+  background: var(--color-accent-50);
+  color: var(--color-accent);
 }
 
-.refund-amount-value {
-  font-size: 16px;
+.security-dialog-icon.email {
+  background: #e6f7e6;
+  color: var(--color-success);
+}
+
+.security-dialog-title h4 {
+  margin: 0 0 4px 0;
+  font-size: var(--text-lg);
   font-weight: 700;
-  color: #ff4400;
+  color: var(--ink);
 }
 
-/* 退款原因 */
-.refund-reason-section {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+.security-dialog-title p {
+  margin: 0;
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+  line-height: 1.5;
 }
 
-.refund-reason-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: #1a1a2e;
+.security-form :deep(.el-form-item__label) {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--ink-muted);
+  padding-bottom: 4px;
 }
 
-.refund-reason-select {
-  width: 100%;
+.security-form :deep(.el-form-item) { margin-bottom: var(--space-4); }
+.security-form :deep(.el-form-item:last-child) { margin-bottom: 0; }
+
+.security-form :deep(.el-input__wrapper) {
+  border-radius: var(--radius-md);
+  box-shadow: 0 0 0 1px var(--border) inset;
+  padding: 2px 12px;
 }
 
-/* 底部按钮 */
-.refund-footer {
+.security-form :deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 1px var(--color-brand-500) inset;
+}
+
+.security-form :deep(.el-input__inner) {
+  height: 40px;
+  font-size: var(--text-sm);
+}
+
+.security-dialog-footer {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
+  gap: var(--space-3);
 }
+
+.security-cancel-btn {
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.security-cancel-btn:hover {
+  border-color: var(--ink-muted);
+  color: var(--ink);
+}
+
+.security-submit-btn {
+  padding: 10px 20px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-brand-500);
+  background: var(--color-brand-500);
+  color: #fff;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.security-submit-btn:hover {
+  background: var(--color-brand-600);
+  border-color: var(--color-brand-600);
+}
+
+/* ===== 通用弹窗 ===== */
+.dialog-body { padding: var(--space-2) 0; }
+.dialog-tip { font-size: var(--text-sm); color: var(--ink-muted); margin: 0 0 var(--space-4); }
+.dialog-tip.warn { color: var(--color-warning); }
+.full-select { width: 100%; }
+
+/* 退款弹窗 */
+.refund-dialog :deep(.el-dialog) {
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+}
+.refund-dialog :deep(.el-dialog__header) { padding: var(--space-5) var(--space-6) 0; border-bottom: 1px solid var(--border-light); margin: 0; }
+.refund-dialog :deep(.el-dialog__body) { padding: var(--space-4) var(--space-6); }
+.refund-dialog :deep(.el-dialog__footer) { padding: 0 var(--space-6) var(--space-5); }
+.refund-dialog-header { display: flex; align-items: flex-start; gap: var(--space-3); padding-bottom: var(--space-4); }
+.refund-dialog-icon { display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border-radius: 10px; background: var(--color-brand-50); color: var(--color-brand-500); font-size: 18px; flex-shrink: 0; }
+.refund-dialog-title { font-size: var(--text-base); font-weight: 700; color: var(--ink); line-height: 1.4; }
+.refund-dialog-sub { font-size: var(--text-xs); color: var(--ink-faint); margin-top: 2px; }
+.refund-body { display: flex; flex-direction: column; gap: var(--space-4); }
+.refund-order-info { background: var(--surface-soft); border: 1px solid var(--border-light); border-radius: var(--radius-md); padding: var(--space-3); }
+.refund-order-no { font-size: var(--text-xs); color: var(--ink-faint); font-family: var(--font-mono); margin-bottom: var(--space-2); letter-spacing: 0.02em; }
+.refund-items-preview { display: flex; flex-direction: column; gap: 6px; }
+.refund-item-row { display: flex; align-items: center; gap: 10px; }
+.refund-item-img { width: 40px; height: 40px; border-radius: var(--radius-sm); object-fit: cover; flex-shrink: 0; border: 1px solid var(--border-light); background: var(--surface); }
+.refund-item-detail { flex: 1; min-width: 0; }
+.refund-item-name { font-size: var(--text-xs); color: var(--ink); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.refund-item-specs { font-size: 10px; color: var(--ink-faint); margin-top: 1px; }
+.refund-item-qty { font-size: var(--text-xs); color: var(--ink-faint); flex-shrink: 0; }
+.refund-more-items { font-size: 10px; color: var(--ink-faint); padding-left: 52px; }
+.refund-amount-row { display: flex; align-items: center; justify-content: flex-end; gap: var(--space-2); margin-top: var(--space-2); padding-top: var(--space-2); border-top: 1px solid var(--border-light); }
+.refund-amount-label { font-size: var(--text-xs); color: var(--ink-faint); }
+.refund-amount-value { font-size: var(--text-base); font-weight: 700; color: var(--color-brand-500); }
+.refund-reason-section { display: flex; flex-direction: column; gap: 6px; }
+.refund-reason-label { font-size: var(--text-xs); font-weight: 500; color: var(--ink); }
+.refund-reason-select { width: 100%; }
+.refund-footer { display: flex; justify-content: flex-end; gap: var(--space-2); }
 
 .btn-loading-icon {
   display: inline-block;
-  width: 12px;
-  height: 12px;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(255,255,255,0.3);
   border-top-color: #fff;
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
@@ -3310,289 +4905,7 @@ onUnmounted(() => {
   to { transform: rotate(360deg); }
 }
 
-/* ===== 详情弹窗 ===== */
-.detail-wrap {
-  min-height: 200px;
-}
-
-/* 状态横幅 */
-.detail-banner {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 18px 22px;
-  border-radius: 12px;
-  margin-bottom: 22px;
-}
-
-.banner-1 { background: linear-gradient(135deg, #fff7e6, #fff1cc); }
-.banner-2 { background: linear-gradient(135deg, #f0f5ff, #e6f0ff); }
-.banner-3 { background: linear-gradient(135deg, #e6f7ff, #bae7ff); }
-.banner-4 { background: linear-gradient(135deg, #f0fff0, #d9f7d9); }
-.banner-5 { background: linear-gradient(135deg, #fff2f0, #ffd6d2); }
-.banner-6 { background: linear-gradient(135deg, #fff7e6, #ffe7ba); }
-.banner-7 { background: linear-gradient(135deg, #f0fff0, #d9f7d9); }
-
-.banner-left {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-}
-
-.banner-icon {
-  font-size: 32px;
-  color: #409eff;
-}
-
-.banner-1 .banner-icon { color: #e6a23c; }
-.banner-5 .banner-icon { color: #f56c6c; }
-.banner-6 .banner-icon { color: #e6a23c; }
-.banner-4 .banner-icon,
-.banner-7 .banner-icon { color: #67c23a; }
-
-.banner-text p {
-  margin: 0;
-}
-
-.banner-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #303133;
-}
-
-.banner-sub {
-  font-size: 12px;
-  color: #909399;
-  margin-top: 3px;
-  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
-}
-
-.banner-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.banner-pay-type {
-  font-size: 12px;
-  color: #909399;
-}
-
-/* 区块标题（带图标） */
-.detail-section {
-  margin-bottom: 22px;
-}
-
-.section-title {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 14px;
-}
-
-.section-icon {
-  font-size: 18px;
-  color: #409eff;
-}
-
-.section-title h3 {
-  font-size: 15px;
-  font-weight: 600;
-  color: #303133;
-  margin: 0;
-}
-
-/* 商品明细 */
-.detail-items {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.detail-item {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 12px 14px;
-  background: #f8f9fb;
-  border-radius: 10px;
-  transition: background 0.15s;
-}
-
-.detail-item:hover {
-  background: #f0f2f5;
-}
-
-.d-item-img-wrap {
-  width: 60px;
-  height: 60px;
-  border-radius: 8px;
-  overflow: hidden;
-  flex-shrink: 0;
-  background: #f0f2f5;
-  border: 1px solid #eaecf0;
-}
-
-.d-item-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
-}
-
-.d-item-info {
-  flex: 1;
-  min-width: 0;
-}
-
-.d-item-name {
-  font-size: 14px;
-  color: #303133;
-  font-weight: 500;
-  line-height: 1.4;
-}
-
-.d-item-specs {
-  font-size: 12px;
-  color: #909399;
-  margin-top: 3px;
-}
-
-.d-item-price {
-  font-size: 13px;
-  color: #606266;
-  flex-shrink: 0;
-}
-
-.d-item-qty {
-  font-size: 12px;
-  color: #909399;
-  flex-shrink: 0;
-  min-width: 24px;
-}
-
-.d-item-subtotal {
-  font-size: 14px;
-  color: #303133;
-  font-weight: 600;
-  width: 90px;
-  text-align: right;
-  flex-shrink: 0;
-}
-
-/* 信息网格 */
-.info-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.info-row {
-  display: flex;
-  align-items: baseline;
-  padding: 0 4px;
-}
-
-.info-row .label {
-  width: 80px;
-  font-size: 13px;
-  color: #909399;
-  flex-shrink: 0;
-}
-
-.info-row .value {
-  font-size: 13px;
-  color: #303133;
-  flex: 1;
-}
-
-.info-row .value.mono {
-  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
-}
-
-.info-row.total-row {
-  padding-top: 10px;
-  border-top: 1px solid #ebeef5;
-  margin-top: 2px;
-}
-
-.info-row .value.pay-amount {
-  font-size: 17px;
-  font-weight: 700;
-  color: #ff4400;
-}
-
-.info-row .value.discount {
-  color: #67c23a;
-}
-
-/* 发货记录 */
-.deliveries {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.delivery-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.delivery-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #409eff;
-  margin-top: 4px;
-  flex-shrink: 0;
-  box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.15);
-}
-
-.delivery-info-text {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 12px;
-  font-size: 13px;
-  color: #606266;
-}
-
-.delivery-info-text .company {
-  font-weight: 500;
-  color: #303133;
-}
-
-.delivery-info-text .tracking {
-  font-family: 'SF Mono', 'Fira Code', 'Consolas', monospace;
-  color: #606266;
-}
-
-.delivery-info-text .delivery-time {
-  color: #909399;
-  font-size: 12px;
-}
-
-/* 详情弹窗专用样式 */
-.order-detail-dialog .el-dialog__header {
-  padding: 18px 24px 12px;
-  border-bottom: 1px solid #f0f0f0;
-}
-
-.order-detail-dialog .el-dialog__title {
-  font-size: 17px;
-  font-weight: 600;
-  color: #1a1a2e;
-}
-
-.order-detail-dialog .el-dialog__body {
-  padding: 20px 24px;
-}
-
-.order-detail-dialog .el-dialog__footer {
-  padding: 12px 24px 18px;
-}
-
-/* 密码切换按钮样式 */
+/* 密码切换按钮 */
 .password-toggle-btn {
   background: none;
   border: none;
@@ -3601,96 +4914,329 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #999;
-  transition: color 0.2s;
+  color: var(--ink-faint);
+  transition: color var(--transition-fast);
 }
 
-.password-toggle-btn:hover {
-  color: #ff4400;
+.password-toggle-btn:hover { color: var(--color-brand-500); }
+.password-toggle-btn:focus { outline: none; }
+.eye-icon { width: 18px; height: 18px; }
+
+/* 默认占位 */
+.default-section {
+  text-align: center;
+  padding: var(--space-16) 0;
 }
 
-.password-toggle-btn:focus {
-  outline: none;
+.default-section p {
+  color: var(--ink-faint);
+  font-size: var(--text-sm);
+  margin-top: var(--space-2);
 }
 
-.eye-icon {
-  width: 18px;
-  height: 18px;
-}
-
-/* 移动端适配 */
+/* ===== 响应式 ===== */
 @media (max-width: 767px) {
   .profile-content {
     flex-direction: column;
   }
-  
+
   .sidebar {
     width: 100%;
     border-right: none;
-    border-bottom: 1px solid #eee;
-    position: relative;
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: var(--space-2);
+    position: static;
     top: auto;
-    left: auto;
     height: auto;
-    z-index: auto;
-    overflow-y: visible;
   }
-  
-  .main-content {
-    margin-left: 0;
+
+  .sidebar-user {
+    width: 100%;
+    padding: var(--space-3) var(--space-4);
   }
-  
+
+  .sidebar-nav {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 4px 8px;
+  }
+
+  .nav-item {
+    flex: 1;
+    min-width: calc(33.33% - 4px);
+    justify-content: center;
+    padding: var(--space-2) var(--space-2);
+    font-size: var(--text-xs);
+    border-radius: var(--radius-sm);
+  }
+
+  .sidebar-footer {
+    width: 100%;
+    padding: 4px 8px;
+  }
+
   .content-box {
-    padding: 20px;
+    padding: var(--space-4);
     min-height: auto;
   }
-  
-  .user-info {
-    padding: 20px 15px;
+
+  .welcome-cell,
+  .account-cell,
+  .stat-cell,
+  .quick-cell {
+    grid-column: span 12;
   }
-  
+
+  .bento-grid {
+    gap: var(--space-4);
+  }
+
+  .welcome-card {
+    padding: var(--space-5);
+    flex-direction: column;
+    text-align: center;
+    gap: var(--space-4);
+  }
+
+  .welcome-title {
+    font-size: var(--text-xl);
+  }
+
+  .welcome-avatar img {
+    width: 64px;
+    height: 64px;
+  }
+
+  .quick-list {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-head-v3 {
+    padding: 0 var(--space-5) var(--space-6);
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .profile-meta-v3 {
+    align-items: center;
+  }
+
+  .profile-meta-row {
+    justify-content: center;
+  }
+
+  .profile-edit-btn-v3 {
+    margin-left: 0;
+    margin-top: var(--space-3);
+  }
+
+  .profile-body-v3 {
+    padding: 0 var(--space-5) var(--space-6);
+  }
+
+  .info-grid-v3 {
+    grid-template-columns: 1fr;
+    gap: var(--space-3);
+  }
+
+  .profile-cover {
+    height: 100px;
+  }
+
   .address-list {
     grid-template-columns: 1fr;
   }
-  
-  .cart-item {
+
+  .overview-section {
+    max-width: 100%;
+  }
+
+  .order-list {
+    grid-template-columns: 1fr;
+  }
+
+  .order-card-actions {
+    justify-content: center;
+  }
+
+  .order-tabs :deep(.el-tabs--card > .el-tabs__header .el-tabs__item) {
+    padding: 0 10px;
+    font-size: var(--text-xs);
+  }
+
+  .detail-item-card {
     flex-wrap: wrap;
-    gap: 10px;
   }
-  
-  .item-info {
-    min-width: auto;
-    flex: 1;
+
+  .detail-item-subtotal {
+    width: 100%;
+    text-align: left;
+    margin-left: 68px;
   }
-  
-  .address-section h3,
-  .security-section h3,
-  .default-section h3,
-  .orders-section h3,
-  .cart-section h3 {
-    font-size: 20px;
+
+  .detail-timeline {
+    padding: var(--space-3) var(--space-1);
   }
-  
+
+  .timeline-line {
+    margin-bottom: 16px;
+  }
+
   .default-section {
-    padding: 50px 0;
+    padding: var(--space-10) 0;
   }
 }
 
-/* 平板端适配 */
 @media (min-width: 768px) and (max-width: 1023px) {
   .content-box {
-    padding: 25px;
+    padding: var(--space-6);
   }
-  
+
+  .welcome-cell,
+  .account-cell,
+  .quick-cell {
+    grid-column: span 12;
+  }
+
+  .stat-cell {
+    grid-column: span 6;
+  }
+
   .address-list {
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   }
+
+  .sidebar {
+    width: 220px;
+  }
+}
+</style>
+
+<style>
+/* 全局确认对话框样式 — 用于收货地址删除/设默认确认 */
+.lux-message-box.el-message-box {
+  border-radius: 20px;
+  border: 1px solid rgba(28, 25, 23, 0.08);
+  box-shadow: 0 28px 80px rgba(28, 25, 23, 0.12);
+  padding-bottom: 24px;
 }
 
-/* PC端适配 */
-@media (min-width: 1024px) {
-  .content-box {
-    padding: 30px 40px;
-  }
+.lux-message-box .el-message-box__header {
+  padding: 24px 24px 12px;
+}
+
+.lux-message-box .el-message-box__title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1c1917;
+}
+
+.lux-message-box .el-message-box__content {
+  padding: 12px 24px;
+  color: #78716c;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.lux-message-box .el-message-box__btns {
+  padding: 16px 24px 0;
+  gap: 12px;
+}
+
+.lux-message-box .el-message-box__btns .el-button {
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.lux-message-box .lux-msg-cancel {
+  border: 1px solid rgba(28, 25, 23, 0.08);
+  background: #fff;
+  color: #78716c;
+}
+
+.lux-message-box .lux-msg-cancel:hover {
+  border-color: rgba(28, 25, 23, 0.16);
+  color: #1c1917;
+  background: #f5f5f4;
+}
+
+.lux-message-box .lux-msg-confirm {
+  border: 1px solid #ca8a04;
+  background: linear-gradient(135deg, #b7791f, #ca8a04);
+  color: #fff;
+}
+
+.lux-message-box .lux-msg-confirm:hover {
+  background: linear-gradient(135deg, #ca8a04, #d4a017);
+  box-shadow: 0 4px 16px rgba(202, 138, 4, 0.2);
+}
+
+.lux-message-box .lux-msg-confirm-danger {
+  border: 1px solid #ef4444;
+  background: linear-gradient(135deg, #dc2626, #ef4444);
+  color: #fff;
+}
+
+.lux-message-box .lux-msg-confirm-danger:hover {
+  background: linear-gradient(135deg, #ef4444, #f87171);
+  box-shadow: 0 4px 16px rgba(239, 68, 68, 0.2);
+}
+
+/* ===== 地址编辑弹窗全局样式（teleport 到 body 后 scoped 样式无法作用到外层 .el-dialog） ===== */
+.address-edit-dialog.el-dialog {
+  /* 收货地址主题变量 */
+  --addr-gold: #ca8a04;
+  --addr-gold-soft: #d4a017;
+  --addr-gold-50: rgba(202, 138, 4, 0.08);
+  --addr-gold-100: rgba(202, 138, 4, 0.14);
+  --addr-ink: #1c1917;
+  --addr-ink-muted: #78716c;
+  --addr-ink-faint: #a8a29e;
+  --addr-border: rgba(28, 25, 23, 0.08);
+  --addr-border-strong: rgba(28, 25, 23, 0.16);
+  --addr-surface: #ffffff;
+  --addr-surface-soft: #f5f5f4;
+  --addr-bg: #fafaf9;
+  --addr-radius: 20px;
+  --addr-shadow: 0 20px 60px rgba(28, 25, 23, 0.08);
+  --addr-shadow-hover: 0 28px 80px rgba(28, 25, 23, 0.12);
+
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  max-width: 620px;
+  width: 90% !important;
+  margin: 0;
+  border-radius: var(--addr-radius);
+  overflow: hidden;
+  background: var(--addr-surface);
+  border: 1px solid var(--addr-border);
+  box-shadow: var(--addr-shadow-hover);
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+}
+
+.address-edit-dialog .el-dialog__header {
+  display: none;
+}
+
+.address-edit-dialog .el-dialog__body {
+  padding: 0;
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}
+
+.address-edit-dialog .el-dialog__footer {
+  padding: 16px 24px 24px;
+  border-top: 1px solid var(--addr-border);
+  margin: 0;
 }
 </style>

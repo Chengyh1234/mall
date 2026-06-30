@@ -1,7 +1,10 @@
 <template>
   <div class="seller-orders">
     <div class="page-header">
-      <h1>订单管理</h1>
+      <div class="page-header-content">
+        <h1>订单管理</h1>
+        <p>查看订单状态、处理发货与退款审核</p>
+      </div>
     </div>
 
     <div class="status-tabs">
@@ -162,18 +165,45 @@
         </el-table-column>
 
         <!-- 操作 -->
-        <el-table-column label="操作" width="220" fixed="right" align="center">
+        <el-table-column label="操作" width="180" fixed="right" align="center">
           <template #default="scope">
             <div class="action-group">
-              <el-button size="small" text @click="viewOrder(scope.row)">详情</el-button>
-              <template v-if="scope.row.status === 2">
-                <el-divider direction="vertical" />
-                <el-button size="small" type="primary" plain @click="showShipModal(scope.row)">发货</el-button>
-              </template>
-              <template v-if="scope.row.status === 6">
-                <el-divider direction="vertical" />
-                <el-button size="small" type="warning" plain @click="showReviewDialog(scope.row)">审核退款</el-button>
-              </template>
+              <button type="button" class="order-action-btn" @click="viewOrder(scope.row)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+                <span>详情</span>
+              </button>
+              <button
+                v-if="scope.row.status === 2"
+                type="button"
+                class="order-action-btn primary"
+                @click="showShipModal(scope.row)"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="1" y="3" width="15" height="13"/>
+                  <polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/>
+                  <circle cx="5.5" cy="18.5" r="2.5"/>
+                  <circle cx="18.5" cy="18.5" r="2.5"/>
+                </svg>
+                <span>发货</span>
+              </button>
+              <button
+                v-if="scope.row.status === 6"
+                type="button"
+                class="order-action-btn warning"
+                @click="showReviewDialog(scope.row)"
+              >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                  <line x1="16" y1="13" x2="8" y2="13"/>
+                  <line x1="16" y1="17" x2="8" y2="17"/>
+                  <polyline points="10 9 9 9 8 9"/>
+                </svg>
+                <span>审核</span>
+              </button>
             </div>
           </template>
         </el-table-column>
@@ -198,7 +228,7 @@
     </div>
 
     <!-- 订单详情弹窗 -->
-    <el-dialog title="订单详情" v-model="showDetailModal" width="720px" top="4vh">
+    <el-dialog title="订单详情" v-model="showDetailModal" width="760px" top="4vh" class="order-dialog">
       <div v-if="orderDetail" class="order-detail" v-loading="detailLoading">
         <div class="detail-header">
           <div class="order-no">订单号：{{ orderDetail.orderNo }}</div>
@@ -284,8 +314,11 @@
     </el-dialog>
 
     <!-- 发货弹窗 -->
-    <el-dialog title="发货" v-model="showShipDialog" width="420px" top="30vh">
-      <el-form :model="shipForm" label-width="80px">
+    <el-dialog title="发货" v-model="showShipDialog" width="460px" top="30vh" class="ship-dialog">
+      <div class="ship-dialog-hero">
+        <p>填写物流信息，确认后订单状态将变为已发货</p>
+      </div>
+      <el-form :model="shipForm" label-width="80px" class="ship-form">
         <el-form-item label="快递公司" required>
           <el-select v-model="shipForm.company" placeholder="请选择快递公司" style="width: 100%">
             <el-option label="顺丰速运" value="顺丰速运" />
@@ -307,7 +340,10 @@
     </el-dialog>
 
     <!-- 退款审核弹窗 -->
-    <el-dialog title="审核退款" v-model="showReviewDialogVisible" width="460px" top="30vh">
+    <el-dialog title="审核退款" v-model="showReviewDialogVisible" width="500px" top="30vh" class="review-dialog">
+      <div class="review-dialog-hero">
+        <p>请核实买家退款原因后做出审核决定</p>
+      </div>
       <div v-if="reviewTarget" class="review-info">
         <div class="info-row"><span class="label">订单号</span><span style="font-family:monospace">{{ reviewTarget.orderNo }}</span></div>
         <div class="info-row"><span class="label">退款金额</span><span class="pay-amount-text">¥{{ reviewTarget.payAmount?.toFixed(2) }}</span></div>
@@ -322,7 +358,6 @@
         :rows="3"
         placeholder="拒绝退款时请填写原因（必填）"
       />
-      <div class="review-footer-hint">请核实买家退款原因后做出审核决定</div>
       <template #footer>
         <el-button @click="showReviewDialogVisible = false">取消</el-button>
         <el-button type="danger" plain :loading="reviewLoading" @click="doRejectReview">拒绝退款</el-button>
@@ -602,71 +637,98 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* ====== 页面基调 ====== */
 .seller-orders {
-  padding: 24px 32px;
+  padding: 24px;
   max-width: 1440px;
   margin: 0 auto;
-  background: #f5f6fa;
+  background: #FAFAF9;
   min-height: 100vh;
 }
 
-/* ---- 页面标题 ---- */
+/* ====== 页面标题 ====== */
 .page-header {
   display: flex;
-  align-items: center;
   justify-content: space-between;
+  align-items: center;
   margin-bottom: 20px;
+  padding: 24px 28px;
+  background: linear-gradient(135deg, #FFFFFF 0%, #F8F8F6 100%);
+  border: 1px solid #E5E5E0;
+  border-radius: 18px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
 }
-.page-header h1 {
-  font-size: 22px;
-  margin: 0;
-  color: #1e1e2f;
-  font-weight: 650;
+
+.page-header-content h1 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1C1C1E;
+  margin: 0 0 6px;
   letter-spacing: -0.3px;
 }
 
-/* ---- Tabs ---- */
-.status-tabs {
-  margin-bottom: 16px;
+.page-header-content p {
+  font-size: 14px;
+  color: #6B6B6E;
+  margin: 0;
 }
+
+/* ====== Tabs ====== */
+.status-tabs {
+  margin-bottom: 18px;
+  padding: 6px;
+  background: #FFFFFF;
+  border: 1px solid #E5E5E0;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
+}
+
 .status-tabs :deep(.el-tabs__header) {
   margin: 0;
 }
+
 .status-tabs :deep(.el-tabs__nav-wrap::after) {
   height: 0;
 }
+
 .status-tabs :deep(.el-tabs__item) {
   font-size: 13px;
-  font-weight: 500;
-  padding: 0 16px;
+  font-weight: 600;
+  padding: 0 18px;
   height: 36px;
   line-height: 36px;
-  color: #555;
-  transition: color 0.2s;
-}
-.status-tabs :deep(.el-tabs__item.is-active) {
-  color: #4361ee;
-  font-weight: 600;
-}
-.status-tabs :deep(.el-tabs__active-bar) {
-  height: 2.5px;
-  border-radius: 2px;
-  background: #4361ee;
+  color: #6B6B6E;
+  border-radius: 8px;
+  transition: all 0.2s ease;
 }
 
-/* ---- 搜索栏 ---- */
+.status-tabs :deep(.el-tabs__item.is-active) {
+  color: #FFFFFF;
+  background: #3B6E6E;
+}
+
+.status-tabs :deep(.el-tabs__item:hover) {
+  color: #3B6E6E;
+}
+
+.status-tabs :deep(.el-tabs__item.is-active:hover) {
+  color: #FFFFFF;
+}
+
+.status-tabs :deep(.el-tabs__active-bar) {
+  display: none;
+}
+
+/* ====== 搜索栏 ====== */
 .search-bar {
-  background: #fff;
-  border: 1px solid #e4e7ed;
-  border-radius: 8px;
-  padding: 18px 20px 16px 20px;
-  margin-bottom: 16px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
-  transition: box-shadow 0.2s;
+  background: #FFFFFF;
+  border: 1px solid #E5E5E0;
+  border-radius: 14px;
+  padding: 20px 22px;
+  margin-bottom: 18px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
 }
-.search-bar:hover {
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-}
+
 .search-main {
   display: flex;
   justify-content: space-between;
@@ -674,364 +736,670 @@ onMounted(() => {
   gap: 16px;
   flex-wrap: wrap;
 }
+
 .search-field-group {
   display: flex;
-  gap: 20px;
+  gap: 16px;
   align-items: flex-end;
   flex-wrap: wrap;
 }
+
 .field-item {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 6px;
 }
+
 .field-label {
   font-size: 12px;
-  font-weight: 500;
-  color: #606266;
+  font-weight: 600;
+  color: #1C1C1E;
   line-height: 1;
 }
+
 .field-input {
-  width: 200px;
+  width: 220px;
 }
+
 .field-input-sm {
-  width: 120px;
+  width: 140px;
 }
+
 .search-actions {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   align-items: center;
   flex-shrink: 0;
 }
+
+.search-actions .el-button {
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-weight: 600;
+}
+
 .search-divider {
   height: 1px;
-  background: linear-gradient(to right, #e4e7ed 0%, transparent 100%);
-  margin: 14px 0 12px 0;
+  background: linear-gradient(to right, #F0F0EE 0%, transparent 100%);
+  margin: 16px 0 14px;
 }
+
 .search-time {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
   flex-wrap: wrap;
 }
+
 .time-section-label {
   font-size: 12px;
-  font-weight: 500;
-  color: #909399;
+  font-weight: 600;
+  color: #1C1C1E;
   white-space: nowrap;
-  letter-spacing: 0.5px;
 }
+
 .time-pickers {
   display: flex;
   gap: 10px;
   flex-wrap: wrap;
 }
+
 .time-picker {
   width: 260px;
 }
 
-/* ---- 表格容器 ---- */
-.order-table-wrap {
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  overflow: hidden;
-}
-.order-table-header th {
-  background: #f8f9fd !important;
-  color: #555 !important;
-  font-weight: 600 !important;
-  font-size: 13px !important;
-  padding: 12px 18px !important;
-  border-bottom: 1px solid #e8ecf1 !important;
+.search-bar :deep(.el-input__wrapper),
+.search-bar :deep(.el-select .el-input__wrapper) {
+  box-shadow: 0 0 0 1px #E5E5E0 inset;
+  border-radius: 8px;
 }
 
-/* ---- 订单信息列 ---- */
+.search-bar :deep(.el-input__wrapper:hover),
+.search-bar :deep(.el-select .el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px #3B6E6E inset;
+}
+
+.search-bar :deep(.el-input__wrapper.is-focus),
+.search-bar :deep(.el-select .el-input.is-focus .el-input__wrapper) {
+  box-shadow: 0 0 0 1px #3B6E6E inset, 0 0 0 3px rgba(59, 110, 110, 0.08);
+}
+
+/* ====== 表格容器 ====== */
+.order-table-wrap {
+  background: #FFFFFF;
+  border: 1px solid #E5E5E0;
+  border-radius: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.03);
+  overflow: hidden;
+}
+
+.order-table-wrap :deep(.el-table) {
+  --el-table-header-bg-color: #F7F7F6;
+  --el-table-header-text-color: #1C1C1E;
+  --el-table-row-hover-bg-color: #FAFAF9;
+  --el-table-border-color: #F0F0EE;
+}
+
+.order-table-wrap :deep(.order-table-header th) {
+  background: #F7F7F6 !important;
+  color: #1C1C1E !important;
+  font-weight: 700 !important;
+  font-size: 13px !important;
+  padding: 14px 18px !important;
+  border-bottom: 1px solid #F0F0EE !important;
+}
+
+.seller-order-row td {
+  vertical-align: top;
+  padding: 16px 18px !important;
+  border-bottom: 1px solid #F0F0EE !important;
+}
+
+/* ====== 订单信息列 ====== */
 .oi-top {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 5px;
+  margin-bottom: 6px;
 }
+
 .oi-no {
-  font-weight: 650;
-  color: #1e1e2f;
+  font-weight: 700;
+  color: #1C1C1E;
   font-size: 14px;
   font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
   letter-spacing: 0.2px;
 }
+
 .oi-time {
-  font-size: 12.5px;
-  color: #888;
-  padding-left: 1px;
+  font-size: 12px;
+  color: #A1A1AA;
 }
 
-/* ---- 商品卡片 ---- */
+/* ====== 状态徽章 ====== */
+:deep(.el-tag) {
+  border: none;
+  font-weight: 600;
+}
+
+:deep(.el-tag--success) {
+  background: rgba(90, 143, 90, 0.12);
+  color: #5A7D5A;
+}
+
+:deep(.el-tag--warning) {
+  background: rgba(200, 164, 100, 0.14);
+  color: #C8A464;
+}
+
+:deep(.el-tag--danger) {
+  background: rgba(184, 92, 92, 0.1);
+  color: #B85C5C;
+}
+
+:deep(.el-tag--info) {
+  background: rgba(161, 161, 170, 0.14);
+  color: #6B6B6E;
+}
+
+:deep(.el-tag--primary) {
+  background: rgba(59, 110, 110, 0.1);
+  color: #3B6E6E;
+}
+
+/* ====== 商品卡片 ====== */
 .items-wrap {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   padding: 2px 0;
 }
+
 .item-card {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 7px 10px;
-  border-radius: 8px;
-  background: #f8f9fc;
-  border: 1px solid #eef0f4;
-  transition: background 0.18s, border-color 0.18s;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #FAFAF9;
+  border: 1px solid #F0F0EE;
+  transition: all 0.2s ease;
 }
+
 .item-card:hover {
-  background: #f0f4ff;
-  border-color: #d0d9f0;
+  background: #FFFFFF;
+  border-color: #E5E5E0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
+
 .item-thumb {
-  width: 38px;
-  height: 38px;
-  border-radius: 6px;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
   flex-shrink: 0;
-  border: 1px solid #e2e6ed;
+  border: 1px solid #F0F0EE;
   object-fit: cover;
 }
+
 .item-thumb-placeholder {
-  width: 38px;
-  height: 38px;
-  border-radius: 6px;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
   flex-shrink: 0;
-  background: #eef0f4;
+  background: #F5F5F4;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #c0c4cc;
+  color: #A1A1AA;
 }
+
 .item-body {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
+
 .item-name {
   font-size: 13px;
-  color: #1e1e2f;
-  font-weight: 530;
+  color: #1C1C1E;
+  font-weight: 600;
   line-height: 1.35;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
 .item-specs {
-  font-size: 11.5px;
-  color: #aaa;
+  font-size: 12px;
+  color: #A1A1AA;
 }
+
 .item-meta {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
   flex-shrink: 0;
 }
+
 .item-qty {
-  color: #888;
+  color: #6B6B6E;
   font-size: 13px;
+  font-weight: 600;
 }
+
 .item-price {
-  color: #e74c3c;
+  color: #1C1C1E;
   font-size: 13px;
-  font-weight: 620;
-  min-width: 62px;
+  font-weight: 700;
+  min-width: 68px;
   text-align: right;
 }
+
 .empty-text {
-  color: #c0c4cc;
+  color: #A1A1AA;
   font-size: 13px;
 }
 
-/* ---- 金额列 ---- */
+/* ====== 金额列 ====== */
 .pay-col {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-.pay-val {
-  font-size: 16px;
-  font-weight: 700;
-  color: #e74c3c;
-  letter-spacing: -0.2px;
-}
-.total-val {
-  font-size: 11.5px;
-  color: #bbb;
-  text-decoration: line-through;
-}
-
-/* ---- 操作列 ---- */
-.action-group {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 2px;
-}
-.action-group .el-divider--vertical {
-  height: 13px;
-  margin: 0 3px;
-}
-
-/* ---- 行样式 ---- */
-.seller-order-row td {
-  vertical-align: top;
-  padding: 13px 18px !important;
-}
-
-/* ---- 分页 ---- */
-.pagination-wrap {
-  margin-top: 18px;
-  display: flex;
-  justify-content: flex-end;
-  padding: 4px 0;
-}
-
-/* ---- 订单详情弹窗 ---- */
-.order-detail {
-  padding: 6px 0;
-}
-.detail-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-bottom: 16px;
-  border-bottom: 1px solid #eaeef2;
-  margin-bottom: 16px;
-}
-.order-no {
-  font-size: 15px;
-  font-weight: 630;
-  color: #1e1e2f;
-  font-family: 'SF Mono', 'Consolas', monospace;
-}
-.detail-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 16px;
-  margin-bottom: 16px;
-}
-.detail-section {
-  margin-bottom: 16px;
-}
-.detail-section h4 {
-  margin: 0 0 10px 0;
-  color: #1e1e2f;
-  font-size: 14px;
-  font-weight: 600;
-  padding-bottom: 6px;
-  border-bottom: 1px solid #eef1f5;
-}
-.info-list {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
+
+.pay-val {
+  font-size: 16px;
+  font-weight: 700;
+  color: #3B6E6E;
+  letter-spacing: -0.2px;
+}
+
+.total-val {
+  font-size: 12px;
+  color: #A1A1AA;
+  text-decoration: line-through;
+}
+
+/* ====== 操作列 ====== */
+.action-group {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.order-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  border: 1px solid #E5E5E0;
+  border-radius: 8px;
+  background: #FFFFFF;
+  color: #6B6B6E;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.order-action-btn svg {
+  width: 14px;
+  height: 14px;
+}
+
+.order-action-btn:hover {
+  border-color: #3B6E6E;
+  color: #3B6E6E;
+  background: rgba(59, 110, 110, 0.06);
+}
+
+.order-action-btn.primary {
+  border-color: rgba(59, 110, 110, 0.3);
+  color: #3B6E6E;
+  background: rgba(59, 110, 110, 0.08);
+}
+
+.order-action-btn.primary:hover {
+  background: #3B6E6E;
+  color: #FFFFFF;
+}
+
+.order-action-btn.warning {
+  border-color: rgba(198, 124, 92, 0.3);
+  color: #C67C5C;
+  background: rgba(198, 124, 92, 0.08);
+}
+
+.order-action-btn.warning:hover {
+  background: #C67C5C;
+  color: #FFFFFF;
+}
+
+/* ====== 分页 ====== */
+.pagination-wrap {
+  margin-top: 18px;
+  display: flex;
+  justify-content: flex-end;
+  padding: 14px 20px;
+  background: #FFFFFF;
+  border: 1px solid #E5E5E0;
+  border-radius: 12px;
+}
+
+.pagination-wrap :deep(.el-pagination) {
+  --el-pagination-button-bg-color: #FFFFFF;
+  --el-pagination-hover-color: #3B6E6E;
+}
+
+.pagination-wrap :deep(.el-pagination .is-active) {
+  background: #3B6E6E !important;
+  color: #FFFFFF !important;
+  border-color: #3B6E6E !important;
+}
+
+/* ====== 订单详情弹窗 ====== */
+.order-dialog :deep(.el-dialog__header) {
+  margin-right: 0;
+  padding: 20px 24px;
+  border-bottom: 1px solid #F0F0EE;
+}
+
+.order-dialog :deep(.el-dialog__title) {
+  font-weight: 700;
+  color: #1C1C1E;
+}
+
+.order-dialog :deep(.el-dialog__body) {
+  padding: 24px;
+}
+
+.order-dialog :deep(.el-dialog__footer) {
+  padding: 16px 24px;
+  border-top: 1px solid #F0F0EE;
+  background: #FAFAF9;
+}
+
+.order-detail {
+  padding: 0;
+}
+
+.detail-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 20px;
+  background: #FAFAF9;
+  border: 1px solid #F0F0EE;
+  border-radius: 12px;
+  margin-bottom: 18px;
+}
+
+.order-no {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1C1C1E;
+  font-family: 'SF Mono', 'Consolas', monospace;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.detail-section {
+  margin-bottom: 18px;
+  padding: 18px 20px;
+  background: #FFFFFF;
+  border: 1px solid #F0F0EE;
+  border-radius: 12px;
+}
+
+.detail-section h4 {
+  margin: 0 0 14px;
+  color: #1C1C1E;
+  font-size: 14px;
+  font-weight: 700;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #F0F0EE;
+}
+
+.info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
 .info-row {
   display: flex;
-  margin-bottom: 4px;
-  line-height: 1.8;
+  line-height: 1.6;
   font-size: 13px;
+  color: #1C1C1E;
 }
+
 .info-row .label {
   width: 80px;
-  color: #777;
+  color: #6B6B6E;
   flex-shrink: 0;
+  font-weight: 600;
 }
+
 .pay-amount-text {
-  font-weight: 650;
-  color: #e74c3c;
+  font-weight: 700;
+  color: #3B6E6E;
 }
+
 .reject-text {
-  color: #c2413a;
-  font-weight: 500;
+  color: #B85C5C;
+  font-weight: 600;
 }
+
 .detail-footer {
-  padding-top: 12px;
-  border-top: 1px solid #eaeef2;
-  color: #888;
-  font-size: 12.5px;
+  padding: 14px 20px;
+  background: #FAFAF9;
+  border: 1px solid #F0F0EE;
+  border-radius: 10px;
+  color: #6B6B6E;
+  font-size: 12px;
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
 }
+
 .detail-footer .label {
-  color: #999;
+  color: #A1A1AA;
 }
+
 .detail-footer-divider {
   margin: 0 6px;
-  color: #ddd;
+  color: #E5E5E0;
 }
+
 .product-info {
   display: flex;
   align-items: center;
   gap: 10px;
 }
+
 .product-img {
-  width: 40px;
-  height: 40px;
-  border-radius: 6px;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
   flex-shrink: 0;
-  border: 1px solid #eef0f4;
+  border: 1px solid #F0F0EE;
 }
+
 .product-name {
   font-size: 13px;
-  color: #1e1e2f;
-  font-weight: 530;
+  color: #1C1C1E;
+  font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
 .product-text {
   flex: 1;
   min-width: 0;
 }
+
 .product-specs {
   font-size: 12px;
-  color: #999;
+  color: #A1A1AA;
   margin-top: 2px;
 }
 
-/* ---- 审核退款弹窗 ---- */
+.order-dialog :deep(.el-table) {
+  --el-table-header-bg-color: #F7F7F6;
+  --el-table-header-text-color: #1C1C1E;
+  --el-table-row-hover-bg-color: #FAFAF9;
+  --el-table-border-color: #F0F0EE;
+}
+
+/* ====== 发货弹窗 ====== */
+.ship-dialog :deep(.el-dialog__header) {
+  margin-right: 0;
+  padding: 20px 24px;
+  border-bottom: 1px solid #F0F0EE;
+}
+
+.ship-dialog :deep(.el-dialog__title) {
+  font-weight: 700;
+  color: #1C1C1E;
+}
+
+.ship-dialog :deep(.el-dialog__body) {
+  padding: 0;
+}
+
+.ship-dialog :deep(.el-dialog__footer) {
+  padding: 16px 24px;
+  border-top: 1px solid #F0F0EE;
+  background: #FAFAF9;
+}
+
+.ship-dialog-hero {
+  padding: 16px 24px;
+  background: #FAFAF9;
+  border-bottom: 1px solid #F0F0EE;
+}
+
+.ship-dialog-hero p {
+  margin: 0;
+  font-size: 13px;
+  color: #6B6B6E;
+}
+
+.ship-form {
+  padding: 24px;
+}
+
+.ship-form :deep(.el-form-item__label) {
+  color: #1C1C1E;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.ship-form :deep(.el-input__wrapper),
+.ship-form :deep(.el-select .el-input__wrapper) {
+  box-shadow: 0 0 0 1px #E5E5E0 inset;
+  border-radius: 8px;
+}
+
+.ship-form :deep(.el-input__wrapper:hover),
+.ship-form :deep(.el-select .el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px #3B6E6E inset;
+}
+
+.ship-form :deep(.el-input__wrapper.is-focus),
+.ship-form :deep(.el-select .el-input.is-focus .el-input__wrapper) {
+  box-shadow: 0 0 0 1px #3B6E6E inset, 0 0 0 3px rgba(59, 110, 110, 0.08);
+}
+
+/* ====== 审核退款弹窗 ====== */
+.review-dialog :deep(.el-dialog__header) {
+  margin-right: 0;
+  padding: 20px 24px;
+  border-bottom: 1px solid #F0F0EE;
+}
+
+.review-dialog :deep(.el-dialog__title) {
+  font-weight: 700;
+  color: #1C1C1E;
+}
+
+.review-dialog :deep(.el-dialog__body) {
+  padding: 0;
+}
+
+.review-dialog :deep(.el-dialog__footer) {
+  padding: 16px 24px;
+  border-top: 1px solid #F0F0EE;
+  background: #FAFAF9;
+}
+
+.review-dialog-hero {
+  padding: 16px 24px;
+  background: #FAFAF9;
+  border-bottom: 1px solid #F0F0EE;
+}
+
+.review-dialog-hero p {
+  margin: 0;
+  font-size: 13px;
+  color: #6B6B6E;
+}
+
 .review-info {
-  background: #f8f9fc;
-  border-radius: 10px;
-  padding: 16px;
-  margin-bottom: 12px;
+  background: #FAFAF9;
+  border: 1px solid #F0F0EE;
+  border-radius: 12px;
+  padding: 18px 20px;
+  margin: 24px;
 }
+
 .review-info .info-row {
-  font-size: 13.5px;
-  padding: 5px 0;
+  font-size: 13px;
+  padding: 6px 0;
 }
+
 .review-info .info-row .label {
   width: 80px;
-  color: #666;
+  color: #6B6B6E;
   flex-shrink: 0;
+  font-weight: 600;
 }
+
 .review-reason {
-  margin-top: 10px;
-  padding: 10px 14px;
-  background: #fffbe6;
-  border-radius: 8px;
-  border-left: 3px solid #faad14;
-  color: #333;
+  margin-top: 12px;
+  padding: 12px 16px;
+  background: rgba(200, 164, 100, 0.08);
+  border-radius: 10px;
+  border-left: 3px solid #C8A464;
+  color: #1C1C1E;
   font-size: 13px;
   line-height: 1.55;
 }
+
 .review-reason .reason-label {
-  color: #d48806;
-  font-weight: 550;
+  color: #C8A464;
+  font-weight: 700;
   margin-right: 4px;
 }
-.review-footer-hint {
-  font-size: 12px;
-  color: #bbb;
-  text-align: center;
-  margin-top: 10px;
+
+.review-dialog :deep(.el-textarea__inner) {
+  margin: 0 24px;
+  width: calc(100% - 48px);
+  box-shadow: 0 0 0 1px #E5E5E0 inset;
+  border-radius: 8px;
+}
+
+.review-dialog :deep(.el-textarea__inner:hover),
+.review-dialog :deep(.el-textarea__inner:focus) {
+  box-shadow: 0 0 0 1px #3B6E6E inset, 0 0 0 3px rgba(59, 110, 110, 0.08);
 }
 </style>

@@ -143,6 +143,26 @@
                   />
                 </div>
               </el-form-item>
+              <el-form-item prop="captcha">
+                <div class="captcha-wrap">
+                  <div class="captcha-input-wrap">
+                    <el-input
+                      v-model="emailForm.captcha"
+                      placeholder="图形验证码"
+                      size="large"
+                      maxlength="4"
+                    />
+                  </div>
+                  <img
+                    v-if="emailCaptchaImage"
+                    :src="emailCaptchaImage"
+                    class="captcha-img"
+                    alt="验证码"
+                    title="点击刷新"
+                    @click="loadEmailCaptcha"
+                  />
+                </div>
+              </el-form-item>
               <el-form-item prop="code">
                 <div class="code-wrap">
                   <div class="code-input-wrap">
@@ -166,26 +186,6 @@
                       {{ emailCodeSending ? '发送中...' : '获取验证码' }}
                     </template>
                   </el-button>
-                </div>
-              </el-form-item>
-              <el-form-item prop="captcha">
-                <div class="captcha-wrap">
-                  <div class="captcha-input-wrap">
-                    <el-input
-                      v-model="emailForm.captcha"
-                      placeholder="图形验证码"
-                      size="large"
-                      maxlength="4"
-                    />
-                  </div>
-                  <img
-                    v-if="emailCaptchaImage"
-                    :src="emailCaptchaImage"
-                    class="captcha-img"
-                    alt="验证码"
-                    title="点击刷新"
-                    @click="loadEmailCaptcha"
-                  />
                 </div>
               </el-form-item>
               <el-form-item>
@@ -377,122 +377,127 @@
           label-width="0"
           class="register-form"
         >
-          <!-- 第1步：账户信息 -->
-          <div v-show="registerStep === 1" class="step-panel">
-            <div class="step-panel-icon">👤</div>
-            <div class="step-panel-title">填写账户信息</div>
-            <div class="step-panel-desc">创建您的专属账户标识</div>
-            <div class="form-group-fields">
-              <el-form-item prop="username">
-                <el-input
-                  v-model="registerForm.username"
-                  placeholder="用户名"
-                  size="large"
-                  :prefix-icon="UserIcon"
-                />
-              </el-form-item>
-              <el-form-item prop="email">
-                <el-input
-                  v-model="registerForm.email"
-                  placeholder="邮箱地址"
-                  size="large"
-                  :prefix-icon="MessageIcon"
-                />
-              </el-form-item>
-              <el-form-item prop="phone">
-                <el-input
-                  v-model="registerForm.phone"
-                  placeholder="手机号（选填）"
-                  size="large"
-                  :prefix-icon="PhoneIcon"
-                  maxlength="11"
-                />
-              </el-form-item>
-            </div>
-          </div>
-
-          <!-- 第2步：安全密码 -->
-          <div v-show="registerStep === 2" class="step-panel">
-            <div class="step-panel-icon">🔒</div>
-            <div class="step-panel-title">设置安全密码</div>
-            <div class="step-panel-desc">保护您的账户安全</div>
-            <div class="form-group-fields">
-              <el-form-item prop="password">
-                <el-input
-                  v-model="registerForm.password"
-                  type="password"
-                  placeholder="密码（至少 6 位）"
-                  size="large"
-                  :prefix-icon="LockIcon"
-                  show-password
-                />
-              </el-form-item>
-              <el-form-item prop="confirmPassword">
-                <el-input
-                  v-model="registerForm.confirmPassword"
-                  type="password"
-                  placeholder="确认密码"
-                  size="large"
-                  :prefix-icon="LockIcon"
-                  show-password
-                />
-              </el-form-item>
-            </div>
-          </div>
-
-          <!-- 第3步：邮箱验证 -->
-          <div v-show="registerStep === 3" class="step-panel">
-            <div class="step-panel-icon">📧</div>
-            <div class="step-panel-title">完成邮箱验证</div>
-            <div class="step-panel-desc">验证您的邮箱，确保账户可找回</div>
-            <div class="form-group-fields">
-              <el-form-item prop="registerCaptcha">
-                <div class="captcha-wrap">
-                  <div class="captcha-input-wrap">
-                    <el-input
-                      v-model="registerForm.registerCaptcha"
-                      placeholder="图形验证码"
-                      size="large"
-                      maxlength="4"
-                    />
-                  </div>
-                  <img
-                    v-if="registerCaptchaImage"
-                    :src="registerCaptchaImage"
-                    class="captcha-img"
-                    alt="验证码"
-                    title="点击刷新"
-                    @click="loadRegisterCaptcha"
-                  />
-                </div>
-              </el-form-item>
-              <el-form-item prop="emailCode">
-                <div class="code-wrap">
-                  <div class="code-input-wrap">
-                    <el-input
-                      v-model="registerForm.emailCode"
-                      placeholder="邮箱验证码"
-                      size="large"
-                      maxlength="6"
-                    />
-                  </div>
-                  <el-button
+          <Transition
+            :name="'step-slide-' + (registerDirection === 'next' ? 'forward' : 'backward')"
+            mode="out-in"
+          >
+            <!-- 第1步：账户信息 -->
+            <div v-if="registerStep === 1" key="step1" class="step-panel">
+              <div class="step-panel-icon">👤</div>
+              <div class="step-panel-title">填写账户信息</div>
+              <div class="step-panel-desc">创建您的专属账户标识</div>
+              <div class="form-group-fields">
+                <el-form-item prop="username" class="stagger-item" style="--order:0">
+                  <el-input
+                    v-model="registerForm.username"
+                    placeholder="用户名"
                     size="large"
-                    :disabled="registerCodeSending || registerCodeCountdown > 0"
-                    class="send-code-btn"
-                    @click="sendRegisterCode"
-                  >
-                    <template v-if="registerCodeCountdown > 0">
-                      重新发送 {{ registerCodeCountdown }}s
-                    </template>
-                    <template v-else>
-                      {{ registerCodeSending ? '发送中...' : '获取验证码' }}
-                    </template>
-                  </el-button>
-                </div>
-              </el-form-item>
+                    :prefix-icon="UserIcon"
+                  />
+                </el-form-item>
+                <el-form-item prop="email" class="stagger-item" style="--order:1">
+                  <el-input
+                    v-model="registerForm.email"
+                    placeholder="邮箱地址"
+                    size="large"
+                    :prefix-icon="MessageIcon"
+                  />
+                </el-form-item>
+                <el-form-item prop="phone" class="stagger-item" style="--order:2">
+                  <el-input
+                    v-model="registerForm.phone"
+                    placeholder="手机号（选填）"
+                    size="large"
+                    :prefix-icon="PhoneIcon"
+                    maxlength="11"
+                  />
+                </el-form-item>
+              </div>
             </div>
-          </div>
+
+            <!-- 第2步：安全密码 -->
+            <div v-else-if="registerStep === 2" key="step2" class="step-panel">
+              <div class="step-panel-icon">🔒</div>
+              <div class="step-panel-title">设置安全密码</div>
+              <div class="step-panel-desc">保护您的账户安全</div>
+              <div class="form-group-fields">
+                <el-form-item prop="password" class="stagger-item" style="--order:0">
+                  <el-input
+                    v-model="registerForm.password"
+                    type="password"
+                    placeholder="密码（至少 6 位）"
+                    size="large"
+                    :prefix-icon="LockIcon"
+                    show-password
+                  />
+                </el-form-item>
+                <el-form-item prop="confirmPassword" class="stagger-item" style="--order:1">
+                  <el-input
+                    v-model="registerForm.confirmPassword"
+                    type="password"
+                    placeholder="确认密码"
+                    size="large"
+                    :prefix-icon="LockIcon"
+                    show-password
+                  />
+                </el-form-item>
+              </div>
+            </div>
+
+            <!-- 第3步：邮箱验证 -->
+            <div v-else key="step3" class="step-panel">
+              <div class="step-panel-icon">📧</div>
+              <div class="step-panel-title">完成邮箱验证</div>
+              <div class="step-panel-desc">验证您的邮箱，确保账户可找回</div>
+              <div class="form-group-fields">
+                <el-form-item prop="registerCaptcha" class="stagger-item" style="--order:0">
+                  <div class="captcha-wrap">
+                    <div class="captcha-input-wrap">
+                      <el-input
+                        v-model="registerForm.registerCaptcha"
+                        placeholder="图形验证码"
+                        size="large"
+                        maxlength="4"
+                      />
+                    </div>
+                    <img
+                      v-if="registerCaptchaImage"
+                      :src="registerCaptchaImage"
+                      class="captcha-img"
+                      alt="验证码"
+                      title="点击刷新"
+                      @click="loadRegisterCaptcha"
+                    />
+                  </div>
+                </el-form-item>
+                <el-form-item prop="emailCode" class="stagger-item" style="--order:1">
+                  <div class="code-wrap">
+                    <div class="code-input-wrap">
+                      <el-input
+                        v-model="registerForm.emailCode"
+                        placeholder="邮箱验证码"
+                        size="large"
+                        maxlength="6"
+                      />
+                    </div>
+                    <el-button
+                      size="large"
+                      :disabled="registerCodeSending || registerCodeCountdown > 0"
+                      class="send-code-btn"
+                      @click="sendRegisterCode"
+                    >
+                      <template v-if="registerCodeCountdown > 0">
+                        重新发送 {{ registerCodeCountdown }}s
+                      </template>
+                      <template v-else>
+                        {{ registerCodeSending ? '发送中...' : '获取验证码' }}
+                      </template>
+                    </el-button>
+                  </div>
+                </el-form-item>
+              </div>
+            </div>
+          </Transition>
         </el-form>
 
         <div class="register-footer">
@@ -801,6 +806,7 @@ const handleResetPassword = async () => {
 // ===== 注册 =====
 const registerVisible = ref(false)
 const registerStep = ref(1)
+const registerDirection = ref<'next' | 'prev'>('next')
 const registerFormRef = ref<FormInstance>()
 const registerForm = reactive({
   username: '',
@@ -911,7 +917,10 @@ const handleRegister = async () => {
 
 // 上一步
 const prevStep = () => {
-  if (registerStep.value > 1) registerStep.value--
+  if (registerStep.value > 1) {
+    registerDirection.value = 'prev'
+    registerStep.value--
+  }
 }
 
 // 下一步（校验当前步骤字段）
@@ -923,7 +932,10 @@ const nextStep = () => {
     return []
   })()
   registerFormRef.value.validateField(fieldsToValidate, (valid) => {
-    if (valid && registerStep.value < 3) registerStep.value++
+    if (valid && registerStep.value < 3) {
+      registerDirection.value = 'next'
+      registerStep.value++
+    }
   })
 }
 
@@ -1530,11 +1542,24 @@ const goToHome = () => {
   border-color: #4facfe;
   background: #eef7ff;
   box-shadow: 0 2px 8px rgba(79,172,254,0.25);
+  animation: dotPulse 2s ease-in-out infinite;
 }
 
 .step-dot.done {
   border-color: #52c41a;
   background: #52c41a;
+  animation: dotDone 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes dotPulse {
+  0%, 100% { box-shadow: 0 2px 8px rgba(79,172,254,0.25); }
+  50% { box-shadow: 0 2px 16px rgba(79,172,254,0.45); }
+}
+
+@keyframes dotDone {
+  0% { transform: scale(0.8); }
+  50% { transform: scale(1.15); }
+  100% { transform: scale(1); }
 }
 
 .step-num {
@@ -1571,12 +1596,34 @@ const goToHome = () => {
 /* ===== 步骤面板 ===== */
 .step-panel {
   padding: 8px 28px 0;
-  animation: stepIn 0.3s ease-out;
 }
 
-@keyframes stepIn {
-  0% { opacity: 0; transform: translateX(20px); }
-  100% { opacity: 1; transform: translateX(0); }
+/* 方向感知的步骤切换过渡（前进） */
+.step-slide-forward-enter-active,
+.step-slide-forward-leave-active {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.step-slide-forward-enter-from {
+  opacity: 0;
+  transform: translateX(30px);
+}
+.step-slide-forward-leave-to {
+  opacity: 0;
+  transform: translateX(-30px);
+}
+
+/* 方向感知的步骤切换过渡（后退） */
+.step-slide-backward-enter-active,
+.step-slide-backward-leave-active {
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.step-slide-backward-enter-from {
+  opacity: 0;
+  transform: translateX(-30px);
+}
+.step-slide-backward-leave-to {
+  opacity: 0;
+  transform: translateX(30px);
 }
 
 .step-panel-icon {
@@ -1638,6 +1685,17 @@ const goToHome = () => {
 
 .form-group-fields :deep(.el-input__wrapper.is-focus .el-input__prefix-inner) {
   color: #4facfe;
+}
+
+/* 表单字段入场交错 */
+.stagger-item {
+  animation: staggerFadeIn 0.4s ease-out both;
+  animation-delay: calc(var(--order) * 0.08s);
+}
+
+@keyframes staggerFadeIn {
+  0% { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
 }
 
 .form-group-fields .captcha-wrap,
@@ -1906,6 +1964,44 @@ const goToHome = () => {
 
   .step-line {
     width: 30px;
+  }
+}
+
+/* ===== 减少动效 ===== */
+@media (prefers-reduced-motion: reduce) {
+  .register-dialog :deep(.el-overlay-dialog) {
+    animation: none;
+  }
+  .register-logo {
+    animation: none;
+  }
+  .bubble {
+    animation: none;
+  }
+  .step-panel {
+    animation: none;
+  }
+  .stagger-item {
+    animation: none;
+  }
+  .step-dot.active {
+    animation: none;
+  }
+  .step-dot.done {
+    animation: none;
+  }
+  .step-slide-forward-enter-active,
+  .step-slide-forward-leave-active,
+  .step-slide-backward-enter-active,
+  .step-slide-backward-leave-active {
+    transition-duration: 0.1s;
+  }
+  .step-slide-forward-enter-from,
+  .step-slide-forward-leave-to,
+  .step-slide-backward-enter-from,
+  .step-slide-backward-leave-to {
+    opacity: 1;
+    transform: none;
   }
 }
 </style>

@@ -49,13 +49,13 @@
               <!-- 商品列表 -->
               <div class="card-items">
                 <template v-if="order.items && order.items.length > 0">
-                  <div class="item" v-for="item in order.items" :key="item.id">
+                  <div class="item" v-for="(item, idx) in order.items" :key="idx">
                     <div class="item-img">
-                      <img :src="item.image || '/placeholder.png'" :alt="item.name" />
+                      <img :src="item.productImage || '/placeholder.png'" :alt="item.productName" />
                     </div>
                     <div class="item-info">
-                      <div class="item-name">{{ item.name }}</div>
-                      <div class="item-specs" v-if="item.specs">{{ item.specs }}</div>
+                      <div class="item-name">{{ item.productName }}</div>
+                      <div class="item-specs" v-if="item.skuSpecs">{{ item.skuSpecs }}</div>
                     </div>
                     <div class="item-price">
                       <span class="price">¥{{ item.price?.toFixed(2) }}</span>
@@ -128,7 +128,7 @@
                     <!-- 已拒绝：可取消退款 -->
                     <template v-else-if="order.status === 8">
                       <el-button size="small" plain @click="handleCancelRefund(order)">取消退款</el-button>
-                      <span class="status-tip" v-if="order.refundRejectReason">拒绝原因：{{ order.refundRejectReason }}</span>
+                      <span class="status-tip" v-if="order.rejectReason">拒绝原因：{{ order.rejectReason }}</span>
                     </template>
                   </div>
                 </div>
@@ -214,16 +214,16 @@
         <template v-if="orderDetail">
           <!-- 订单状态 -->
           <div class="detail-status">
-            <el-tag :type="statusTag(orderDetail.order.status)" size="large" effect="dark">
+            <el-tag :type="statusTag(orderDetail.status)" size="large" effect="dark">
               {{ orderDetail.statusDesc }}
             </el-tag>
             <el-tag
-              v-if="orderDetail.order.status >= 6"
-              :type="statusTag(orderDetail.order.status)"
+              v-if="orderDetail.status >= 6"
+              :type="statusTag(orderDetail.status)"
               size="large"
               style="margin-left: 8px"
             >
-              {{ statusText(orderDetail.order.status) }}
+              {{ statusText(orderDetail.status) }}
             </el-tag>
             <span class="pay-info" v-if="orderDetail.payTypeDesc">
               {{ orderDetail.payStatusDesc }} · {{ orderDetail.payTypeDesc }}
@@ -234,11 +234,11 @@
           <div class="detail-section">
             <h3>商品信息</h3>
             <div class="detail-items">
-              <div class="detail-item" v-for="item in orderDetail.items" :key="item.id">
-                <img class="d-item-img" :src="item.image || '/placeholder.png'" />
+              <div class="detail-item" v-for="(item, idx) in orderDetail.items" :key="idx">
+                <img class="d-item-img" :src="item.productImage || '/placeholder.png'" />
                 <div class="d-item-info">
-                  <div class="d-item-name">{{ item.name }}</div>
-                  <div class="d-item-specs" v-if="item.specs">{{ item.specs }}</div>
+                  <div class="d-item-name">{{ item.productName }}</div>
+                  <div class="d-item-specs" v-if="item.skuSpecs">{{ item.skuSpecs }}</div>
                 </div>
                 <div class="d-item-price">¥{{ item.price?.toFixed(2) }}</div>
                 <div class="d-item-qty">x{{ item.quantity }}</div>
@@ -253,46 +253,46 @@
             <div class="info-grid">
               <div class="info-row">
                 <span class="label">订单号</span>
-                <span class="value">{{ orderDetail.order.orderNo }}</span>
+                <span class="value">{{ orderDetail.orderNo }}</span>
               </div>
               <div class="info-row">
                 <span class="label">下单时间</span>
-                <span class="value">{{ orderDetail.order.createdAt }}</span>
+                <span class="value">{{ orderDetail.createdAt }}</span>
               </div>
-              <div class="info-row" v-if="orderDetail.order.payTime">
+              <div class="info-row" v-if="orderDetail.payTime">
                 <span class="label">支付时间</span>
-                <span class="value">{{ orderDetail.order.payTime }}</span>
+                <span class="value">{{ orderDetail.payTime }}</span>
               </div>
               <div class="info-row">
                 <span class="label">商品金额</span>
-                <span class="value">¥{{ orderDetail.order.totalAmount?.toFixed(2) }}</span>
+                <span class="value">¥{{ orderDetail.totalAmount?.toFixed(2) }}</span>
               </div>
-              <div class="info-row" v-if="orderDetail.order.freightAmount">
+              <div class="info-row" v-if="orderDetail.freightAmount">
                 <span class="label">运费</span>
-                <span class="value">¥{{ orderDetail.order.freightAmount?.toFixed(2) }}</span>
+                <span class="value">¥{{ orderDetail.freightAmount?.toFixed(2) }}</span>
               </div>
-              <div class="info-row" v-if="orderDetail.order.discountAmount">
+              <div class="info-row" v-if="orderDetail.discountAmount">
                 <span class="label">优惠</span>
-                <span class="value discount">-¥{{ orderDetail.order.discountAmount?.toFixed(2) }}</span>
+                <span class="value discount">-¥{{ orderDetail.discountAmount?.toFixed(2) }}</span>
               </div>
               <div class="info-row total-row">
                 <span class="label">实付金额</span>
-                <span class="value pay-amount">¥{{ orderDetail.order.payAmount?.toFixed(2) }}</span>
+                <span class="value pay-amount">¥{{ orderDetail.payAmount?.toFixed(2) }}</span>
               </div>
-              <div class="info-row" v-if="orderDetail.order.remark">
+              <div class="info-row" v-if="orderDetail.remark">
                 <span class="label">备注</span>
-                <span class="value">{{ orderDetail.order.remark }}</span>
+                <span class="value">{{ orderDetail.remark }}</span>
               </div>
               <div
                 class="info-row"
-                v-if="orderDetail.order.status === 8 && orderDetail.order.refundRejectReason"
+                v-if="orderDetail.status === 8 && orderDetail.rejectReason"
               >
                 <span class="label">拒绝原因</span>
-                <span class="value" style="color:#c2413a">{{ orderDetail.order.refundRejectReason }}</span>
+                <span class="value" style="color:#c2413a">{{ orderDetail.rejectReason }}</span>
               </div>
-              <div class="info-row" v-if="orderDetail.order.refundRejectTime">
+              <div class="info-row" v-if="orderDetail.rejectedAt">
                 <span class="label">拒绝时间</span>
-                <span class="value">{{ orderDetail.order.refundRejectTime }}</span>
+                <span class="value">{{ orderDetail.rejectedAt }}</span>
               </div>
             </div>
           </div>
@@ -303,15 +303,15 @@
             <div class="info-grid">
               <div class="info-row">
                 <span class="label">收货人</span>
-                <span class="value">{{ orderDetail.order.receiverName }}</span>
+                <span class="value">{{ orderDetail.receiverName }}</span>
               </div>
               <div class="info-row">
                 <span class="label">联系电话</span>
-                <span class="value">{{ orderDetail.order.receiverPhone }}</span>
+                <span class="value">{{ orderDetail.receiverPhone }}</span>
               </div>
               <div class="info-row">
                 <span class="label">收货地址</span>
-                <span class="value">{{ orderDetail.order.receiverAddress }}</span>
+                <span class="value">{{ orderDetail.receiverAddress }}</span>
               </div>
             </div>
           </div>
@@ -322,7 +322,7 @@
             <div class="deliveries">
               <div class="delivery-row" v-for="(del, idx) in orderDetail.deliveries" :key="idx">
                 <span class="del-icon">📦</span>
-                <span>{{ del.deliveryCompany || del.company }}{{ del.deliveryNo || del.trackingNo ? '：' + (del.deliveryNo || del.trackingNo) : '' }}</span>
+                <span>{{ del.deliveryCompany }}{{ del.deliveryNo ? '：' + del.deliveryNo : '' }}</span>
               </div>
             </div>
           </div>
@@ -427,7 +427,7 @@ const loadOrders = async () => {
     })
     console.log('[订单] 响应数据:', result)
     // 响应经过拦截器已提取 res.data = { list, page, pageSize, total }
-    const rawList = result.list || result.records || []
+    const rawList = result.list || []
     orders.value = Array.isArray(rawList) ? rawList : []
     pagination.total = result.total || orders.value.length || 0
     console.log('[订单] 加载完成:', { count: orders.value.length, total: pagination.total })
@@ -566,7 +566,7 @@ const handleCancelRefund = async (order: Order) => {
     await cancelRefund(order.id)
     ElMessage.success('退款申请已取消，订单已恢复')
     loadOrders()
-  } catch (e) {
+  } catch (e: any) {
     if (e !== 'cancel') ElMessage.error(e?.message || '取消退款失败')
   } finally {
     submitting.value = false

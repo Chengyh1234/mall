@@ -2,7 +2,7 @@ import request from '@/utils/request'
 
 /** 属性值对象 */
 export interface AttributeValue {
-  id: number
+  valueId: number
   attrId: number
   value: string
   imageUrl?: string

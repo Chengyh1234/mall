@@ -57,9 +57,26 @@
           <el-carousel :interval="4000" arrow="always" height="100%" indicator-position="inside">
             <el-carousel-item v-for="item in carouselItems" :key="item.id">
               <a v-if="item.linkUrl" :href="item.linkUrl" target="_blank" class="carousel-link">
-                <img :src="getBannerImageUrl(item.imageUrl)" :alt="item.title" class="carousel-img" loading="lazy" />
+                <img
+                  :src="getBannerImageUrl(item.imageUrl)"
+                  :alt="item.title"
+                  class="carousel-img"
+                  width="1200"
+                  height="428"
+                  decoding="async"
+                  fetchpriority="high"
+                />
               </a>
-              <img v-else :src="getBannerImageUrl(item.imageUrl)" :alt="item.title" class="carousel-img" loading="lazy" />
+              <img
+                v-else
+                :src="getBannerImageUrl(item.imageUrl)"
+                :alt="item.title"
+                class="carousel-img"
+                width="1200"
+                height="428"
+                decoding="async"
+                fetchpriority="high"
+              />
               <div class="carousel-overlay">
                 <span class="carousel-label">{{ item.title }}</span>
               </div>
@@ -127,7 +144,14 @@
               @click="goToProductDetail(product.id)"
             >
               <div class="card-image-wrap">
-                <img :src="product.image" :alt="product.name" loading="lazy" />
+                <img
+                  :src="product.image"
+                  :alt="product.name"
+                  loading="lazy"
+                  width="280"
+                  height="280"
+                  decoding="async"
+                />
                 <span v-if="product.stock < 10" class="card-badge danger">仅剩 {{ product.stock }} 件</span>
                 <span v-else-if="product.stock < 50" class="card-badge warning">库存紧张</span>
               </div>
@@ -744,6 +768,7 @@ onUnmounted(() => {
 }
 
 .product-card {
+  --delay: 0ms;
   background: var(--surface);
   border-radius: var(--radius-lg);
   overflow: hidden;
@@ -751,7 +776,7 @@ onUnmounted(() => {
   transition: all var(--transition-base);
   box-shadow: var(--shadow-sm);
   animation: card-enter 0.4s ease backwards;
-  animation-delay: var(--delay, 0ms);
+  animation-delay: var(--delay);
 }
 
 @keyframes card-enter {

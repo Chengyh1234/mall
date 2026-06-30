@@ -317,7 +317,7 @@ const fetchProducts = async (page = 1, size = 10) => {
         id: item.id,
         name: item.name,
         description: item.description,
-        price: item.price || item.skuPrice || 0,
+        price: item.minPrice || 0,
         originalPrice: item.originalPrice || item.marketPrice || 0,
         image: item.mainImage ? getSpuImageUrl(item.mainImage) : 'https://via.placeholder.com/300x300/f5f5f5/999999?text=找不到图片',
         images: item.images ? JSON.parse(item.images) : [],
@@ -341,11 +341,6 @@ const handleSearch = () => {
   currentPage.value = 1
   shopCurrentPage.value = 1
   updateQuery()
-  if (searchType.value === 'product') {
-    fetchProducts(1, pageSize.value)
-  } else {
-    fetchShops(1, pageSize.value)
-  }
 }
 
 // 切换搜索类型
@@ -368,7 +363,6 @@ const goToShopDetail = (id: number) => {
 const handleFilterChange = () => {
   currentPage.value = 1
   updateQuery()
-  fetchProducts(1, pageSize.value)
 }
 
 // 更新URL参数
@@ -395,7 +389,6 @@ const clearSearch = () => {
   searchKeyword.value = ''
   currentPage.value = 1
   updateQuery()
-  fetchProducts(1, pageSize.value)
 }
 
 // 清除分类
@@ -403,7 +396,6 @@ const clearCategory = () => {
   selectedCategoryId.value = null
   currentPage.value = 1
   updateQuery()
-  fetchProducts(1, pageSize.value)
 }
 
 // 清除品牌
@@ -411,7 +403,6 @@ const clearBrand = () => {
   selectedBrandId.value = null
   currentPage.value = 1
   updateQuery()
-  fetchProducts(1, pageSize.value)
 }
 
 // 清除全部筛选
@@ -421,9 +412,6 @@ const clearAll = () => {
   selectedBrandId.value = null
   currentPage.value = 1
   router.push('/products')
-  if (searchType.value === 'product') {
-    fetchProducts(1, pageSize.value)
-  }
 }
 
 // 获取分类树

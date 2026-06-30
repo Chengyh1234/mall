@@ -16,6 +16,7 @@ export interface Store {
   status: number
   sort: number
   createdAt: string
+  rejectReason?: string | null
 }
 
 /**
@@ -213,6 +214,26 @@ export function resubmitStoreApply(data: ReSubmitStoreApplyRequest): Promise<voi
   })
 }
 
+/** 已注销店铺重新申请开店 */
+export interface ReopenStoreApplyRequest {
+  storeId: number
+  name?: string
+  description?: string
+  phone?: string
+  address?: string
+}
+
+export function reopenStoreApply(data: ReopenStoreApplyRequest): Promise<void> {
+  return request({
+    url: '/store/apply/reopen',
+    method: 'post',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    data: new URLSearchParams(
+      Object.entries(data).filter(([_, v]) => v !== undefined && v !== null) as [string, string][]
+    ).toString()
+  })
+}
+
 /**
  * 管理员 - 分页获取全部店铺列表
  */
@@ -240,6 +261,19 @@ export function getPendingApplyPage(params: {
   page?: number
   pageSize?: number
 }): Promise<PageResult<Store>> {
+  return request({
+    url: '/admin/store/apply/pending',
+    method: 'get',
+    params
+  })
+}
+
+/** 分页查询全部开店申请（支持按状态筛选：2 审核中 / 3 审核失败） */
+export function getAdminApplyPage(params: {
+  page?: number
+  pageSize?: number
+  status?: number
+}): Promise<PageResult<StoreAdminVo>> {
   return request({
     url: '/admin/store/apply/pending',
     method: 'get',

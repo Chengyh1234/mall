@@ -1,22 +1,56 @@
 <template>
   <div class="seller-products">
     <div class="page-header">
-      <h1>商品管理</h1>
-      <el-button type="primary" @click="openAddModal">发布新商品</el-button>
+      <div class="page-header-content">
+        <h1>商品管理</h1>
+        <p>管理店铺商品、库存与上下架状态</p>
+      </div>
+      <el-button type="primary" class="primary-action-btn" @click="openAddModal">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="12" y1="5" x2="12" y2="19"/>
+          <line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        发布新商品
+      </el-button>
     </div>
 
-    <div class="search-bar">
-      <el-input v-model="searchKeyword" placeholder="搜索商品名称" style="width: 200px;" clearable />
-      <el-select v-model="statusFilter" placeholder="选择状态" style="width: 120px;" clearable @change="handleSearch">
-        <el-option label="全部" :value="undefined" />
-        <el-option label="在售" :value="1" />
-        <el-option label="下架" :value="0" />
-      </el-select>
-      <el-button type="primary" @click="handleSearch">搜索</el-button>
-      <el-button @click="resetSearch">重置</el-button>
+    <div class="filter-card">
+      <div class="filter-group">
+        <el-input
+          v-model="searchKeyword"
+          placeholder="搜索商品名称"
+          clearable
+          class="filter-input"
+          @keyup.enter="handleSearch"
+        >
+          <template #prefix>
+            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+          </template>
+        </el-input>
+        <el-select v-model="statusFilter" placeholder="选择状态" clearable @change="handleSearch" class="filter-select">
+          <template #prefix>
+            <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+              <polyline points="2 17 12 22 22 17"/>
+              <polyline points="2 12 12 17 22 12"/>
+            </svg>
+          </template>
+          <el-option label="全部" :value="undefined" />
+          <el-option label="在售" :value="1" />
+          <el-option label="下架" :value="0" />
+        </el-select>
+      </div>
+      <div class="filter-actions">
+        <el-button type="primary" class="search-btn" @click="handleSearch">搜索</el-button>
+        <el-button class="reset-btn" @click="resetSearch">重置</el-button>
+      </div>
     </div>
 
-    <el-table :data="products" border v-loading="loading">
+    <div class="table-card">
+      <el-table :data="products" v-loading="loading" class="product-table" row-class-name="product-row">
       <el-table-column prop="id" label="ID" width="80" />
       <el-table-column label="商品图片" width="100">
         <template #default="scope">
@@ -29,48 +63,88 @@
       <el-table-column prop="categoryName" label="分类" width="100" />
       <el-table-column prop="brandName" label="品牌" width="100" />
       <el-table-column prop="sales" label="销量" width="80" />
-      <el-table-column prop="status" label="状态" width="80">
+      <el-table-column prop="status" label="状态" width="100">
         <template #default="scope">
-          <el-tag :type="scope.row.status === 1 ? 'success' : 'info'" size="small">
+          <span class="status-badge" :class="scope.row.status === 1 ? 'active' : 'inactive'">
+            <span class="status-dot" />
             {{ scope.row.status === 1 ? '在售' : '下架' }}
-          </el-tag>
+          </span>
         </template>
       </el-table-column>
       <el-table-column prop="createdAt" label="创建时间" width="160" :formatter="formatDate" />
-      <el-table-column label="操作" width="280" fixed="right">
+      <el-table-column label="操作" width="220" fixed="right">
         <template #default="scope">
-          <el-button size="small" type="primary" link @click="viewProduct(scope.row)">详情</el-button>
-          <el-button size="small" type="primary" link @click="editProduct(scope.row)">编辑</el-button>
-          <el-button size="small" :type="scope.row.status === 1 ? 'warning' : 'success'" link
-            @click="toggleStatus(scope.row)">
-            {{ scope.row.status === 1 ? '下架' : '上架' }}
-          </el-button>
-          <el-button size="small" type="danger" link @click="handleDelete(scope.row)">删除</el-button>
+          <div class="action-btns">
+            <button class="icon-action-btn" title="详情" @click="viewProduct(scope.row)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+            <button class="icon-action-btn" title="编辑" @click="editProduct(scope.row)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+            </button>
+            <button
+              class="icon-action-btn"
+              :class="scope.row.status === 1 ? 'warning' : 'success'"
+              :title="scope.row.status === 1 ? '下架' : '上架'"
+              @click="toggleStatus(scope.row)"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <template v-if="scope.row.status === 1">
+                  <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
+                  <line x1="12" y1="2" x2="12" y2="12"/>
+                </template>
+                <template v-else>
+                  <path d="M5.64 5.64a9 9 0 1 0 12.73 0"/>
+                  <line x1="12" y1="22" x2="12" y2="12"/>
+                </template>
+              </svg>
+            </button>
+            <button class="icon-action-btn danger" title="删除" @click="handleDelete(scope.row)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+              </svg>
+            </button>
+          </div>
         </template>
       </el-table-column>
     </el-table>
+    </div>
 
-    <el-pagination
-      v-model:current-page="pagination.page"
-      v-model:page-size="pagination.pageSize"
-      :total="pagination.total"
-      :page-sizes="[10, 20, 50, 100]"
-      layout="total, sizes, prev, pager, next, jumper"
-      @size-change="handleSizeChange"
-      @current-change="handlePageChange"
-      style="margin-top: 20px; justify-content: flex-end;"
-    />
+    <div class="pagination-bar">
+      <el-pagination
+        v-model:current-page="pagination.page"
+        v-model:page-size="pagination.pageSize"
+        :total="pagination.total"
+        :page-sizes="[10, 20, 50, 100]"
+        layout="total, sizes, prev, pager, next, jumper"
+        @size-change="handleSizeChange"
+        @current-change="handlePageChange"
+      />
+    </div>
 
-    <el-dialog :title="isEdit ? '编辑商品' : '发布新商品'" v-model="showModal" width="900px" @closed="resetForm">
-      <el-steps :active="currentStep" finish-status="success" style="margin-bottom: 30px;">
+    <el-dialog
+      :title="isEdit ? '编辑商品' : '发布新商品'"
+      v-model="showModal"
+      width="920px"
+      :close-on-click-modal="false"
+      class="product-dialog"
+      @closed="resetForm"
+    >
+      <el-steps :active="currentStep" finish-status="success" class="product-steps">
         <el-step title="设置SPU" />
         <el-step title="绑定属性" />
         <el-step title="设置SKU" />
       </el-steps>
 
-      <el-form :model="productForm" :rules="formRules" ref="formRef" label-width="100px">
+      <el-form :model="productForm" :rules="formRules" ref="formRef" label-width="100px" class="product-form">
 
-        <div v-show="currentStep === 0">
+        <div v-show="currentStep === 0" class="step-panel">
           <el-form-item label="商品名称" prop="name">
             <el-input v-model="productForm.name" placeholder="请输入商品名称" maxlength="100" show-word-limit />
           </el-form-item>
@@ -152,16 +226,21 @@
           </el-form-item>
         </div>
 
-        <div v-show="currentStep === 1">
+        <div v-show="currentStep === 1" class="step-panel">
           <el-form-item label="当前分类">
-            <span class="category-name">{{ flatCategories.find(c => c.id === productForm.categoryId)?.name || '-' }}</span>
+            <div class="category-display">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+              </svg>
+              <span class="category-name">{{ flatCategories.find(c => c.id === productForm.categoryId)?.name || '-' }}</span>
+            </div>
           </el-form-item>
 
           <el-form-item label="基本属性">
             <div v-if="basicAttributes.length === 0" class="empty-attrs">该分类暂无基本属性</div>
             <div v-else class="attr-list">
               <div v-for="attr in basicAttributes" :key="attr.attrId" class="attr-item">
-                <span class="attr-name">{{ attr.attrName }}:</span>
+                <span class="attr-name">{{ attr.attrName }}</span>
                 <div class="basic-attr-selector">
                   <el-radio-group v-model="selectedBasicAttrs[attr.attrId]" class="attr-radio-group">
                     <el-radio v-for="val in attr.values" :key="val.valueId" :label="val.valueId">
@@ -169,10 +248,10 @@
                     </el-radio>
                     <el-radio :label="-1">自定义</el-radio>
                   </el-radio-group>
-                  <el-input 
-                    v-if="selectedBasicAttrs[attr.attrId] === -1" 
-                    v-model="customBasicAttrs[attr.attrId]" 
-                    placeholder="请输入自定义值" 
+                  <el-input
+                    v-if="selectedBasicAttrs[attr.attrId] === -1"
+                    v-model="customBasicAttrs[attr.attrId]"
+                    placeholder="请输入自定义值"
                     class="custom-input"
                   />
                 </div>
@@ -183,12 +262,14 @@
           <el-form-item label="销售属性">
             <div v-if="salesAttributes.length === 0" class="empty-attrs">该分类暂无销售属性</div>
             <div v-else class="attr-list">
-              <div v-for="attr in salesAttributes" :key="attr.attrId" class="attr-item">
-                <span class="attr-name">{{ attr.attrName }}:</span>
-                <div class="sale-attr-controls">
-                  <el-button type="text" size="small" @click="selectAllSaleAttr(attr.attrId)" class="select-all-btn">
+              <div v-for="attr in salesAttributes" :key="attr.attrId" class="attr-item sale">
+                <div class="attr-header">
+                  <span class="attr-name">{{ attr.attrName }}</span>
+                  <button type="button" class="select-all-btn" @click="selectAllSaleAttr(attr.attrId)">
                     全选
-                  </el-button>
+                  </button>
+                </div>
+                <div class="sale-attr-controls">
                   <el-checkbox-group v-model="selectedSaleAttrValues[attr.attrId]" class="attr-checkbox-group">
                     <el-checkbox v-for="val in attr.values" :key="val.valueId" :label="val.valueId">
                       {{ val.value }}
@@ -200,19 +281,42 @@
           </el-form-item>
         </div>
 
-        <div v-show="currentStep === 2">
-          <div v-if="skuTableData.length > 0">
-            <el-form-item label="SKU列表">
-              <div class="sku-actions">
-                <span class="sku-count">共 {{ skuTableData.length }} 个SKU</span>
-                <div class="sku-action-btns">
-                  <el-button type="success" size="small" @click="batchAddAllSkuCombinations">批量添加</el-button>
-                  <el-button type="primary" size="small" @click="openAddSingleSkuDialog">添加SKU</el-button>
-                  <el-button type="primary" size="small" @click="batchModifySku">批量修改</el-button>
-                  <el-button type="danger" size="small" @click="handleDeleteAllSku">全部删除</el-button>
+        <div v-show="currentStep === 2" class="step-panel">
+          <div v-if="skuTableData.length > 0" class="sku-section">
+            <div class="sku-actions">
+              <span class="sku-count">共 {{ skuTableData.length }} 个SKU</span>
+              <div class="sku-action-btns">
+                  <el-button type="success" size="small" class="sku-batch-btn" @click="batchAddAllSkuCombinations">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="12" y1="5" x2="12" y2="19"/>
+                      <line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                    批量添加
+                  </el-button>
+                  <el-button type="primary" size="small" class="sku-add-btn" @click="openAddSingleSkuDialog">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <line x1="12" y1="5" x2="12" y2="19"/>
+                      <line x1="5" y1="12" x2="19" y2="12"/>
+                    </svg>
+                    添加SKU
+                  </el-button>
+                  <el-button type="primary" size="small" class="sku-modify-btn" @click="batchModifySku">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                    批量修改
+                  </el-button>
+                  <el-button type="danger" size="small" class="sku-delete-btn" @click="handleDeleteAllSku">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="3 6 5 6 21 6"/>
+                      <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                    </svg>
+                    全部删除
+                  </el-button>
                 </div>
               </div>
-              <el-table :data="skuTableData" border size="small" style="margin-top: 8px;">
+              <el-table :data="skuTableData" size="small" class="sku-table">
                 <el-table-column v-for="attr in skuAttrColumns" :key="attr.attrId" :label="attr.attrName" min-width="100">
                   <template #default="scope">
                     <span>{{ scope.row.attrNames?.[attr.attrId] || scope.row.specNames?.[attr.attrId] || '-' }}</span>
@@ -243,56 +347,93 @@
                     <el-input-number v-model="scope.row.warnStock" :min="0" size="small" controls-position="right" />
                   </template>
                 </el-table-column>
-                <el-table-column label="状态" width="80">
+                <el-table-column label="状态" width="90">
                   <template #default="scope">
-                    <el-tag :type="scope.row.status === 1 ? 'success' : 'info'" size="small">
+                    <span class="sku-status-badge" :class="scope.row.status === 1 ? 'active' : 'inactive'">
+                      <span class="sku-status-dot" />
                       {{ scope.row.status === 1 ? '启用' : '禁用' }}
-                    </el-tag>
+                    </span>
                   </template>
                 </el-table-column>
-                <el-table-column label="操作" width="240" fixed="right">
+                <el-table-column label="操作" width="150" fixed="right">
                   <template #default="scope">
-                    <el-button
-                      :type="scope.row.status === 1 ? 'warning' : 'success'"
-                      text
-                      size="small"
-                      @click="toggleSkuStatus(scope.row)"
-                    >
-                      {{ scope.row.status === 1 ? '禁用' : '启用' }}
-                    </el-button>
-                    <el-button type="primary" text size="small" @click="openSkuModifyDialog(scope.row)">修改</el-button>
-                    <el-button type="danger" text size="small" @click="removeSkuRow(scope.$index)">删除</el-button>
+                    <div class="sku-row-actions">
+                      <button
+                        type="button"
+                        class="sku-action-icon"
+                        :class="scope.row.status === 1 ? 'warning' : 'success'"
+                        :title="scope.row.status === 1 ? '禁用' : '启用'"
+                        @click="toggleSkuStatus(scope.row)"
+                      >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <template v-if="scope.row.status === 1">
+                            <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
+                            <line x1="12" y1="2" x2="12" y2="12"/>
+                          </template>
+                          <template v-else>
+                            <path d="M5.64 5.64a9 9 0 1 0 12.73 0"/>
+                            <line x1="12" y1="22" x2="12" y2="12"/>
+                          </template>
+                        </svg>
+                      </button>
+                      <button type="button" class="sku-action-icon" title="修改" @click="openSkuModifyDialog(scope.row)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                        </svg>
+                      </button>
+                      <button type="button" class="sku-action-icon danger" title="删除" @click="removeSkuRow(scope.$index)">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <polyline points="3 6 5 6 21 6"/>
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                        </svg>
+                      </button>
+                    </div>
                   </template>
                 </el-table-column>
               </el-table>
-            </el-form-item>
-          </div>
+            </div>
 
           <div v-else class="empty-sku">
-            <p>暂无SKU数据</p>
-            <el-button type="success" @click="batchAddAllSkuCombinations">批量添加</el-button>
-            <el-button type="primary" @click="openAddSingleSkuDialog">添加SKU</el-button>
-            <el-button text @click="prevStep">返回上一步</el-button>
+            <div class="empty-sku-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                <line x1="12" y1="22.08" x2="12" y2="12"/>
+              </svg>
+            </div>
+            <p>暂无 SKU 数据</p>
+            <span>绑定销售属性后，可批量生成 SKU 组合</span>
+            <div class="empty-sku-actions">
+              <el-button type="success" class="sku-batch-btn" @click="batchAddAllSkuCombinations">批量添加</el-button>
+              <el-button type="primary" class="sku-add-btn" @click="openAddSingleSkuDialog">添加SKU</el-button>
+              <el-button text @click="prevStep">返回上一步</el-button>
+            </div>
           </div>
         </div>
       </el-form>
 
       <template #footer>
-        <el-button @click="showModal = false">取消</el-button>
-        <el-button v-if="currentStep > 0" @click="prevStep">上一步</el-button>
-        <el-button v-if="currentStep === 0 && isEdit" type="primary" @click="saveSpuEdit" :loading="submitting">修改</el-button>
-        <el-button v-if="currentStep === 0 && !isEdit && !spuCreated" type="primary" @click="createSpu" :loading="submitting">添加</el-button>
-        <el-button v-if="currentStep === 0 && !isEdit && spuCreated" type="primary" @click="saveSpuEdit" :loading="submitting">修改</el-button>
-        <el-button v-if="currentStep === 0" type="primary" @click="nextStep">下一步</el-button>
-        <el-button v-if="currentStep === 1" type="primary" @click="saveBasicAttrs" :loading="savingBasicAttrs">{{ basicAttrButtonText }}</el-button>
-        <el-button v-if="currentStep === 1" type="primary" @click="saveSaleAttrs" :loading="savingSaleAttrs">{{ saleAttrButtonText }}</el-button>
-        <el-button v-if="currentStep === 1" type="primary" @click="loadSkuAndNextStep" :loading="loadingSkuStep">下一步</el-button>
-        <el-button v-if="currentStep === 2" type="primary" @click="submitProduct" :loading="submitting">完成</el-button>
+        <div class="dialog-footer">
+          <el-button class="cancel-btn" @click="showModal = false">取消</el-button>
+          <el-button v-if="currentStep > 0" class="prev-btn" @click="prevStep">上一步</el-button>
+          <el-button v-if="currentStep === 0 && isEdit" type="primary" class="submit-btn" @click="saveSpuEdit" :loading="submitting">修改</el-button>
+          <el-button v-if="currentStep === 0 && !isEdit && !spuCreated" type="primary" class="submit-btn" @click="createSpu" :loading="submitting">添加</el-button>
+          <el-button v-if="currentStep === 0 && !isEdit && spuCreated" type="primary" class="submit-btn" @click="saveSpuEdit" :loading="submitting">修改</el-button>
+          <el-button v-if="currentStep === 0" type="primary" class="submit-btn" @click="nextStep">下一步</el-button>
+          <el-button v-if="currentStep === 1" type="primary" class="submit-btn" @click="saveBasicAttrs" :loading="savingBasicAttrs">{{ basicAttrButtonText }}</el-button>
+          <el-button v-if="currentStep === 1" type="primary" class="submit-btn" @click="saveSaleAttrs" :loading="savingSaleAttrs">{{ saleAttrButtonText }}</el-button>
+          <el-button v-if="currentStep === 1" type="primary" class="submit-btn" @click="loadSkuAndNextStep" :loading="loadingSkuStep">下一步</el-button>
+          <el-button v-if="currentStep === 2" type="primary" class="submit-btn" @click="submitProduct" :loading="submitting">完成</el-button>
+        </div>
       </template>
     </el-dialog>
 
-    <el-dialog title="添加SKU" v-model="addSingleSkuDialogVisible" width="500px">
-      <el-form label-width="100px">
+    <el-dialog title="添加SKU" v-model="addSingleSkuDialogVisible" width="520px" class="sku-dialog">
+      <div class="sku-dialog-hero">
+        <p>选择销售属性值并填写 SKU 信息</p>
+      </div>
+      <el-form label-width="100px" class="sku-form">
         <div v-for="attr in salesAttrsForSkuCombinations" :key="attr.attrId" class="add-sku-attr">
           <el-form-item :label="attr.attrName">
             <el-select
@@ -366,8 +507,11 @@
       </el-descriptions>
     </el-dialog>
 
-    <el-dialog title="修改SKU" v-model="skuModifyDialogVisible" width="500px">
-      <el-form v-if="currentModifySku" label-width="100px">
+    <el-dialog title="修改SKU" v-model="skuModifyDialogVisible" width="520px" class="sku-dialog">
+      <div class="sku-dialog-hero">
+        <p>修改当前 SKU 的价格、库存与状态</p>
+      </div>
+      <el-form v-if="currentModifySku" label-width="100px" class="sku-form">
         <el-form-item label="价格">
           <el-input-number v-model="currentModifySku.price" :min="0" :precision="2" controls-position="right" />
         </el-form-item>
@@ -2091,72 +2235,367 @@ onMounted(() => {
 </script>
 
 <style scoped>
+/* ====== 页面基调 ====== */
 .seller-products {
-  padding: 20px;
+  padding: 24px;
   max-width: 1400px;
   margin: 0 auto;
+  background: #FAFAF9;
+  min-height: 100vh;
 }
 
+/* ====== 页面头部 ====== */
 .page-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 24px;
+  padding: 28px 32px;
+  background: linear-gradient(135deg, #FFFFFF 0%, #F8F8F6 100%);
+  border: 1px solid #E5E5E0;
+  border-radius: 18px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
 }
 
-.page-header h1 {
-  font-size: 24px;
+.page-header-content h1 {
+  font-size: 26px;
+  font-weight: 700;
+  color: #1C1C1E;
+  margin: 0 0 6px;
+  letter-spacing: -0.3px;
+}
+
+.page-header-content p {
+  font-size: 14px;
+  color: #6B6B6E;
   margin: 0;
-  color: #333;
 }
 
-.search-bar {
-  display: flex;
-  gap: 15px;
-  margin-bottom: 20px;
+.primary-action-btn {
+  display: inline-flex;
   align-items: center;
+  gap: 8px;
+  padding: 12px 22px;
+  border-radius: 10px;
+  font-weight: 600;
+  transition: all 0.2s ease;
 }
 
+.primary-action-btn svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* ====== 筛选卡片 ====== */
+.filter-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 22px;
+  margin-bottom: 20px;
+  background: #FFFFFF;
+  border: 1px solid #E5E5E0;
+  border-radius: 14px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.03);
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.filter-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.filter-input {
+  width: 240px;
+}
+
+.filter-select {
+  width: 140px;
+}
+
+.input-icon {
+  width: 16px;
+  height: 16px;
+  color: #A1A1AA;
+}
+
+.search-btn,
+.reset-btn {
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-weight: 600;
+}
+
+/* ====== 表格卡片 ====== */
+.table-card {
+  background: #FFFFFF;
+  border: 1px solid #E5E5E0;
+  border-radius: 16px;
+  padding: 8px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.03);
+  overflow: hidden;
+}
+
+.product-table {
+  --el-table-header-bg-color: #F7F7F6;
+  --el-table-header-text-color: #1C1C1E;
+  --el-table-row-hover-bg-color: #FAFAF9;
+  --el-table-border-color: #F0F0EE;
+  --el-table-text-color: #1C1C1E;
+}
+
+.product-table :deep(.el-table__header-wrapper th) {
+  font-weight: 700;
+  font-size: 13px;
+  padding: 14px 0;
+  border-bottom: 1px solid #F0F0EE;
+}
+
+.product-table :deep(.el-table__row) {
+  transition: background-color 0.2s ease;
+}
+
+.product-table :deep(.el-table__cell) {
+  padding: 14px 0;
+  font-size: 13px;
+  color: #1C1C1E;
+}
+
+.product-table :deep(.el-table__row:hover .product-image) {
+  transform: scale(1.05);
+}
+
+/* ====== 商品图片 ====== */
 .image-wrapper {
-  width: 60px;
-  height: 60px;
+  width: 56px;
+  height: 56px;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #F5F5F4;
+  border: 1px solid #F0F0EE;
 }
 
 .product-image {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 4px;
+  transition: transform 0.3s ease;
 }
 
 .placeholder-image {
-  width: 60px;
-  height: 60px;
+  width: 56px;
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: #f5f5f5;
-  border-radius: 4px;
-  border: 1px dashed #ddd;
+  background: #F5F5F4;
+  border-radius: 10px;
+  border: 1px dashed #E5E5E0;
 }
 
 .placeholder-text {
-  font-size: 12px;
-  color: #999;
+  font-size: 11px;
+  color: #A1A1AA;
   text-align: center;
   line-height: 1.2;
 }
 
-.empty-sku {
-  color: #999;
-  padding: 10px;
-  text-align: center;
+/* ====== 状态徽章 ====== */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
 }
 
-.empty-attrs {
-  color: #999;
-  padding: 10px;
+.status-badge.active {
+  background: rgba(90, 143, 90, 0.12);
+  color: #5A7D5A;
+}
+
+.status-badge.inactive {
+  background: rgba(161, 161, 170, 0.14);
+  color: #6B6B6E;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* ====== 操作按钮 ====== */
+.action-btns {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.icon-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: #6B6B6E;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.icon-action-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.icon-action-btn:hover {
+  background: rgba(59, 110, 110, 0.08);
+  color: #3B6E6E;
+}
+
+.icon-action-btn.warning:hover {
+  background: rgba(198, 124, 92, 0.1);
+  color: #C67C5C;
+}
+
+.icon-action-btn.success:hover {
+  background: rgba(90, 143, 90, 0.12);
+  color: #5A7D5A;
+}
+
+.icon-action-btn.danger:hover {
+  background: rgba(184, 92, 92, 0.1);
+  color: #B85C5C;
+}
+
+/* ====== 分页 ====== */
+.pagination-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 20px;
+  padding: 14px 20px;
+  background: #FFFFFF;
+  border: 1px solid #E5E5E0;
+  border-radius: 12px;
+}
+
+.pagination-bar :deep(.el-pagination) {
+  --el-pagination-button-bg-color: #FFFFFF;
+  --el-pagination-hover-color: #3B6E6E;
+}
+
+.pagination-bar :deep(.el-pagination .is-active) {
+  background: #3B6E6E;
+  color: #FFFFFF;
+  border-color: #3B6E6E;
+}
+
+/* ====== 表单弹窗 ====== */
+:deep(.el-dialog__header) {
+  margin-right: 0;
+  padding: 20px 24px;
+  border-bottom: 1px solid #F0F0EE;
+}
+
+:deep(.el-dialog__title) {
+  font-weight: 700;
+  color: #1C1C1E;
+}
+
+:deep(.el-dialog__body) {
+  padding: 24px;
+}
+
+:deep(.el-dialog__footer) {
+  padding: 16px 24px;
+  border-top: 1px solid #F0F0EE;
+}
+
+:deep(.el-steps .el-step__title) {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+:deep(.el-steps .el-step__head.is-success),
+:deep(.el-steps .el-step__title.is-success) {
+  color: #3B6E6E;
+  border-color: #3B6E6E;
+}
+
+:deep(.el-steps .el-step__head.is-process),
+:deep(.el-steps .el-step__title.is-process) {
+  color: #3B6E6E;
+  border-color: #3B6E6E;
+}
+
+/* ====== 属性区域 ====== */
+.attr-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.attr-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px;
+  background: #FAFAF9;
+  border-radius: 10px;
+  border: 1px solid #F0F0EE;
+}
+
+.attr-name {
+  font-weight: 600;
+  min-width: 80px;
+  color: #1C1C1E;
+  font-size: 13px;
+}
+
+.attr-checkbox-group,
+.attr-radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.basic-attr-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.custom-input {
+  width: 220px;
+  margin-top: 4px;
+}
+
+.category-name {
+  font-weight: 600;
+  color: #3B6E6E;
+}
+
+.empty-attrs,
+.empty-sku {
+  color: #A1A1AA;
+  padding: 16px;
   text-align: center;
+  background: #FAFAF9;
+  border-radius: 10px;
+  border: 1px dashed #E5E5E0;
 }
 
 .sale-attr-controls {
@@ -2167,55 +2606,37 @@ onMounted(() => {
 
 .select-all-btn {
   align-self: flex-start;
-  padding: 2px 8px;
+  padding: 4px 10px;
   font-size: 12px;
-  color: #409eff;
+  color: #3B6E6E;
+  background: rgba(59, 110, 110, 0.08);
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease;
 }
 
-.attr-list {
+.select-all-btn:hover {
+  background: rgba(59, 110, 110, 0.14);
+}
+
+/* ====== SKU 区域 ====== */
+.sku-actions {
   display: flex;
-  flex-direction: column;
-  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
 }
 
-.attr-item {
+.sku-count {
+  color: #6B6B6E;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.sku-action-btns {
   display: flex;
-  align-items: flex-start;
-  gap: 10px;
-}
-
-.attr-name {
-  font-weight: 500;
-  min-width: 80px;
-  color: #606266;
-}
-
-.attr-checkbox-group {
-  display: flex;
-  flex-wrap: wrap;
   gap: 8px;
-}
-
-.basic-attr-selector {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.attr-radio-group {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.custom-input {
-  width: 200px;
-  margin-top: 4px;
-}
-
-.category-name {
-  font-weight: 500;
-  color: #409eff;
 }
 
 .sku-specs {
@@ -2231,43 +2652,36 @@ onMounted(() => {
   gap: 10px;
 }
 
-.image-upload-container {
+/* ====== 图片上传 ====== */
+.image-upload-container,
+.main-image-container {
   width: 100%;
 }
 
 .image-tip {
   font-size: 12px;
-  color: #999;
-  margin-top: 8px;
+  color: #A1A1AA;
+  margin-top: 10px;
 }
 
+/* ====== 详情弹窗 ====== */
 .detail-images {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 12px;
 }
 
 .detail-image {
-  width: 80px;
-  height: 80px;
+  width: 88px;
+  height: 88px;
   object-fit: cover;
-  border-radius: 4px;
+  border-radius: 10px;
+  border: 1px solid #F0F0EE;
+  transition: transform 0.2s ease;
 }
 
-.sku-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.sku-count {
-  color: #666;
-  font-size: 13px;
-}
-
-.sku-action-btns {
-  display: flex;
-  gap: 8px;
+.detail-image:hover {
+  transform: scale(1.05);
 }
 
 .add-sku-attr {
@@ -2276,8 +2690,444 @@ onMounted(() => {
 
 .add-sku-attr .attr-label {
   display: block;
-  margin-bottom: 4px;
-  font-weight: 500;
-  color: #333;
+  margin-bottom: 6px;
+  font-weight: 600;
+  color: #1C1C1E;
+  font-size: 13px;
+}
+
+/* ====== 商品编辑/发布弹窗 ====== */
+.product-dialog :deep(.el-dialog__header) {
+  display: none;
+}
+
+.product-dialog :deep(.el-dialog__body) {
+  padding: 0;
+}
+
+.product-dialog :deep(.el-dialog__footer) {
+  padding: 16px 28px;
+  border-top: 1px solid #F0F0EE;
+  background: #FAFAF9;
+}
+
+.dialog-hero {
+  padding: 28px 28px 20px;
+  background: linear-gradient(135deg, #FFFFFF 0%, #F8F8F6 100%);
+  border-bottom: 1px solid #F0F0EE;
+}
+
+.dialog-hero h2 {
+  margin: 0 0 6px;
+  font-size: 22px;
+  font-weight: 700;
+  color: #1C1C1E;
+}
+
+.dialog-hero p {
+  margin: 0;
+  font-size: 13px;
+  color: #6B6B6E;
+}
+
+.required-mark {
+  color: #B85C5C;
+}
+
+.product-steps {
+  padding: 24px 28px 0;
+  margin-bottom: 24px !important;
+}
+
+.product-steps :deep(.el-step__title) {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.product-steps :deep(.el-step__head.is-success),
+.product-steps :deep(.el-step__title.is-success) {
+  color: #3B6E6E;
+  border-color: #3B6E6E;
+}
+
+.product-steps :deep(.el-step__head.is-process),
+.product-steps :deep(.el-step__title.is-process) {
+  color: #3B6E6E;
+  border-color: #3B6E6E;
+}
+
+.product-steps :deep(.el-step__head.is-wait) {
+  color: #A1A1AA;
+  border-color: #E5E5E0;
+}
+
+.step-panel {
+  padding: 0 28px 24px;
+}
+
+.product-form :deep(.el-form-item__label) {
+  color: #1C1C1E;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.product-form :deep(.el-input__wrapper),
+.product-form :deep(.el-textarea__inner),
+.product-form :deep(.el-cascader .el-input__wrapper),
+.product-form :deep(.el-select .el-input__wrapper) {
+  box-shadow: 0 0 0 1px #E5E5E0 inset;
+  border-radius: 8px;
+  transition: box-shadow 0.2s ease;
+}
+
+.product-form :deep(.el-input__wrapper:hover),
+.product-form :deep(.el-textarea__inner:hover),
+.product-form :deep(.el-cascader .el-input__wrapper:hover),
+.product-form :deep(.el-select .el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px #3B6E6E inset;
+}
+
+.product-form :deep(.el-input__wrapper.is-focus),
+.product-form :deep(.el-textarea__inner:focus),
+.product-form :deep(.el-cascader .el-input__wrapper.is-focus),
+.product-form :deep(.el-select .el-input.is-focus .el-input__wrapper) {
+  box-shadow: 0 0 0 1px #3B6E6E inset, 0 0 0 3px rgba(59, 110, 110, 0.08);
+}
+
+.product-form :deep(.el-input-number .el-input__wrapper) {
+  box-shadow: none;
+}
+
+/* ====== 图片上传区域 ====== */
+.main-image-container,
+.image-upload-container {
+  padding: 16px;
+  background: #FAFAF9;
+  border: 1px dashed #E5E5E0;
+  border-radius: 12px;
+}
+
+.main-image-container :deep(.el-upload--picture-card),
+.image-upload-container :deep(.el-upload--picture-card) {
+  width: 100px;
+  height: 100px;
+  border: 1px dashed #C8C8C2;
+  border-radius: 10px;
+  background: #FFFFFF;
+  color: #A1A1AA;
+  transition: all 0.2s ease;
+}
+
+.main-image-container :deep(.el-upload--picture-card:hover),
+.image-upload-container :deep(.el-upload--picture-card:hover) {
+  border-color: #3B6E6E;
+  color: #3B6E6E;
+  background: rgba(59, 110, 110, 0.04);
+}
+
+.main-image-container :deep(.el-upload-list__item),
+.image-upload-container :deep(.el-upload-list__item) {
+  width: 100px;
+  height: 100px;
+  border-radius: 10px;
+  border-color: #F0F0EE;
+}
+
+/* ====== 分类展示 ====== */
+.category-display {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  background: rgba(59, 110, 110, 0.08);
+  border-radius: 8px;
+  color: #3B6E6E;
+  font-weight: 600;
+}
+
+.category-display svg {
+  width: 16px;
+  height: 16px;
+}
+
+.attr-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 8px;
+}
+
+.attr-header .attr-name {
+  min-width: unset;
+  margin-bottom: 0;
+}
+
+.attr-item.sale {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+}
+
+/* ====== SKU 区域 ====== */
+.sku-section {
+  width: 100%;
+}
+
+/* ====== SKU 表格 ====== */
+.sku-table {
+  --el-table-header-bg-color: #F7F7F6;
+  --el-table-header-text-color: #1C1C1E;
+  --el-table-row-hover-bg-color: #FAFAF9;
+  --el-table-border-color: #F0F0EE;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.sku-table :deep(.el-table__header-wrapper th) {
+  font-weight: 700;
+  font-size: 12px;
+  padding: 10px 0;
+}
+
+.sku-table :deep(.el-table__cell) {
+  padding: 10px 0;
+  font-size: 12px;
+}
+
+.sku-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 8px;
+  border-radius: 16px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.sku-status-badge.active {
+  background: rgba(90, 143, 90, 0.12);
+  color: #5A7D5A;
+}
+
+.sku-status-badge.inactive {
+  background: rgba(161, 161, 170, 0.14);
+  color: #6B6B6E;
+}
+
+.sku-status-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.sku-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sku-action-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #6B6B6E;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.sku-action-icon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.sku-action-icon:hover {
+  background: rgba(59, 110, 110, 0.08);
+  color: #3B6E6E;
+}
+
+.sku-action-icon.warning:hover {
+  background: rgba(198, 124, 92, 0.1);
+  color: #C67C5C;
+}
+
+.sku-action-icon.success:hover {
+  background: rgba(90, 143, 90, 0.12);
+  color: #5A7D5A;
+}
+
+.sku-action-icon.danger:hover {
+  background: rgba(184, 92, 92, 0.1);
+  color: #B85C5C;
+}
+
+.sku-action-btns .el-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border-radius: 8px;
+  font-weight: 600;
+}
+
+.sku-action-btns .el-button svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* ====== 空 SKU 状态 ====== */
+.empty-sku {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px 24px;
+  background: #FAFAF9;
+  border-radius: 14px;
+  border: 1px dashed #E5E5E0;
+  text-align: center;
+}
+
+.empty-sku-icon {
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  background: #FFFFFF;
+  border-radius: 14px;
+  color: #A1A1AA;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.empty-sku-icon svg {
+  width: 26px;
+  height: 26px;
+}
+
+.empty-sku > p {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1C1C1E;
+}
+
+.empty-sku > span {
+  font-size: 13px;
+  color: #A1A1AA;
+  margin-bottom: 18px;
+}
+
+.empty-sku-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+/* ====== 弹窗底部按钮 ====== */
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.dialog-footer .el-button {
+  border-radius: 8px;
+  padding: 10px 22px;
+  font-weight: 600;
+}
+
+.dialog-footer .submit-btn {
+  background: #3B6E6E;
+  border-color: #3B6E6E;
+}
+
+.dialog-footer .submit-btn:hover {
+  background: #5A8F8F;
+  border-color: #5A8F8F;
+}
+
+.dialog-footer .cancel-btn,
+.dialog-footer .prev-btn {
+  background: #FFFFFF;
+  border-color: #E5E5E0;
+  color: #6B6B6E;
+}
+
+.dialog-footer .cancel-btn:hover,
+.dialog-footer .prev-btn:hover {
+  border-color: #3B6E6E;
+  color: #3B6E6E;
+}
+
+/* ====== SKU 添加/修改弹窗 ====== */
+.sku-dialog :deep(.el-dialog__header) {
+  margin-right: 0;
+  padding: 20px 24px;
+  border-bottom: 1px solid #F0F0EE;
+}
+
+.sku-dialog :deep(.el-dialog__title) {
+  font-weight: 700;
+  color: #1C1C1E;
+}
+
+.sku-dialog :deep(.el-dialog__body) {
+  padding: 0;
+}
+
+.sku-dialog :deep(.el-dialog__footer) {
+  padding: 16px 24px;
+  border-top: 1px solid #F0F0EE;
+  background: #FAFAF9;
+}
+
+.sku-dialog-hero {
+  padding: 16px 24px;
+  background: #FAFAF9;
+  border-bottom: 1px solid #F0F0EE;
+}
+
+.sku-dialog-hero p {
+  margin: 0;
+  font-size: 13px;
+  color: #6B6B6E;
+}
+
+.sku-form {
+  padding: 24px;
+}
+
+.sku-form :deep(.el-form-item__label) {
+  color: #1C1C1E;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.sku-form :deep(.el-input__wrapper),
+.sku-form :deep(.el-select .el-input__wrapper) {
+  box-shadow: 0 0 0 1px #E5E5E0 inset;
+  border-radius: 8px;
+}
+
+.sku-form :deep(.el-input__wrapper:hover),
+.sku-form :deep(.el-select .el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px #3B6E6E inset;
+}
+
+.sku-form :deep(.el-input__wrapper.is-focus),
+.sku-form :deep(.el-select .el-input.is-focus .el-input__wrapper) {
+  box-shadow: 0 0 0 1px #3B6E6E inset, 0 0 0 3px rgba(59, 110, 110, 0.08);
+}
+
+.sku-form :deep(.el-switch__label) {
+  color: #6B6B6E;
 }
 </style>

@@ -62,7 +62,7 @@ request.interceptors.response.use(
 
     // ────── 业务错误处理 ──────
 
-    const category = ERROR_CATEGORY_MAP[res.code] || ErrorCategory.NOTIFY
+    const category = (ERROR_CATEGORY_MAP[res.code] || ErrorCategory.NOTIFY) as ErrorCategory
     const defaultMsg = ERROR_DEFAULT_MSG[res.code] || '操作失败'
     const errMsg = res.msg || res.message || defaultMsg
 

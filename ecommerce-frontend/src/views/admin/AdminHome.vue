@@ -1,128 +1,221 @@
 <template>
-  <div class="dashboard" v-loading="loading">
-    <!-- 页面头部 -->
-    <header class="dashboard-header">
-      <div class="dashboard-header__left">
-        <h1 class="dashboard-title">运营概览</h1>
-        <p class="dashboard-desc">平台核心运营数据一览</p>
-      </div>
-      <div class="dashboard-header__actions">
-        <el-button class="action-btn" @click="handleExport">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-            <polyline points="7 10 12 15 17 10"/>
-            <line x1="12" y1="15" x2="12" y2="3"/>
-          </svg>
-          导出报表
-        </el-button>
-        <el-button class="action-btn action-btn--refresh" :loading="loading" @click="loadAllData">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="23 4 23 10 17 10"/>
-            <polyline points="1 20 1 14 7 14"/>
-            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-          </svg>
-          刷新
-        </el-button>
-      </div>
-    </header>
-
-    <!-- KPI 指标卡片 -->
-    <section class="kpi-grid">
-      <article class="kpi-card" v-for="item in kpiCards" :key="item.key">
-        <div class="kpi-card__icon" :class="`kpi-card__icon--${item.key}`" v-html="item.icon"></div>
-        <div class="kpi-card__body">
-          <span class="kpi-card__label">{{ item.label }}</span>
-          <span class="kpi-card__value">{{ item.key === 'todaySales' ? '¥' : '' }}{{ item.formatted }}</span>
-          <span v-if="item.trend" class="kpi-card__trend" :class="item.trend > 0 ? 'up' : 'down'">
-            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-              <polyline :points="item.trend > 0 ? '18 15 12 9 6 15' : '6 9 12 15 18 9'"/>
-            </svg>
-            {{ Math.abs(item.trend) }}%
-          </span>
+  <div class="admin-dashboard" v-loading="loading">
+    <!-- 顶部 Bento：欢迎 + 今日销售高亮（仅此处展示今日销售额） -->
+    <section class="bento-grid">
+      <div class="bento-card welcome-card">
+        <div class="welcome-content">
+          <div class="welcome-meta">
+            <span class="live-badge">
+              <span class="live-dot" />
+              实时数据
+            </span>
+            <span class="welcome-date">{{ currentDate }}</span>
+          </div>
+          <h1 class="welcome-title">运营概览</h1>
+          <p class="welcome-desc">平台核心数据一览，掌握全局运营态势。</p>
         </div>
-      </article>
+        <div class="welcome-decoration">
+          <div class="deco-orb orb-1" />
+          <div class="deco-orb orb-2" />
+          <div class="deco-ring" />
+        </div>
+      </div>
+
+      <div class="bento-card sales-highlight">
+        <div class="sales-highlight__label">
+          <span>今日销售额</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="1" x2="12" y2="23"/>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+          </svg>
+        </div>
+        <div class="sales-highlight__value">¥{{ formatMoney(overview.todaySales) }}</div>
+        <div class="sales-highlight__meta">
+          <span class="meta-pill">平台实时成交额</span>
+        </div>
+        <div class="sales-shimmer" />
+      </div>
     </section>
 
-    <!-- 销售额仪表盘 -->
-    <section class="section">
+    <!-- KPI 指标卡（不含重复的今日销售额） -->
+    <section class="kpi-section">
+      <div
+        class="kpi-card"
+        v-for="item in kpiCards"
+        :key="item.key"
+        :class="`kpi-card--${item.key}`"
+      >
+        <div class="kpi-card__accent" />
+        <div class="kpi-card__icon" v-html="item.icon"></div>
+        <div class="kpi-card__body">
+          <span class="kpi-card__label">{{ item.label }}</span>
+          <span class="kpi-card__value">{{ item.formatted }}</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 销售数据时序：时段切换 + 指标切换 + 汇总 + 图表 -->
+    <section class="timeseries-section">
       <div class="section-header">
         <div class="section-header__left">
-          <h2 class="section-title">销售额仪表盘</h2>
-          <span class="section-desc">四个时间维度的销售额对比</span>
+          <h2 class="section-title">销售数据时序</h2>
+          <span class="section-desc">切换时段和指标查看趋势</span>
         </div>
-        <div class="view-switcher">
-          <button
-            class="view-btn"
-            :class="{ active: chartView === 'metrics' }"
-            @click="chartView = 'metrics'"
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>
-            </svg>
-            概览
-          </button>
-          <button
-            class="view-btn"
-            :class="{ active: chartView === 'bar' }"
-            @click="chartView = 'bar'"
-          >
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="3" width="7" height="18"/><rect x="14" y="3" width="7" height="18"/>
-            </svg>
-            柱状
-          </button>
-        </div>
-      </div>
-
-      <!-- 指标概览视图 -->
-      <div v-if="chartView === 'metrics'" class="dashboard-panel">
-        <div class="metrics-body">
-          <div
-            class="metric-row"
-            v-for="(m, idx) in metricsItems"
-            :key="m.key"
-            :style="{ '--row-delay': idx * 0.08 + 's' }"
-          >
-            <span class="metric-dot" :style="{ background: m.color }"></span>
-            <span class="metric-label">{{ m.label }}</span>
-            <span class="metric-value">¥{{ formatMoney(m.value) }}</span>
-            <div class="metric-bar-track">
-              <div
-                class="metric-bar-fill"
-                :style="{
-                  width: m.percent + '%',
-                  background: `linear-gradient(90deg, ${m.color}, ${m.color}dd)`
-                }"
-              ></div>
-            </div>
-            <span class="metric-pct">{{ m.percent }}%</span>
+        <div class="section-header__right">
+          <div class="period-switcher">
+            <button
+              v-for="p in periodOptions"
+              :key="p.value"
+              class="period-btn"
+              :class="{ active: selectedPeriod === p.value }"
+              @click="switchPeriod(p.value)"
+            >{{ p.label }}</button>
           </div>
-        </div>
-        <div class="metrics-footer">
-          <span class="metrics-total-label">合计销售额</span>
-          <span class="metrics-total-value">¥{{ formatMoney(salesTotal) }}</span>
+          <button class="header-action-btn header-action-btn--primary" :disabled="loading" @click="loadAllData">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 4 23 10 17 10"/>
+              <polyline points="1 20 1 14 7 14"/>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+            </svg>
+            刷新
+          </button>
         </div>
       </div>
 
-      <!-- 柱状对比图 -->
-      <div v-else class="dashboard-panel">
-        <div ref="barChartRef" class="chart-body"></div>
+      <!-- 指标切换横栏 -->
+      <div class="metric-toolbar">
+        <div class="metric-switcher">
+          <button
+            v-for="m in metricOptions"
+            :key="m.value"
+            class="metric-btn"
+            :class="{ active: selectedMetric === m.value }"
+            @click="switchMetric(m.value)"
+          >
+            <span class="metric-dot" :style="{ background: m.color }" />
+            {{ m.label }}
+          </button>
+        </div>
+        <div class="metric-summary-chip">
+          <span class="chip-label">{{ activeMetricConfig.label }} · 时段合计</span>
+          <span class="chip-value" :style="{ color: activeMetricConfig.color }">
+            <template v-if="selectedMetric === 'sales'">¥{{ formatMoney(summaryStatsValue) }}</template>
+            <template v-else-if="selectedMetric === 'orders'">{{ formatInt(summaryStatsValue) }} <small>单</small></template>
+            <template v-else>{{ formatInt(summaryStatsValue) }} <small>件</small></template>
+          </span>
+        </div>
+      </div>
+
+      <!-- 图表 -->
+      <div class="ts-chart-card">
+        <div ref="chartRef" class="chart-area chart-area--main"></div>
+      </div>
+    </section>
+
+    <!-- 快捷操作 -->
+    <section class="quick-actions">
+      <div class="quick-actions__header">
+        <h3 class="section-title">快捷入口</h3>
+        <span class="section-desc">常用运营功能一键直达</span>
+      </div>
+      <div class="action-grid">
+        <div class="action-card" @click="goTo('/admin/orders')">
+          <div class="action-card__icon action-card__icon--orders">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
+              <line x1="3" y1="6" x2="21" y2="6"/>
+              <path d="M16 10a4 4 0 0 1-8 0"/>
+            </svg>
+          </div>
+          <div class="action-card__body">
+            <strong>订单管理</strong>
+            <span>处理订单与售后</span>
+          </div>
+          <svg class="action-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </div>
+
+        <div class="action-card" @click="goTo('/admin/products')">
+          <div class="action-card__icon action-card__icon--products">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
+              <line x1="8" y1="21" x2="16" y2="21"/>
+              <line x1="12" y1="17" x2="12" y2="21"/>
+            </svg>
+          </div>
+          <div class="action-card__body">
+            <strong>商品管理</strong>
+            <span>审核与管理商品</span>
+          </div>
+          <svg class="action-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </div>
+
+        <div class="action-card" @click="goTo('/admin/shops')">
+          <div class="action-card__icon action-card__icon--shops">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+              <polyline points="9 22 9 12 15 12 15 22"/>
+            </svg>
+          </div>
+          <div class="action-card__body">
+            <strong>店铺管理</strong>
+            <span>审核入驻与运营</span>
+          </div>
+          <svg class="action-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </div>
+
+        <div class="action-card" @click="goTo('/admin/users')">
+          <div class="action-card__icon action-card__icon--users">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
+          <div class="action-card__body">
+            <strong>用户管理</strong>
+            <span>查看平台用户数据</span>
+          </div>
+          <svg class="action-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="9 18 15 12 9 6"/>
+          </svg>
+        </div>
       </div>
     </section>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, onUnmounted, nextTick, computed, watch } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, nextTick, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import * as echarts from 'echarts'
+import * as echarts from 'echarts/core'
+import { LineChart, BarChart } from 'echarts/charts'
+import { GridComponent, TooltipComponent, LegendComponent, TitleComponent } from 'echarts/components'
+import { CanvasRenderer } from 'echarts/renderers'
+import { UniversalTransition } from 'echarts/features'
+import type { ECharts } from 'echarts/core'
 import {
   getAdminDashboardOverview,
-  getAdminSalesStatistics,
+  getAdminSalesTimeSeries,
   type DashboardOverview,
-  type SalesStatistics
+  type AdminDataPoint
 } from '@/api/dashboard'
 
+// 按需注册 ECharts 组件
+echarts.use([
+  LineChart, BarChart,
+  GridComponent, TooltipComponent, LegendComponent, TitleComponent,
+  CanvasRenderer, UniversalTransition
+])
+
+const router = useRouter()
 const loading = ref(false)
 
 // ====== 概览数据 ======
@@ -134,12 +227,46 @@ const overview = reactive<DashboardOverview>({
   settledSellers: 0
 })
 
-const sales = reactive<SalesStatistics>({
-  today: 0,
-  last7Days: 0,
-  thisMonth: 0,
-  thisYear: 0
+// ====== 时序数据 ======
+const selectedPeriod = ref('last7Days')
+const selectedMetric = ref<'sales' | 'orders' | 'volume'>('sales')
+const dataPoints = ref<AdminDataPoint[]>([])
+
+const periodOptions = [
+  { value: 'last24h', label: '最近24小时' },
+  { value: 'last7Days', label: '近7日' },
+  { value: 'thisMonth', label: '本月' },
+  { value: 'last90Days', label: '近90日' },
+  { value: 'thisYear', label: '本年' }
+]
+
+const metricOptions = [
+  { value: 'sales',  label: '销售额', color: '#ff4400' },
+  { value: 'orders', label: '订单量', color: '#3B6E6E' },
+  { value: 'volume', label: '销量',   color: '#C8A464' }
+] as const
+
+const activeMetricConfig = computed(() =>
+  metricOptions.find(m => m.value === selectedMetric.value)!
+)
+
+const summaryStatsValue = computed(() => {
+  const dp = dataPoints.value
+  const m = selectedMetric.value
+  if (m === 'sales')  return dp.reduce((s, d) => s + (d.salesAmount ?? 0), 0)
+  if (m === 'orders') return dp.reduce((s, d) => s + (d.orderCount ?? 0), 0)
+  return dp.reduce((s, d) => s + (d.salesVolume ?? 0), 0)
 })
+
+// ====== 格式化 ======
+/** #RRGGBB → rgba(r, g, b, a) */
+const hexToRgba = (hex: string, alpha: number): string => {
+  const c = hex.replace('#', '')
+  const r = parseInt(c.substring(0, 2), 16)
+  const g = parseInt(c.substring(2, 4), 16)
+  const b = parseInt(c.substring(4, 6), 16)
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`
+}
 
 const formatMoney = (val: number): string => {
   if (val == null) return '0.00'
@@ -154,14 +281,48 @@ const formatLarge = (val: number): string => {
   return n.toLocaleString()
 }
 
-// ====== KPI 卡片配置 ======
+const formatLargeMoney = (val: number): string => {
+  if (val == null) return '0'
+  const n = Number(val)
+  if (n >= 100000000) return (n / 100000000).toFixed(1) + '亿'
+  if (n >= 10000) return (n / 10000).toFixed(1) + '万'
+  return n.toFixed(2)
+}
+
+const formatInt = (val: number): string => {
+  if (val == null) return '0'
+  return Number(val).toLocaleString()
+}
+
+// ====== 当前日期 ======
+const currentDate = computed(() => {
+  const d = new Date()
+  const week = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六']
+  return `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 · ${week[d.getDay()]}`
+})
+
+// ====== 配色板 ======
+const palette = {
+  brand: '#ff4400',
+  brandLight: '#ff8f1a',
+  teal: '#3B6E6E',
+  tealLight: '#5A8F8F',
+  gold: '#C8A464',
+  goldLight: '#D4B87A',
+  indigo: '#6366F1',
+  primary: '#1C1C1E',
+  secondary: '#6B6B6E',
+  muted: '#A1A1AA',
+  border: '#E8E8E6',
+  grid: '#F0F0EE'
+}
+
+// ====== KPI 卡片配置（仅4项，不含今日销售额） ======
 const kpiCards = computed(() => [
   {
     key: 'totalUsers',
     label: '总用户数',
-    value: overview.totalUsers,
     formatted: formatLarge(overview.totalUsers),
-    trend: null,
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
       <circle cx="9" cy="7" r="4"/>
@@ -172,9 +333,7 @@ const kpiCards = computed(() => [
   {
     key: 'todayOrders',
     label: '今日订单数',
-    value: overview.todayOrders,
     formatted: formatLarge(overview.todayOrders),
-    trend: null,
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
       <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/>
       <line x1="3" y1="6" x2="21" y2="6"/>
@@ -184,9 +343,7 @@ const kpiCards = computed(() => [
   {
     key: 'totalProducts',
     label: '商品总数',
-    value: overview.totalProducts,
     formatted: formatLarge(overview.totalProducts),
-    trend: null,
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
       <rect x="2" y="3" width="20" height="14" rx="2" ry="2"/>
       <line x1="8" y1="21" x2="16" y2="21"/>
@@ -194,22 +351,9 @@ const kpiCards = computed(() => [
     </svg>`
   },
   {
-    key: 'todaySales',
-    label: '今日销售额',
-    value: overview.todaySales,
-    formatted: formatMoney(overview.todaySales),
-    trend: null,
-    icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-      <line x1="12" y1="1" x2="12" y2="23"/>
-      <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
-    </svg>`
-  },
-  {
     key: 'settledSellers',
     label: '入驻卖家数',
-    value: overview.settledSellers,
     formatted: formatLarge(overview.settledSellers),
-    trend: null,
     icon: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
       <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
       <polyline points="9 22 9 12 15 12 15 22"/>
@@ -217,30 +361,23 @@ const kpiCards = computed(() => [
   }
 ])
 
-// ====== 视图切换 ======
-const chartView = ref<'metrics' | 'bar'>('metrics')
+// ====== ECharts refs ======
+const chartRef = ref<HTMLDivElement | null>(null)
+let chart: ECharts | null = null
 
-// ====== 销售额指标 ======
-const salesTotal = computed(() =>
-  sales.today + sales.last7Days + sales.thisMonth + sales.thisYear
-)
+// ====== 时段切换 ======
+const switchPeriod = (period: string) => {
+  selectedPeriod.value = period
+  loadTimeSeries()
+}
 
-const metricsItems = computed(() => {
-  const maxVal = Math.max(sales.today, sales.last7Days, sales.thisMonth, sales.thisYear, 1)
-  const total = salesTotal.value || 1
-  return [
-    { key: 'm-today', label: '今日', value: sales.today, color: '#ff4400', percent: +(sales.today / maxVal * 100).toFixed(1), pctOfTotal: +(sales.today / total * 100).toFixed(1) },
-    { key: 'm-week', label: '近7日', value: sales.last7Days, color: '#8b5cf6', percent: +(sales.last7Days / maxVal * 100).toFixed(1), pctOfTotal: +(sales.last7Days / total * 100).toFixed(1) },
-    { key: 'm-month', label: '本月', value: sales.thisMonth, color: '#10b981', percent: +(sales.thisMonth / maxVal * 100).toFixed(1), pctOfTotal: +(sales.thisMonth / total * 100).toFixed(1) },
-    { key: 'm-year', label: '本年', value: sales.thisYear, color: '#f59e0b', percent: +(sales.thisYear / maxVal * 100).toFixed(1), pctOfTotal: +(sales.thisYear / total * 100).toFixed(1) }
-  ]
-})
+// ====== 指标切换 ======
+const switchMetric = (metric: 'sales' | 'orders' | 'volume') => {
+  selectedMetric.value = metric
+  initChart()
+}
 
-// ====== ECharts 图表 refs ======
-const barChartRef = ref<HTMLDivElement | null>(null)
-let barChart: echarts.ECharts | null = null
-
-// ====== 加载数据 ======
+// ====== 加载概览 ======
 const loadOverview = async () => {
   try {
     const data = await getAdminDashboardOverview()
@@ -250,20 +387,20 @@ const loadOverview = async () => {
     overview.todaySales = data.todaySales ?? 0
     overview.settledSellers = data.settledSellers ?? 0
   } catch {
-    // 拦截器已处理后端错误提示
+    // 拦截器已处理
   }
 }
 
-const loadSales = async () => {
+// ====== 加载时序数据 ======
+const loadTimeSeries = async () => {
   try {
-    const data = await getAdminSalesStatistics()
-    sales.today = data.today ?? 0
-    sales.last7Days = data.last7Days ?? 0
-    sales.thisMonth = data.thisMonth ?? 0
-    sales.thisYear = data.thisYear ?? 0
+    const res = await getAdminSalesTimeSeries(selectedPeriod.value)
+    dataPoints.value = res.dataPoints ?? []
   } catch {
-    // 拦截器已处理后端错误提示
+    dataPoints.value = []
   }
+  await nextTick()
+  initChart()
 }
 
 const loadAllData = async () => {
@@ -271,34 +408,144 @@ const loadAllData = async () => {
   try {
     await Promise.all([
       loadOverview(),
-      loadSales()
+      loadTimeSeries()
     ])
   } finally {
     loading.value = false
     await nextTick()
-    initCharts()
+    initChart()
   }
+}
+
+// ====== 图表渲染：根据当前指标渲染折线图或柱状图 ======
+const initChart = () => {
+  if (!chartRef.value) return
+  if (!chart) {
+    chart = echarts.init(chartRef.value)
+  }
+
+  const dp = dataPoints.value
+  if (dp.length === 0) {
+    chart.clear()
+    chart.setOption({
+      title: {
+        text: '暂无数据',
+        left: 'center',
+        top: 'center',
+        textStyle: { color: palette.muted, fontSize: 14, fontWeight: 500 }
+      }
+    })
+    return
+  }
+
+  const labels = dp.map(d => d.label)
+  const metric = selectedMetric.value
+  const cfg = activeMetricConfig.value
+
+  // 根据指标选取数据
+  let data: number[]
+  let valueFormatter: (v: number) => string
+
+  if (metric === 'sales') {
+    data = dp.map(d => d.salesAmount ?? 0)
+    valueFormatter = (v: number) => '¥' + Number(v).toLocaleString('zh-CN', { minimumFractionDigits: 2 })
+  } else if (metric === 'orders') {
+    data = dp.map(d => d.orderCount ?? 0)
+    valueFormatter = (v: number) => formatInt(v) + ' 单'
+  } else {
+    data = dp.map(d => d.salesVolume ?? 0)
+    valueFormatter = (v: number) => formatInt(v) + ' 件'
+  }
+
+  chart.setOption({
+    tooltip: {
+      trigger: 'axis',
+      backgroundColor: 'rgba(255, 255, 255, 0.96)',
+      borderColor: palette.border,
+      borderWidth: 1,
+      textStyle: { color: palette.primary, fontSize: 13 },
+      formatter: (params: any) => {
+        const p = Array.isArray(params) ? params[0] : params
+        return `<b>${p.axisValue}</b><br/>${cfg.label}：<b style="color:${cfg.color}">${valueFormatter(p.value)}</b>`
+      }
+    },
+    grid: { top: 20, right: 20, bottom: 28, left: 60 },
+    xAxis: {
+      type: 'category',
+      data: labels,
+      axisLine: { lineStyle: { color: palette.border } },
+      axisTick: { show: false },
+      axisLabel: {
+        color: palette.secondary,
+        fontSize: 11,
+        rotate: labels.length > 12 ? 45 : 0
+      }
+    },
+    yAxis: {
+      type: 'value',
+      name: metric === 'sales' ? '销售额' : '单/件',
+      nameTextStyle: { color: palette.muted, fontSize: 11 },
+      axisLabel: {
+        color: palette.muted,
+        fontSize: 11,
+        formatter: (v: number) => {
+          if (metric === 'sales') {
+            if (v >= 10000) return (v / 10000).toFixed(0) + '万'
+            return v.toFixed(0)
+          }
+          return v >= 1000 ? (v / 1000).toFixed(0) + 'k' : v.toFixed(0)
+        }
+      },
+      splitLine: { lineStyle: { color: palette.grid } }
+    },
+    series: [{
+      type: 'line',
+      data,
+      smooth: true,
+      symbol: 'circle',
+      symbolSize: 6,
+      lineStyle: {
+        width: 3,
+        color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+          { offset: 0, color: cfg.color },
+          { offset: 1, color: cfg.color }
+        ])
+      },
+      itemStyle: {
+        color: '#fff',
+        borderColor: cfg.color,
+        borderWidth: 2
+      },
+      areaStyle: {
+        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          { offset: 0, color: hexToRgba(cfg.color, 0.12) },
+          { offset: 1, color: hexToRgba(cfg.color, 0.02) }
+        ])
+      }
+    }]
+  }, true)
+}
+
+// ====== 窗口 resize（防抖） ======
+let resizeTimer: ReturnType<typeof setTimeout> | null = null
+
+const handleResize = () => {
+  if (resizeTimer) clearTimeout(resizeTimer)
+  resizeTimer = setTimeout(() => {
+    chart?.resize()
+  }, 150)
 }
 
 // ====== 导出报表 ======
 const handleExport = () => {
   const data = {
     exportTime: new Date().toLocaleString('zh-CN'),
-    overview: {
-      totalUsers: overview.totalUsers,
-      todayOrders: overview.todayOrders,
-      totalProducts: overview.totalProducts,
-      todaySales: overview.todaySales,
-      settledSellers: overview.settledSellers
-    },
-    salesStatistics: {
-      today: sales.today,
-      last7Days: sales.last7Days,
-      thisMonth: sales.thisMonth,
-      thisYear: sales.thisYear
+    overview: { ...overview },
+    timeseries: {
+      period: selectedPeriod.value,
+      dataPoints: dataPoints.value
     }
   }
-
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -309,98 +556,16 @@ const handleExport = () => {
   ElMessage.success('报表已导出')
 }
 
-// ====== 初始化图表 ======
-const initCharts = () => {
-  if (chartView.value === 'bar') {
-    initBarChart()
-  }
+// ====== 路由跳转 ======
+const goTo = (path: string) => {
+  router.push(path)
 }
-
-// ====== 柱状对比图 ======
-const initBarChart = () => {
-  if (!barChartRef.value) return
-  if (!barChart) {
-    barChart = echarts.init(barChartRef.value)
-  }
-
-  const labels = ['今日', '近7日', '本月', '本年']
-  const values = [sales.today, sales.last7Days, sales.thisMonth, sales.thisYear]
-  const colors = ['#ff4400', '#8b5cf6', '#10b981', '#f59e0b']
-  const maxVal = Math.max(...values)
-  const pad = maxVal * 0.15 || 1000
-
-  barChart.setOption({
-    tooltip: {
-      trigger: 'axis',
-      backgroundColor: 'rgba(255,255,255,0.95)',
-      borderColor: 'var(--border)',
-      borderWidth: 1,
-      textStyle: { fontSize: 13, color: 'var(--ink)' },
-      formatter: (params: any) => {
-        const p = params[0]
-        return `<b>${p.axisValue}</b><br/>销售额：<b>¥${Number(p.value).toLocaleString('zh-CN', { minimumFractionDigits: 2 })}</b>`
-      }
-    },
-    grid: { top: 24, right: 36, bottom: 32, left: 72 },
-    xAxis: {
-      type: 'category',
-      data: labels,
-      axisLine: { lineStyle: { color: 'var(--border)' } },
-      axisTick: { show: false },
-      axisLabel: { color: 'var(--ink-muted)', fontSize: 13 }
-    },
-    yAxis: {
-      type: 'value',
-      min: 0,
-      max: maxVal + pad,
-      axisLabel: {
-        color: 'var(--ink-faint)',
-        fontSize: 12,
-        formatter: (v: number) => {
-          if (v >= 10000) return (v / 10000).toFixed(0) + '万'
-          return v.toFixed(0)
-        }
-      },
-      splitLine: { lineStyle: { color: 'var(--border-light)', type: 'dashed' } }
-    },
-    series: [{
-      type: 'bar',
-      data: values.map((v, i) => ({
-        value: v,
-        itemStyle: { color: colors[i], borderRadius: [6, 6, 0, 0] }
-      })),
-      barWidth: '52%',
-      label: {
-        show: true,
-        position: 'top',
-        color: 'var(--ink-muted)',
-        fontSize: 12,
-        formatter: (p: any) => '¥' + Number(p.value).toLocaleString('zh-CN', { minimumFractionDigits: 0 })
-      },
-      animationDuration: 800,
-      animationEasing: 'cubicOut'
-    }]
-  }, true)
-}
-
-// ====== 窗口 resize ======
-const handleResize = () => {
-  barChart?.resize()
-}
-
-// ====== 监听视图切换 ======
-watch(chartView, (val) => {
-  nextTick(() => {
-    if (val === 'bar') {
-      initBarChart()
-    }
-  })
-})
 
 // ====== 清理 ======
 const cleanup = () => {
   window.removeEventListener('resize', handleResize)
-  barChart?.dispose()
+  chart?.dispose()
+  chart = null
 }
 
 onMounted(() => {
@@ -417,171 +582,309 @@ onUnmounted(() => {
 /* ===========================
    布局
    =========================== */
-.dashboard {
+.admin-dashboard {
   max-width: var(--max-width);
   margin: 0 auto;
   display: flex;
   flex-direction: column;
-  gap: var(--space-6);
+  gap: 24px;
+  padding-bottom: 24px;
+  color: #1C1C1E;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', sans-serif;
 }
 
 /* ===========================
-   头部
+   Bento 顶部
    =========================== */
-.dashboard-header {
+.bento-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 20px;
+}
+
+.bento-card {
+  background: #FFFFFF;
+  border-radius: 20px;
+  padding: 28px;
+  border: 1px solid #E8E8E6;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.bento-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.06);
+  border-color: #DDDCD8;
+}
+
+/* 欢迎卡 */
+.welcome-card {
+  grid-column: span 8;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(135deg, #FFFFFF 0%, #F5F5F4 100%);
+  position: relative;
+  overflow: hidden;
+}
+
+.welcome-meta {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: var(--space-4);
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
-.dashboard-header__left {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.dashboard-title {
-  margin: 0;
-  font-size: var(--text-2xl);
-  font-weight: 700;
-  color: var(--ink);
-  letter-spacing: -0.02em;
-}
-
-.dashboard-desc {
-  margin: 0;
-  font-size: var(--text-sm);
-  color: var(--ink-faint);
-}
-
-.dashboard-header__actions {
-  display: flex;
-  gap: var(--space-2);
-}
-
-.action-btn {
+.live-badge {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: var(--text-sm);
-  border-radius: var(--radius-md);
-  padding: 8px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #3B6E6E;
+  background: rgba(59, 110, 110, 0.08);
+  padding: 4px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #3B6E6E;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.welcome-date {
+  font-size: 12px;
+  color: #A1A1AA;
   font-weight: 500;
-  border: 1px solid var(--border);
-  background: var(--surface);
-  color: var(--ink-muted);
-  cursor: pointer;
-  transition: all var(--transition-fast);
 }
 
-.action-btn:hover {
-  border-color: var(--color-brand-300);
-  color: var(--color-brand-500);
-  background: var(--color-brand-50);
+.welcome-title {
+  margin: 0 0 10px;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #1C1C1E;
 }
 
-.action-btn--refresh {
-  border: none;
-  background: var(--color-brand-500);
-  color: #fff;
+.welcome-desc {
+  margin: 0;
+  font-size: 14px;
+  color: #6B6B6E;
+  line-height: 1.5;
+  max-width: 420px;
 }
 
-.action-btn--refresh:hover {
-  background: var(--color-brand-600);
-  color: #fff;
+.welcome-decoration {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  flex-shrink: 0;
+}
+
+.deco-orb {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(24px);
+  opacity: 0.55;
+}
+
+.orb-1 {
+  width: 70px;
+  height: 70px;
+  top: 10px;
+  right: 10px;
+  background: #C8A464;
+  animation: float 6s ease-in-out infinite;
+}
+
+.orb-2 {
+  width: 44px;
+  height: 44px;
+  bottom: 16px;
+  left: 20px;
+  background: #ff8f1a;
+  animation: float 7s ease-in-out infinite reverse;
+}
+
+.deco-ring {
+  position: absolute;
+  inset: 18px;
+  border-radius: 50%;
+  border: 1.5px solid #E5E5E0;
+}
+
+.deco-ring::before {
+  content: '';
+  position: absolute;
+  inset: 16px;
+  border-radius: 50%;
+  border: 1.5px solid #DDDCD8;
+}
+
+/* 销售高亮卡（唯一今日销售额展示） */
+.sales-highlight {
+  grid-column: span 4;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: #1C1C1E;
+  border-color: #1C1C1E;
+  color: #FFFFFF;
+  position: relative;
+  overflow: hidden;
+}
+
+.sales-highlight:hover {
+  border-color: #2C2C2E;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.12);
+}
+
+.sales-highlight__label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #A1A1AA;
+  font-weight: 500;
+  margin-bottom: 12px;
+}
+
+.sales-highlight__value {
+  font-size: 32px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin-bottom: 14px;
+  background: linear-gradient(135deg, #FFFFFF 0%, #C8A464 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.sales-highlight__meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.meta-pill {
+  font-size: 11px;
+  color: #FFFFFF;
+  background: rgba(255, 255, 255, 0.12);
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-weight: 600;
+}
+
+.sales-shimmer {
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.06), transparent);
+  animation: shimmer 5s ease-in-out infinite;
+  pointer-events: none;
 }
 
 /* ===========================
-   KPI 卡片网格
+   KPI 卡片（4列）
    =========================== */
-.kpi-grid {
+.kpi-section {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: var(--space-4);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
 }
 
 .kpi-card {
-  background: var(--surface);
-  border-radius: var(--radius-lg);
-  padding: var(--space-5) var(--space-4);
+  background: #FFFFFF;
+  border-radius: 18px;
+  padding: 22px;
   display: flex;
   align-items: center;
-  gap: var(--space-4);
-  box-shadow: var(--shadow-sm);
-  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  gap: 16px;
+  border: 1px solid #E8E8E6;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
   position: relative;
   overflow: hidden;
 }
 
 .kpi-card:hover {
   transform: translateY(-2px);
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.05);
 }
 
+.kpi-card__accent {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 3px;
+  height: 100%;
+  border-radius: 18px 0 0 18px;
+}
+
+.kpi-card--totalUsers .kpi-card__accent { background: #6366F1; }
+.kpi-card--todayOrders .kpi-card__accent { background: #ff4400; }
+.kpi-card--totalProducts .kpi-card__accent { background: #C8A464; }
+.kpi-card--settledSellers .kpi-card__accent { background: #7A9E7A; }
+
 .kpi-card__icon {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-md);
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  background: #F5F5F4;
+  color: #6B6B6E;
+  transition: background 0.2s ease, color 0.2s ease;
+}
+
+.kpi-card:hover .kpi-card__icon {
+  background: #1C1C1E;
+  color: #FFFFFF;
 }
 
 .kpi-card__icon svg {
-  width: 24px;
-  height: 24px;
+  width: 22px;
+  height: 22px;
 }
-
-.kpi-card__icon--totalUsers { background: #eff6ff; color: #3b82f6; }
-.kpi-card__icon--todayOrders { background: #f0fdf4; color: #22c55e; }
-.kpi-card__icon--totalProducts { background: #fff7ed; color: #f97316; }
-.kpi-card__icon--todaySales { background: #fef2f2; color: #ef4444; }
-.kpi-card__icon--settledSellers { background: #f5f3ff; color: #8b5cf6; }
 
 .kpi-card__body {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
 }
 
 .kpi-card__label {
-  font-size: var(--text-xs);
-  color: var(--ink-faint);
+  font-size: 12px;
+  color: #A1A1AA;
   font-weight: 500;
 }
 
 .kpi-card__value {
-  font-size: var(--text-xl);
+  font-size: 20px;
   font-weight: 700;
-  color: var(--ink);
+  color: #1C1C1E;
   letter-spacing: -0.02em;
   line-height: 1.2;
 }
 
-.kpi-card__trend {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  font-size: var(--text-xs);
-  font-weight: 600;
-  margin-top: 2px;
-}
-
-.kpi-card__trend.up { color: var(--color-success); }
-.kpi-card__trend.down { color: var(--color-danger); }
-
 /* ===========================
-   Section 通用
+   销售数据时序区
    =========================== */
-.section {
+.timeseries-section {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 18px;
 }
 
 .section-header {
@@ -589,228 +892,466 @@ onUnmounted(() => {
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: var(--space-3);
+  gap: 16px;
 }
 
 .section-header__left {
   display: flex;
   align-items: baseline;
-  gap: var(--space-3);
+  gap: 12px;
+}
+
+.section-header__right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.header-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 10px;
+  padding: 8px 16px;
+  border: 1px solid #E8E8E6;
+  background: #FFFFFF;
+  color: #6B6B6E;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.header-action-btn:hover:not(:disabled) {
+  border-color: #1C1C1E;
+  color: #1C1C1E;
+  background: #FAFAF9;
+}
+
+.header-action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.header-action-btn--primary {
+  border-color: #1C1C1E;
+  background: #1C1C1E;
+  color: #FFFFFF;
+}
+
+.header-action-btn--primary:hover:not(:disabled) {
+  background: #2C2C2E;
+  border-color: #2C2C2E;
+  color: #FFFFFF;
 }
 
 .section-title {
   margin: 0;
-  font-size: var(--text-lg);
-  font-weight: 600;
-  color: var(--ink);
+  font-size: 18px;
+  font-weight: 700;
+  color: #1C1C1E;
+  white-space: nowrap;
 }
 
 .section-desc {
-  font-size: var(--text-xs);
-  color: var(--ink-faint);
+  font-size: 12px;
+  color: #A1A1AA;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
-.view-switcher {
+/* 时段切换按钮组 */
+.period-switcher {
   display: flex;
   gap: 1px;
-  background: var(--surface-muted);
-  border-radius: var(--radius-md);
+  background: #EFEFEF;
+  border-radius: 10px;
   padding: 3px;
 }
 
-.view-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
+.period-btn {
   font-size: 12px;
-  font-weight: 500;
-  padding: 5px 12px;
-  border: none;
-  border-radius: 5px;
-  background: transparent;
-  color: var(--ink-muted);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.view-btn:hover {
-  color: var(--ink);
-}
-
-.view-btn.active {
-  background: var(--surface);
-  color: var(--ink);
-  box-shadow: var(--shadow-sm);
-}
-
-/* ===========================
-   仪表盘面板
-   =========================== */
-.dashboard-panel {
-  background: var(--surface);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  overflow: hidden;
-}
-
-.metrics-body {
-  padding: var(--space-5) var(--space-6);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-}
-
-.metric-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-2) 0;
-  animation: metricFadeIn 0.5s ease-out both;
-  animation-delay: var(--row-delay, 0s);
-}
-
-@keyframes metricFadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(8px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.metric-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  flex-shrink: 0;
-}
-
-.metric-label {
-  width: 48px;
-  font-size: var(--text-sm);
   font-weight: 600;
-  color: var(--ink);
-  flex-shrink: 0;
+  padding: 6px 14px;
+  border: none;
+  border-radius: 7px;
+  background: transparent;
+  color: #6B6B6E;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
-.metric-value {
-  width: 120px;
-  font-size: var(--text-sm);
-  font-weight: 700;
-  color: var(--ink);
-  letter-spacing: -0.01em;
-  font-variant-numeric: tabular-nums;
-  text-align: right;
-  flex-shrink: 0;
+.period-btn:hover {
+  color: #1C1C1E;
 }
 
-.metric-bar-track {
-  flex: 1;
-  height: 8px;
-  background: var(--surface-muted);
-  border-radius: var(--radius-full);
-  overflow: hidden;
-  min-width: 80px;
+.period-btn.active {
+  background: #FFFFFF;
+  color: #1C1C1E;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
-.metric-bar-fill {
-  height: 100%;
-  border-radius: var(--radius-full);
-  transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
-}
-
-.metric-pct {
-  width: 44px;
-  font-size: var(--text-xs);
-  color: var(--ink-faint);
-  font-weight: 500;
-  text-align: right;
-  flex-shrink: 0;
-  font-variant-numeric: tabular-nums;
-}
-
-.metrics-footer {
+/* 指标切换横栏 */
+.metric-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-4) var(--space-6);
-  background: var(--surface-soft);
-  border-top: 1px solid var(--border-light);
+  gap: 12px;
 }
 
-.metrics-total-label {
-  font-size: var(--text-sm);
+.metric-switcher {
+  display: flex;
+  gap: 6px;
+}
+
+.metric-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
   font-weight: 600;
-  color: var(--ink-muted);
+  padding: 8px 18px;
+  border: 1px solid #E8E8E6;
+  border-radius: 10px;
+  background: #FFFFFF;
+  color: #6B6B6E;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-.metrics-total-value {
-  font-size: var(--text-lg);
+.metric-btn:hover {
+  border-color: #CCC;
+  color: #1C1C1E;
+}
+
+.metric-btn.active {
+  border-color: #1C1C1E;
+  background: #FAFAF9;
+  color: #1C1C1E;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.metric-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.metric-btn.active .metric-dot {
+  transform: scale(1.25);
+}
+
+.metric-summary-chip {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 18px;
+  background: #F5F5F4;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+.chip-label {
+  font-size: 11px;
+  font-weight: 500;
+  color: #A1A1AA;
+}
+
+.chip-value {
+  font-size: 18px;
   font-weight: 700;
-  color: var(--ink);
   letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
 }
 
-.chart-body {
+.chip-value small {
+  font-size: 12px;
+  font-weight: 500;
+  color: #A1A1AA;
+}
+
+/* 组合图卡片 */
+.ts-chart-card {
+  background: #FFFFFF;
+  border-radius: 20px;
+  padding: 24px;
+  border: 1px solid #E8E8E6;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.ts-chart-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.06);
+  border-color: #DDDCD8;
+}
+
+.chart-area {
   width: 100%;
   height: 320px;
+}
+
+.chart-area--main {
+  height: 380px;
+}
+
+/* ===========================
+   快捷操作
+   =========================== */
+.quick-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.quick-actions__header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+
+.action-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.action-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 18px;
+  background: #FFFFFF;
+  border-radius: 18px;
+  border: 1px solid #E8E8E6;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.action-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.05);
+  border-color: #DDDCD8;
+}
+
+.action-card__icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #FFFFFF;
+  transition: transform 0.2s ease;
+}
+
+.action-card:hover .action-card__icon {
+  transform: scale(1.08);
+}
+
+.action-card__icon--orders { background: linear-gradient(135deg, #ff8f1a, #ff4400); }
+.action-card__icon--products { background: linear-gradient(135deg, #D4B87A, #C8A464); }
+.action-card__icon--shops { background: linear-gradient(135deg, #5A8F8F, #3B6E6E); }
+.action-card__icon--users { background: linear-gradient(135deg, #818CF8, #6366F1); }
+
+.action-card__icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.action-card__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.action-card__body strong {
+  font-size: 14px;
+  color: #1C1C1E;
+  font-weight: 600;
+}
+
+.action-card__body span {
+  font-size: 12px;
+  color: #A1A1AA;
+}
+
+.action-arrow {
+  width: 16px;
+  height: 16px;
+  color: #A1A1AA;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.action-card:hover .action-arrow {
+  transform: translateX(3px);
+  color: #1C1C1E;
+}
+
+/* ===========================
+   动画
+   =========================== */
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.2); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-10px) scale(1.05); }
+}
+
+@keyframes shimmer {
+  0% { left: -100%; }
+  50%, 100% { left: 150%; }
 }
 
 /* ===========================
    响应式
    =========================== */
-@media (max-width: 1200px) {
-  .kpi-grid {
-    grid-template-columns: repeat(3, 1fr);
+@media (max-width: 1100px) {
+  .welcome-card,
+  .sales-highlight {
+    grid-column: span 6;
+  }
+
+  .welcome-decoration {
+    display: none;
+  }
+
+  .kpi-section {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .action-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 768px) {
-  .kpi-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .admin-dashboard {
+    gap: 18px;
   }
-  .dashboard-header {
+
+  .bento-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .welcome-card,
+  .sales-highlight {
+    grid-column: span 1;
+  }
+
+  .welcome-card {
     flex-direction: column;
     align-items: flex-start;
   }
-  .dashboard-header__actions {
+
+  .kpi-section {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .kpi-card {
+    padding: 18px;
+  }
+
+  .metric-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .metric-switcher {
+    justify-content: center;
+  }
+
+  .metric-summary-chip {
+    justify-content: center;
+  }
+
+  .action-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .section-header__right {
     width: 100%;
   }
-  .action-btn {
+
+  .header-action-btn {
     flex: 1;
     justify-content: center;
   }
-  .chart-body {
-    height: 240px;
+
+  .period-switcher {
+    width: 100%;
+    flex: 1;
+  }
+
+  .period-btn {
+    flex: 1;
+    justify-content: center;
+    padding: 6px 8px;
+    font-size: 11px;
+  }
+
+  .chart-area,
+  .chart-area--main {
+    height: 280px;
   }
 }
 
 @media (max-width: 480px) {
-  .kpi-grid {
+  .kpi-section {
     grid-template-columns: 1fr;
   }
-  .dashboard {
-    padding: 0;
+
+  .kpi-card {
+    flex-direction: row;
   }
-  .metrics-body {
-    padding: var(--space-3) var(--space-4);
+
+  .metric-btn {
+    flex: 1;
+    justify-content: center;
+    padding: 8px 12px;
+    font-size: 12px;
   }
-  .metrics-footer {
-    padding: var(--space-3) var(--space-4);
+
+  .metric-summary-chip {
+    padding: 6px 14px;
   }
-  .metric-value {
-    width: 80px;
-    font-size: var(--text-xs);
+
+  .chip-value {
+    font-size: 16px;
   }
-  .metric-label {
-    width: 36px;
-    font-size: var(--text-xs);
+}
+
+/* 减少动画偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .live-dot,
+  .deco-orb,
+  .sales-shimmer {
+    animation: none;
   }
-  .metric-pct {
-    width: 36px;
+
+  .bento-card,
+  .kpi-card,
+  .ts-chart-card,
+  .action-card,
+  .metric-btn,
+  .metric-dot {
+    transition: none;
   }
 }
 </style>
