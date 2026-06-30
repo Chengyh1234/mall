@@ -69,9 +69,6 @@ public class SpuController {
         SpuDto spuDto = JSON.parseObject(spuDtoString, SpuDto.class);
         // 1. 获取当前登录用户ID
         Long sellerId = getCurrentUserId();
-        if (sellerId == null) {
-            return Result.error("用户未登录");
-        }
 
         // 2. 根据商家ID自动获取其所属店铺ID
         com.cyh.mallportal.entity.Store store = storeService.getBySellerId(sellerId);
@@ -161,9 +158,6 @@ public class SpuController {
 
         // 权限校验：商家只能删除自己的商品
         Long currentUserId = getCurrentUserId();
-        if (currentUserId == null) {
-            return Result.error("用户未登录");
-        }
         // 如果当前用户不是管理员且不是商品所有者，拒绝操作
         if (!currentUserId.equals(spu.getSellerId())) {
             return Result.error("无权删除此商品");
@@ -189,9 +183,6 @@ public class SpuController {
         }
 
         Long currentUserId = getCurrentUserId();
-        if (currentUserId == null) {
-            return Result.error("用户未登录");
-        }
         if (!currentUserId.equals(spu.getSellerId())) {
             return Result.error("无权操作此商品");
         }
@@ -221,9 +212,6 @@ public class SpuController {
         }
 
         Long currentUserId = getCurrentUserId();
-        if (currentUserId == null) {
-            return Result.error("用户未登录");
-        }
         if (!currentUserId.equals(spu.getSellerId())) {
             return Result.error("无权操作此商品");
         }
@@ -243,9 +231,6 @@ public class SpuController {
     @PreAuthorize("hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Void> restore(@PathVariable Long id) {
         Long currentUserId = getCurrentUserId();
-        if (currentUserId == null) {
-            return Result.error("用户未登录");
-        }
 
         boolean success = spuService.restore(id);
         if (success) {
@@ -283,9 +268,6 @@ public class SpuController {
 
         // 2. 权限校验：商家只能修改自己的商品
         Long currentUserId = getCurrentUserId();
-        if (currentUserId == null) {
-            return Result.error("用户未登录");
-        }
         // 3.如果当前用户不是管理员且不是商品所有者，拒绝操作
         if ( !currentUserId.equals(oldSpu.getSellerId())) {
             return Result.error("无权修改此商品");
@@ -444,9 +426,6 @@ public class SpuController {
 
         // 校验权限：仅当前商家可查看自己的商品
         Long currentUserId = getCurrentUserId();
-        if (currentUserId == null) {
-            return Result.error("用户未登录");
-        }
 
         if (!currentUserId.equals(spu.getSellerId())) {
             return Result.error("无权查看此商品");

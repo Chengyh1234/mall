@@ -29,6 +29,16 @@ public interface StoreDashboardService {
     StoreDashboardVo.SalesTrend getSalesTrend(Long sellerId);
 
     /**
+     * 获取销售时间序列数据
+     * 按时间维度聚合展示销售额、订单量、销量三个指标
+     *
+     * @param sellerId 商家用户ID
+     * @param period   时间段：last24h | last7Days | thisMonth | last90Days | thisYear
+     * @return 时间序列数据（含标签、销售额、订单量、销量）
+     */
+    StoreDashboardVo.SalesTimeSeries getSalesTimeSeries(Long sellerId, String period);
+
+    /**
      * 获取商品销售排行数据
      * 按销售额降序排列，支持时间段参数
      *

@@ -9,6 +9,15 @@ import com.cyh.mallportal.vo.AdminDashboardVo;
 public interface AdminDashboardService {
 
     /**
+     * 获取平台销售时间序列数据
+     * 按时间维度聚合展示全平台销售额、订单量、销量三个指标
+     *
+     * @param period 时间段：last24h | last7Days | thisMonth | last90Days | thisYear
+     * @return 时间序列数据（含标签、销售额、订单量、销量）
+     */
+    AdminDashboardVo.SalesTimeSeries getSalesTimeSeries(String period);
+
+    /**
      * 获取平台运营概览
      * 返回总用户数、今日订单数、商品总数、今日销售额、入驻卖家数
      *

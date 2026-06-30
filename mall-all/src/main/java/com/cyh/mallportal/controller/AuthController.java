@@ -15,6 +15,8 @@ import com.cyh.mallportal.mapper.RoleMapper;
 import com.cyh.mallportal.mapper.UserMapper;
 import com.cyh.mallportal.mapper.UserRoleMapper;
 import com.cyh.mallportal.service.EmailService;
+import com.cyh.mallportal.mq.event.EmailSendEvent;
+import com.cyh.mallportal.mq.publisher.EmailEventPublisher;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
@@ -55,6 +57,7 @@ public class AuthController {
     private final RedisTemplate<String, Object> redisTemplate;
     private final RoleMapper roleMapper;
     private final EmailService emailService;
+    private final EmailEventPublisher emailEventPublisher;
     private final UserRoleMapper userRoleMapper;
 
     @Autowired
@@ -300,8 +303,9 @@ public class AuthController {
         // 3. 生成6位随机验证码
         String code = String.format("%06d", new Random().nextInt(999999));
 
-        // 4. 发送邮件
-        emailService.sendRegisterCode(email, code);
+        // 4. 异步发送邮件（入队即返回，Consumer 实际发送）
+        emailEventPublisher.publish(new EmailSendEvent()
+                .setTo(email).setCode(code).setType(EmailSendEvent.EmailType.REGISTER));
 
         // 5. 发送成功后存入 Redis，有效期分1钟
         redisTemplate.opsForValue().set(redisKey, code, RedisConstants.EMAIL_CODE_EXPIRATION, TimeUnit.SECONDS);
@@ -412,11 +416,12 @@ public class AuthController {
         // 2. 生成6位随机验证码
         String code = String.format("%06d", new Random().nextInt(999999));
 
-        // 3. 发送邮件
+        // 3. 异步发送邮件（入队即返回，Consumer 实际发送）
         String redisKey = RedisConstants.EMAIL_LOGIN_CODE_PREFIX + email;
-        emailService.sendLoginCode(email, code);
+        emailEventPublisher.publish(new EmailSendEvent()
+                .setTo(email).setCode(code).setType(EmailSendEvent.EmailType.LOGIN));
 
-        // 4. 发送成功后存入 Redis，有效期2分钟
+        // 4. 发送成功后存入 Redis，有效期5分钟
         redisTemplate.opsForValue().set(redisKey, code, RedisConstants.EMAIL_CODE_EXPIRATION, TimeUnit.SECONDS);
 
         return Result.success("验证码已发送", null);
@@ -569,9 +574,10 @@ public class AuthController {
         // 2. 生成6位随机验证码
         String code = String.format("%06d", new Random().nextInt(999999));
 
-        // 3. 发送邮件
+        // 3. 异步发送邮件（入队即返回，Consumer 实际发送）
         String redisKey = RedisConstants.EMAIL_RESET_PWD_CODE_PREFIX + email;
-        emailService.sendResetPasswordCode(email, code);
+        emailEventPublisher.publish(new EmailSendEvent()
+                .setTo(email).setCode(code).setType(EmailSendEvent.EmailType.RESET_PASSWORD));
 
         // 4. 发送成功后存入 Redis，有效期1分钟
         redisTemplate.opsForValue().set(redisKey, code, RedisConstants.EMAIL_CODE_EXPIRATION, TimeUnit.SECONDS);

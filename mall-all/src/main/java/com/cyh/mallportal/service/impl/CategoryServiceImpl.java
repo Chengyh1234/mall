@@ -1,10 +1,14 @@
 package com.cyh.mallportal.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.cyh.mallcommon.constant.RedisConstants;
 import com.cyh.mallportal.entity.Category;
 import com.cyh.mallportal.entity.Spu;
 import com.cyh.mallportal.mapper.CategoryMapper;
 import com.cyh.mallportal.mapper.SpuMapper;
+import com.cyh.mallportal.mq.event.CacheDomain;
+import com.cyh.mallportal.mq.event.CacheInvalidateEvent;
+import com.cyh.mallportal.mq.publisher.CacheEventPublisher;
 import com.cyh.mallportal.service.CategoryCacheService;
 import com.cyh.mallportal.service.CategoryService;
 import com.cyh.mallportal.vo.CategoryTreeVo;
@@ -13,6 +17,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -32,6 +38,7 @@ public class CategoryServiceImpl implements CategoryService {
     private final CategoryMapper categoryMapper;
     private final SpuMapper spuMapper;
     private final CategoryCacheService categoryCacheService;
+    private final CacheEventPublisher cacheEventPublisher;
 
 
     @Override
@@ -64,9 +71,16 @@ public class CategoryServiceImpl implements CategoryService {
 
         categoryMapper.insert(category);
 
-        // 清除所有分类缓存
-        categoryCacheService.clearAllCategoryCache();
-        log.info("新增分类成功, ID: {}, 已清除分类缓存", category.getId());
+        // 事务提交后，异步清除分类缓存
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                cacheEventPublisher.publishInvalidate(new CacheInvalidateEvent()
+                        .setDomain(CacheDomain.CATEGORY)
+                        .setExactKeys(List.of(RedisConstants.CATEGORY_TREE_KEY)));
+            }
+        });
+        log.info("新增分类成功, ID: {}, 已发布缓存失效事件", category.getId());
         return category.getId();
     }
 
@@ -100,10 +114,17 @@ public class CategoryServiceImpl implements CategoryService {
         // 调用deleteById让MyBatis-Plus自动转换为 UPDATE SET is_deleted=1
         categoryMapper.deleteById(id);
 
-        // 清除所有分类缓存
-        categoryCacheService.clearAllCategoryCache();
+        // 事务提交后，异步清除分类缓存
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                cacheEventPublisher.publishInvalidate(new CacheInvalidateEvent()
+                        .setDomain(CacheDomain.CATEGORY)
+                        .setExactKeys(List.of(RedisConstants.CATEGORY_TREE_KEY)));
+            }
+        });
 
-        log.info("删除分类成功（软删除）: {}, 关联删除商品: {}, 已清除分类缓存", id, spuCount);
+        log.info("删除分类成功（软删除）: {}, 关联删除商品: {}, 已发布缓存失效事件", id, spuCount);
         return true;
     }
 
@@ -142,9 +163,16 @@ public class CategoryServiceImpl implements CategoryService {
 
         boolean success = rows > 0;
         if (success) {
-            // 清除所有分类缓存
-            categoryCacheService.clearAllCategoryCache();
-            log.info("更新分类成功: {}, 已清除分类缓存", category.getId());
+            // 事务提交后，异步清除分类缓存
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    cacheEventPublisher.publishInvalidate(new CacheInvalidateEvent()
+                            .setDomain(CacheDomain.CATEGORY)
+                            .setExactKeys(List.of(RedisConstants.CATEGORY_TREE_KEY)));
+                }
+            });
+            log.info("更新分类成功: {}, 已发布缓存失效事件", category.getId());
         } else {
             log.warn("更新分类失败: {}", category.getId());
         }
@@ -197,6 +225,7 @@ public class CategoryServiceImpl implements CategoryService {
             vo.setName(category.getName());
             vo.setParentId(category.getParentId());
             vo.setIcon(category.getIcon());
+            vo.setSort(category.getSort());
 
             List<CategoryTreeVo> children = buildTreeRecursive(category.getId());
             if (!children.isEmpty()) {

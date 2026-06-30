@@ -8,7 +8,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
@@ -26,13 +26,13 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class BannerCacheServiceImpl implements BannerCacheService {
 
-    private final RedisTemplate<String, String> redisTemplate;
+    private final StringRedisTemplate stringRedisTemplate;
     private final ObjectMapper objectMapper;
 
     @Override
     public List<Banner> getActiveBanners() {
         try {
-            String json = redisTemplate.opsForValue().get(RedisConstants.BANNER_ACTIVE_KEY);
+            String json = stringRedisTemplate.opsForValue().get(RedisConstants.BANNER_ACTIVE_KEY);
             if (StringUtils.hasText(json)) {
                 log.debug("从缓存获取启用的轮播图列表成功，缓存键: {}", RedisConstants.BANNER_ACTIVE_KEY);
                 return objectMapper.readValue(json, new TypeReference<List<Banner>>() {});
@@ -47,7 +47,7 @@ public class BannerCacheServiceImpl implements BannerCacheService {
     public void setActiveBanners(List<Banner> banners) {
         try {
             String json = objectMapper.writeValueAsString(banners);
-            redisTemplate.opsForValue().set(RedisConstants.BANNER_ACTIVE_KEY, json);
+            stringRedisTemplate.opsForValue().set(RedisConstants.BANNER_ACTIVE_KEY, json);
             log.debug("设置轮播图列表缓存成功（永久），缓存键: {}, 轮播图数量: {}", RedisConstants.BANNER_ACTIVE_KEY, banners.size());
         } catch (JsonProcessingException e) {
             log.error("序列化轮播图列表缓存失败，缓存键: {}, 异常: {}", RedisConstants.BANNER_ACTIVE_KEY, e.getMessage());
@@ -56,9 +56,9 @@ public class BannerCacheServiceImpl implements BannerCacheService {
 
     @Override
     public void clearAllBannerCache() {
-        Set<String> keys = redisTemplate.keys("banner:*");
+        Set<String> keys = stringRedisTemplate.keys("banner:*");
         if (keys != null && !keys.isEmpty()) {
-            redisTemplate.delete(keys);
+            stringRedisTemplate.delete(keys);
             log.info("清除所有轮播图缓存成功，共清除 {} 个缓存", keys.size());
         }
     }

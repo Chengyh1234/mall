@@ -3,6 +3,9 @@ package com.cyh.mallportal.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.cyh.mallportal.entity.*;
 import com.cyh.mallportal.mapper.*;
+import com.cyh.mallportal.mq.event.CacheDomain;
+import com.cyh.mallportal.mq.event.CacheInvalidateEvent;
+import com.cyh.mallportal.mq.publisher.CacheEventPublisher;
 import com.cyh.mallportal.service.SkuService;
 import com.cyh.mallportal.service.SpuService;
 import com.cyh.mallportal.vo.AdminVo;
@@ -15,6 +18,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.CollectionUtils;
 
 import java.time.LocalDateTime;
@@ -45,6 +50,7 @@ public class SkuServiceImpl implements SkuService {
     private final SpuService spuService;
     private final StringRedisTemplate stringRedisTemplate;
     private final ObjectMapper objectMapper;
+    private final CacheEventPublisher cacheEventPublisher;
 
     // ==================== 带缓存的查询方法 ====================
 
@@ -111,10 +117,10 @@ public class SkuServiceImpl implements SkuService {
             return new ArrayList<>();
         }
 
-        result.forEach(vo -> {
-            vo.setInStock(false);
-            vo.setStock(null);
-        });
+        //result.forEach(vo -> {
+        //    vo.setInStock(false);
+        //    vo.setStock(null);
+        //});
         cacheResult(key, result, RedisConstants.SKU_CACHE_TTL_MGMT);
 
         return result;
@@ -144,11 +150,11 @@ public class SkuServiceImpl implements SkuService {
             return new ArrayList<>();
         }
 
-        result.forEach(vo -> {
-            vo.setInStock(false);
-            vo.setStock(null);
-            vo.setFrozenStock(null);
-        });
+        //result.forEach(vo -> {
+        //    vo.setInStock(false);
+        //    vo.setStock(null);
+        //    vo.setFrozenStock(null);
+        //});
         cacheResult(key, result, RedisConstants.SKU_CACHE_TTL_MGMT);
 
         return result;
@@ -157,19 +163,26 @@ public class SkuServiceImpl implements SkuService {
     // ==================== 缓存清除方法 ====================
 
     /**
-     * 清除指定SPU下所有SKU缓存（公开/商家/管理三端）
+     * 事务提交后，异步发布 SKU 缓存失效事件
      */
-    private void clearSkuCache(Long spuId) {
+    private void publishSkuCacheInvalidate(Long spuId) {
         if (spuId == null) {
             return;
         }
         String prefix = RedisConstants.SKU_CACHE_PREFIX + spuId;
-        Set<String> keys = new HashSet<>();
-        keys.add(prefix + RedisConstants.SKU_CACHE_PUBLIC_SUFFIX);
-        keys.add(prefix + RedisConstants.SKU_CACHE_STORE_SUFFIX);
-        keys.add(prefix + RedisConstants.SKU_CACHE_ADMIN_SUFFIX);
-        stringRedisTemplate.delete(keys);
-        log.debug("清除SKU缓存, spuId: {}", spuId);
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                cacheEventPublisher.publishInvalidate(new CacheInvalidateEvent()
+                        .setDomain(CacheDomain.SKU)
+                        .setExactKeys(List.of(
+                                prefix + RedisConstants.SKU_CACHE_PUBLIC_SUFFIX,
+                                prefix + RedisConstants.SKU_CACHE_STORE_SUFFIX,
+                                prefix + RedisConstants.SKU_CACHE_ADMIN_SUFFIX
+                        )));
+            }
+        });
+        log.debug("发布SKU缓存失效事件, spuId: {}", spuId);
     }
 
     // ==================== 非缓存查询方法（供缓存回源使用） ====================
@@ -266,7 +279,7 @@ public class SkuServiceImpl implements SkuService {
         spuService.updateMinPriceForSpu(sku.getSpuId());
 
         // 清除缓存
-        clearSkuCache(sku.getSpuId());
+        publishSkuCacheInvalidate(sku.getSpuId());
 
         log.info("删除SKU成功: {}", id);
         return true;
@@ -291,7 +304,7 @@ public class SkuServiceImpl implements SkuService {
         spuService.updateMinPriceForSpu(spuId);
 
         // 清除缓存
-        clearSkuCache(spuId);
+        publishSkuCacheInvalidate(spuId);
 
         log.info("删除SPU下SKU完成并已清理销售属性绑定");
         return true;
@@ -327,7 +340,7 @@ public class SkuServiceImpl implements SkuService {
         for (Long spuId : affectedSpuIds) {
             spuService.updateMinPriceForSpu(spuId);
             // 清除缓存
-            clearSkuCache(spuId);
+            publishSkuCacheInvalidate(spuId);
         }
 
         log.info("批量删除SKU完成, 数量: {}", ids.size());
@@ -350,7 +363,7 @@ public class SkuServiceImpl implements SkuService {
             if (updatedSku != null) {
                 spuService.updateMinPriceForSpu(updatedSku.getSpuId());
                 // 清除缓存
-                clearSkuCache(updatedSku.getSpuId());
+                publishSkuCacheInvalidate(updatedSku.getSpuId());
             }
         } else {
             log.warn("更新SKU失败: {}", sku.getId());
@@ -375,7 +388,7 @@ public class SkuServiceImpl implements SkuService {
         int rows = skuMapper.updateById(sku);
 
         // 清除缓存
-        clearSkuCache(sku.getSpuId());
+        publishSkuCacheInvalidate(sku.getSpuId());
 
         return rows > 0;
     }
@@ -447,7 +460,7 @@ public class SkuServiceImpl implements SkuService {
         boolean success = skuMapper.updateById(sku) > 0;
 
         // 清除缓存
-        clearSkuCache(sku.getSpuId());
+        publishSkuCacheInvalidate(sku.getSpuId());
 
         return success;
     }
@@ -464,7 +477,7 @@ public class SkuServiceImpl implements SkuService {
         boolean success = skuMapper.updateById(sku) > 0;
 
         // 清除缓存
-        clearSkuCache(sku.getSpuId());
+        publishSkuCacheInvalidate(sku.getSpuId());
 
         return success;
     }
@@ -512,12 +525,12 @@ public class SkuServiceImpl implements SkuService {
         vo.setWeight(sku.getWeight());
         vo.setInStock(false);
         // 商家字段不缓存（写为空）
-        vo.setCostPrice(null);
-        vo.setStock(null);
-        vo.setWarnStock(null);
-        vo.setStatus(null);
-        vo.setCreatedAt(null);
-        vo.setUpdatedAt(null);
+        vo.setCostPrice(sku.getCostPrice());
+        vo.setStock(sku.getStock());
+        vo.setWarnStock(sku.getWarnStock());
+        vo.setStatus(sku.getStatus());
+        vo.setCreatedAt(sku.getCreatedAt());
+        vo.setUpdatedAt(sku.getUpdatedAt());
 
         List<Map<String, Object>> attributes = getSkuSaleAttributes(sku.getId());
         vo.setSaleAttributes(attributes);
@@ -534,14 +547,14 @@ public class SkuServiceImpl implements SkuService {
         vo.setImage(sku.getImage());
         vo.setWeight(sku.getWeight());
         vo.setInStock(false);
-        vo.setCostPrice(null);
-        vo.setStock(null);
-        vo.setWarnStock(null);
-        vo.setStatus(null);
-        vo.setCreatedAt(null);
-        vo.setUpdatedAt(null);
-        vo.setFrozenStock(null);
-        vo.setIsDeleted(null);
+        vo.setCostPrice(sku.getCostPrice());
+        vo.setStock(sku.getStock());
+        vo.setWarnStock(sku.getWarnStock());
+        vo.setStatus(sku.getStatus());
+        vo.setCreatedAt(sku.getCreatedAt());
+        vo.setUpdatedAt(sku.getUpdatedAt());
+        vo.setFrozenStock(sku.getFrozenStock());
+        vo.setIsDeleted(sku.getIsDeleted());
 
         List<Map<String, Object>> attributes = getSkuSaleAttributes(sku.getId());
         vo.setSaleAttributes(attributes);

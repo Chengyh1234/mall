@@ -82,7 +82,6 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
             "/logistics/list",
             "/logistics/detail/**",
             "/logistics/code/**",
-            "/order/status-desc/**",
             "/order/pay-status-desc/**",
             "/sku/detail/**",
             "/sku/total-stock/**",

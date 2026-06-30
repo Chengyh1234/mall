@@ -61,9 +61,6 @@ public class StoreController {
         store.setSort(storeDto.getSort());
 
         Long currentUserId = getCurrentUserId();
-        if (currentUserId == null) {
-            return Result.error("用户未登录");
-        }
         store.setSellerId(currentUserId);
 
         String date = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd"));
@@ -113,9 +110,6 @@ public class StoreController {
         }
 
         Long currentUserId = getCurrentUserId();
-        if (currentUserId == null) {
-            return Result.error("用户未登录");
-        }
 
         if (!storeService.isStoreOwner(storeDto.getId(), currentUserId)) {
             return Result.error("无权修改此店铺");
@@ -216,9 +210,6 @@ public class StoreController {
     @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<StoreSellerVo> getMyStore() {
         Long currentUserId = getCurrentUserId();
-        if (currentUserId == null) {
-            return Result.error("用户未登录");
-        }
         Store store = storeService.getBySellerId(currentUserId);
         if (store != null) {
             return Result.success(StoreSellerVo.fromStore(store));
@@ -252,11 +243,12 @@ public class StoreController {
 
     /**
      * 管理员分页查询店铺列表（多条件筛选）
-     * 可查看全部状态的店铺，返回完整 Store 实体，支持按店铺ID、名称关键字、状态、商家ID、联系电话搜索
+     * 支持按店铺ID、名称关键字、状态、商家ID、联系电话搜索
+     * 未传 status 时默认只返回 status=0（禁用）或 status=1（正常）和审核失败status=3的店铺；传 status 则精确匹配对应状态
      *
      * @param id       店铺ID（精确匹配，可选）
      * @param keyword  店铺名称（模糊匹配，可选）
-     * @param status   店铺状态（可选，不传查全部）
+     * @param status   店铺状态（可选，默认查询 0 和 1）
      * @param sellerId 商家用户ID（精确匹配，可选）
      * @param phone    联系电话（模糊匹配，可选）
      * @param page     页码，默认第1页

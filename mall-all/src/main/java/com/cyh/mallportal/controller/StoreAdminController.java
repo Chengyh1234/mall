@@ -42,9 +42,6 @@ public class StoreAdminController {
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public Result<Map<String, Object>> add(@RequestBody @Validated(Create.class) StoreAdminDto storeAdminDto) {
         Long currentUserId = getCurrentUserId();
-        if (currentUserId == null) {
-            return Result.error("用户未登录");
-        }
 
         if (!storeService.isStoreOwner(storeAdminDto.getStoreId(), currentUserId)) {
             return Result.error("无权操作此店铺");
@@ -77,9 +74,6 @@ public class StoreAdminController {
         }
 
         Long currentUserId = getCurrentUserId();
-        if (currentUserId == null) {
-            return Result.error("用户未登录");
-        }
 
         if (!storeService.isStoreOwner(oldAdmin.getStoreId(), currentUserId)) {
             return Result.error("无权操作此店铺");
@@ -117,9 +111,6 @@ public class StoreAdminController {
         }
 
         Long currentUserId = getCurrentUserId();
-        if (currentUserId == null) {
-            return Result.error("用户未登录");
-        }
 
         if (!storeService.isStoreOwner(admin.getStoreId(), currentUserId)) {
             return Result.error("无权操作此店铺");
@@ -160,9 +151,6 @@ public class StoreAdminController {
     @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SELLER')")
     public Result<StoreAdmin> getMyAdmin() {
         Long currentUserId = getCurrentUserId();
-        if (currentUserId == null) {
-            return Result.error("用户未登录");
-        }
         StoreAdmin storeAdmin = storeAdminService.getByUserId(currentUserId);
         if (storeAdmin != null) {
             return Result.success(storeAdmin);
@@ -184,9 +172,6 @@ public class StoreAdminController {
         }
 
         Long currentUserId = getCurrentUserId();
-        if (currentUserId == null) {
-            return Result.error("用户未登录");
-        }
 
         if (!storeService.isStoreOwner(admin.getStoreId(), currentUserId)) {
             return Result.error("无权操作此店铺");

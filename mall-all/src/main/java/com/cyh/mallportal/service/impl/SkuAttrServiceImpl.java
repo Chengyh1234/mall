@@ -1,19 +1,25 @@
 package com.cyh.mallportal.service.impl;
 
 import com.alibaba.fastjson2.JSON;
+import com.cyh.mallcommon.constant.RedisConstants;
 import com.cyh.mallcommon.exception.BusinessException;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.cyh.mallportal.dto.SkuBatchCreateDto;
 import com.cyh.mallportal.dto.SkuUpdateDto;
 import com.cyh.mallportal.entity.*;
 import com.cyh.mallportal.mapper.*;
+import com.cyh.mallportal.mq.event.CacheDomain;
+import com.cyh.mallportal.mq.event.CacheInvalidateEvent;
+import com.cyh.mallportal.mq.publisher.CacheEventPublisher;
 import com.cyh.mallportal.service.SkuAttrService;
 import com.cyh.mallportal.service.SpuService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.CollectionUtils;
 
 import java.time.LocalDateTime;
@@ -35,6 +41,7 @@ public class SkuAttrServiceImpl implements SkuAttrService {
     private final SpuSaleAttrChoiceMapper spuSaleAttrChoiceMapper;
     private final AttributeValueMapper attributeValueMapper;
     private final SpuService spuService;
+    private final CacheEventPublisher cacheEventPublisher;
     private final StringRedisTemplate stringRedisTemplate;
 
     /**
@@ -185,6 +192,10 @@ public class SkuAttrServiceImpl implements SkuAttrService {
             }
 
             resultMap.put(sku.getId(), count);
+            // 初始化库存缓存，确保订单流程能正确读取库存
+            if (dto.getStock() != null && dto.getStock() > 0) {
+                stringRedisTemplate.opsForValue().set(RedisConstants.STOCK_PREFIX + sku.getId(), String.valueOf(dto.getStock()));
+            }
             log.info("商家 {} 创建SKU {} 并绑定 {} 个销售属性", sellerId, sku.getId(), count);
         }
 
@@ -192,8 +203,8 @@ public class SkuAttrServiceImpl implements SkuAttrService {
 
         spuService.updateMinPriceForSpu(spuId);
 
-        // 清除SKU缓存
-        clearSkuCache(spuId);
+        // 事务提交后，异步清除SKU缓存
+        publishSkuCacheInvalidate(spuId);
 
         return resultMap;
     }
@@ -247,10 +258,15 @@ public class SkuAttrServiceImpl implements SkuAttrService {
 
         log.info("商家 {} 创建SKU {} 并绑定销售属性", sellerId, sku.getId());
 
+        // 初始化库存缓存，确保订单流程能正确读取库存
+        if (dto.getStock() != null && dto.getStock() > 0) {
+            stringRedisTemplate.opsForValue().set(RedisConstants.STOCK_PREFIX + sku.getId(), String.valueOf(dto.getStock()));
+        }
+
         spuService.updateMinPriceForSpu(spuId);
 
-        // 清除SKU缓存
-        clearSkuCache(spuId);
+        // 事务提交后，异步清除SKU缓存
+        publishSkuCacheInvalidate(spuId);
 
         return sku.getId();
     }
@@ -287,14 +303,19 @@ public class SkuAttrServiceImpl implements SkuAttrService {
             updateSku.setStatus(dto.getStatus());
             updateSku.setUpdatedAt(LocalDateTime.now());
             skuMapper.updateById(updateSku);
+
+            // 同步库存缓存，保证 Redis 库存 Key 与 DB 一致
+            if (dto.getStock() != null) {
+                stringRedisTemplate.opsForValue().set(RedisConstants.STOCK_PREFIX + skuId, String.valueOf(dto.getStock()));
+            }
         }
 
         log.info("商家 {} 更新SKU {} 信息成功（不修改销售属性）", sellerId, skuId);
 
         spuService.updateMinPriceForSpu(sku.getSpuId());
 
-        // 清除SKU缓存
-        clearSkuCache(sku.getSpuId());
+        // 事务提交后，异步清除SKU缓存
+        publishSkuCacheInvalidate(sku.getSpuId());
 
         return true;
     }
@@ -368,17 +389,25 @@ public class SkuAttrServiceImpl implements SkuAttrService {
     }
 
     /**
-     * 清除指定SPU下所有SKU缓存（公开/商家/管理三端）
+     * 事务提交后，异步发布 SKU 缓存失效事件
      */
-    private void clearSkuCache(Long spuId) {
+    private void publishSkuCacheInvalidate(Long spuId) {
         if (spuId == null) {
             return;
         }
-        Set<String> keys = new HashSet<>();
-        keys.add("sku:spu:" + spuId + ":public");
-        keys.add("sku:spu:" + spuId + ":store");
-        keys.add("sku:spu:" + spuId + ":admin");
-        stringRedisTemplate.delete(keys);
-        log.debug("清除SKU缓存, spuId: {}", spuId);
+        String prefix = RedisConstants.SKU_CACHE_PREFIX + spuId;
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                cacheEventPublisher.publishInvalidate(new CacheInvalidateEvent()
+                        .setDomain(CacheDomain.SKU)
+                        .setExactKeys(List.of(
+                                prefix + RedisConstants.SKU_CACHE_PUBLIC_SUFFIX,
+                                prefix + RedisConstants.SKU_CACHE_STORE_SUFFIX,
+                                prefix + RedisConstants.SKU_CACHE_ADMIN_SUFFIX
+                        )));
+            }
+        });
+        log.debug("发布SKU缓存失效事件, spuId: {}", spuId);
     }
 }

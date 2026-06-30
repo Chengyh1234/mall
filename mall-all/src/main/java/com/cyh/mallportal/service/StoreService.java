@@ -199,6 +199,19 @@ public interface StoreService {
     void reSubmit(Long storeId, String name, String description, String phone, String address);
 
     /**
+     * 已注销店铺重新申请开店
+     * 校验用户有status=0(已注销)的店铺，更新信息并重置status=2(审核中)
+     *
+     * @param storeId     店铺ID
+     * @param userId      用户ID
+     * @param name        店铺名称
+     * @param description 店铺描述
+     * @param phone       联系电话
+     * @param address     店铺地址
+     */
+    void reApply(Long storeId, Long userId, String name, String description, String phone, String address);
+
+    /**
      * 用户查看自己的开店申请
      *
      * @param userId 用户ID
@@ -207,20 +220,24 @@ public interface StoreService {
     Store getMyApply(Long userId);
 
     /**
-     * 管理员分页查询待审核列表（status=2）
+     * 管理员分页查询指定审核状态的店铺申请列表
+     * 仅支持 status=2（审核中）或 status=3（审核失败）
      *
+     * @param status   申请状态
      * @param page     页码
      * @param pageSize 每页数量
-     * @return 待审核店铺列表
+     * @return 店铺申请列表
      */
-    List<Store> getPendingPage(Integer page, Integer pageSize);
+    List<Store> getPendingPage(Integer status, Integer page, Integer pageSize);
 
     /**
-     * 统计待审核数量
+     * 统计指定审核状态的店铺申请数量
+     * 仅支持 status=2（审核中）或 status=3（审核失败）
      *
-     * @return 待审核总数
+     * @param status 申请状态
+     * @return 总数
      */
-    int countPending();
+    int countPending(Integer status);
 
     /**
      * 商家注销店铺

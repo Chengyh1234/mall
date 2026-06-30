@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -32,6 +33,22 @@ public class AdminDashboardController {
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public Result<AdminDashboardVo.DashboardOverview> getDashboardOverview() {
         AdminDashboardVo.DashboardOverview data = adminDashboardService.getDashboardOverview();
+        return Result.success(data);
+    }
+
+    /**
+     * 获取平台销售时间序列数据（折线图）只统计已完成的订单，即status=4
+     * 统一接口，通过 period 参数切换不同时间维度
+     * 返回各时段/每日的全平台销售额、订单量、销量三个指标
+     *
+     * @param period 时间段：last24h（最近24小时按小时）| last7Days | thisMonth | last90Days | thisYear，默认 last7Days
+     * @return 时间序列数据
+     */
+    @GetMapping("/sales/timeseries")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public Result<AdminDashboardVo.SalesTimeSeries> getSalesTimeSeries(
+            @RequestParam(defaultValue = "last7Days") String period) {
+        AdminDashboardVo.SalesTimeSeries data = adminDashboardService.getSalesTimeSeries(period);
         return Result.success(data);
     }
 

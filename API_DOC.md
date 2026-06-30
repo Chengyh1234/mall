@@ -178,11 +178,12 @@
   - [15.8 更新店铺状态](#158-更新店铺状态)
   - [15.9 提交开店申请](#159-提交开店申请)
   - [15.10 查看开店申请状态](#1510-查看开店申请状态)
-  - [15.10 重新提交开店申请](#1510-重新提交开店申请)
-  - [15.11 管理员分页查询待审核列表](#1511-管理员分页查询待审核列表)
-  - [15.12 管理员审核通过](#1512-管理员审核通过)
-  - [15.13 管理员驳回](#1513-管理员驳回)
-  - [15.14 店铺注销](#1514-店铺注销)
+  - [15.11 重新提交开店申请（审核驳回后）](#1511-重新提交开店申请审核驳回后)
+  - [15.12 重新申请开店（已注销后）](#1512-重新申请开店已注销后)
+  - [15.13 管理员分页查询待审核列表](#1513-管理员分页查询待审核列表)
+  - [15.14 管理员审核通过](#1514-管理员审核通过)
+  - [15.15 管理员驳回](#1515-管理员驳回)
+  - [15.16 店铺注销](#1516-店铺注销)
 - [十六、店铺管理员模块 (StoreAdmin)](#十六店铺管理员模块-storeadmin)
   - [16.1 新增店铺管理员](#161-新增店铺管理员)
   - [16.2 更新店铺管理员](#162-更新店铺管理员)
@@ -2897,45 +2898,6 @@ GET /order/admin/list?payTimeStart=2026-01-01+00:00:00&payTimeEnd=2026-06-10+23:
 | 订单不存在 | 订单ID无效或不存在 |
 | 无权操作此订单 | 当前用户无权操作该订单 |
 | 订单删除失败 | 订单删除操作失败 |
-
----
-
-### 5.17 获取订单状态描述
-
-**接口路径：** `/order/status-desc/{status}`
-**HTTP方法：** GET
-**权限：** 公开
-**功能说明：** 获取订单状态的中文描述
-
-#### 路径参数
-
-| 参数名 | 类型 | 必填 | 说明 | 示例 |
-|--------|------|------|------|------|
-| status | Integer | 是 | 订单状态码 | `1` |
-
-#### 响应示例
-```json
-{
-    "code": 200,
-    "msg": "操作成功",
-    "data": {
-        "statusDesc": "待付款"
-    }
-}
-```
-
-**订单状态码：**
-
-| 状态码 | 说明 |
-|--------|------|
-| 1 | 待付款 |
-| 2 | 待发货 |
-| 3 | 待收货 |
-| 4 | 已完成 |
-| 5 | 已取消 |
-| 6 | 退款中 |
-| 7 | 已退款 |
-| 8 | 已拒绝 |
 
 ---
 
@@ -6202,6 +6164,7 @@ list 数组内每个元素的字段：
 | name | String | 分类名称 | `手机` |
 | parentId | Long | 父分类ID | `0` |
 | icon | String | 图标路径 | `/uploads/icons/phone.png` |
+| sort | Integer | 排序（越小越靠前） | `0` |
 | children | Array | 子分类列表（递归结构） | |
 
 #### 响应示例
@@ -6215,12 +6178,14 @@ list 数组内每个元素的字段：
             "name": "手机",
             "parentId": 0,
             "icon": "/uploads/icons/phone.png",
+            "sort": 0,
             "children": [
                 {
                     "id": 2,
                     "name": "智能手机",
                     "parentId": 1,
                     "icon": "/uploads/icons/smartphone.png",
+                    "sort": 0,
                     "children": []
                 }
             ]
@@ -7994,7 +7959,7 @@ list 数组内每个元素的字段：
 **接口路径：** `/store/admin/page`
 **HTTP方法：** GET
 **权限：** SUPER_ADMIN 角色 (`hasRole('SUPER_ADMIN')`)
-**功能说明：** 管理员分页查询店铺列表，返回 `StoreAdminVo`（含完整管理字段），可查看全部状态的店铺，支持多条件筛选。
+**功能说明：** 管理员分页查询店铺列表，返回 `StoreAdminVo`（含完整管理字段），支持多条件筛选。未传 `status` 时默认只返回 `status=0`（禁用）或 `status=1`（正常）的店铺；传了 `status` 则按指定状态精确匹配。
 
 #### 请求参数 (Query)
 
@@ -8002,7 +7967,7 @@ list 数组内每个元素的字段：
 |--------|------|:---:|:-----:|------|
 | id | Long | 否 | - | 店铺ID（精确匹配） |
 | keyword | String | 否 | - | 店铺名称（模糊匹配） |
-| status | Integer | 否 | - | 店铺状态（1=正常 0=禁用 2=审核中 3=审核失败，不传查全部） |
+| status | Integer | 否 | - | 店铺状态（1=正常 0=禁用 2=审核中 3=审核失败，不传默认查 0 和 1） |
 | sellerId | Long | 否 | - | 商家用户ID（精确匹配） |
 | phone | String | 否 | - | 联系电话（模糊匹配） |
 | page | Integer | 否 | 1 | 页码，从1开始 |
@@ -8109,7 +8074,10 @@ list 数组内每个元素的字段：
 **HTTP方法：** POST
 **权限：** isAuthenticated()
 **Content-Type：** application/x-www-form-urlencoded
-**功能说明：** 登录后的普通用户提交开店申请。系统校验用户无正常店铺、无审核中的申请、店铺名唯一后，创建 status=2(审核中) 的店铺记录，等待管理员审核。
+**功能说明：** 登录后的普通用户提交开店申请。系统校验用户无店铺记录（或已存在的店铺状态非 0/1/2/3）后，校验店铺名称唯一性，创建 status=2(审核中) 的店铺记录，等待管理员审核。
+
+> 若用户已有 status=0（已注销）的店铺，请使用「重新申请开店」接口；
+> 若用户已有 status=3（审核失败）的店铺，请使用「重新提交开店申请」接口。
 
 #### 请求参数 (Query/Form)
 
@@ -8135,6 +8103,8 @@ list 数组内每个元素的字段：
 |---------|------|
 | 您已拥有正常店铺，不可重复申请 | 用户已有 status=1 的店铺 |
 | 您已提交开店申请，请等待审核 | 用户已有 status=2 的审核中申请 |
+| 您的店铺已注销，如需重新开店请使用重新申请功能 | 用户已有 status=0 的已注销店铺 |
+| 您的开店申请已被驳回，请使用重新提交功能 | 用户已有 status=3 的审核失败店铺 |
 | 店铺名称已被占用 | 店铺名称已存在 |
 
 ---
@@ -8144,14 +8114,23 @@ list 数组内每个元素的字段：
 **接口路径：** `/store/apply/status`
 **HTTP方法：** GET
 **权限：** isAuthenticated()
-**功能说明：** 当前登录用户查看自己的开店申请状态，返回审核状态和驳回原因。
+**功能说明：** 当前登录用户查看自己的开店申请状态。返回完整的店铺信息（含名称、描述、电话、地址等），前端可根据返回的 status 做不同处理：
+- status=0（已注销）：展示重新申请表单，用返回的 name/description/phone/address 回填
+- status=2（审核中）：提示等待审核
+- status=3（审核失败）：展示驳回原因和重新提交入口
+- status=1（正常）：提示已有正常店铺
 
 #### 响应参数 (Response)
 
 | 参数名 | 类型 | 说明 | 示例 |
 |--------|------|------|------|
-| status | Integer | 审核状态: 2-审核中 3-审核失败 | `2` |
-| rejectReason | String | 驳回原因（审核中为 null） | `店铺名称不合规` |
+| id | Long | 店铺ID | `1` |
+| name | String | 店铺名称 | `某某旗舰店` |
+| description | String | 店铺描述 | `主营手机电脑` |
+| phone | String | 联系电话 | `13800138000` |
+| address | String | 店铺地址 | `深圳市南山区` |
+| status | Integer | 审核状态: 0-已注销 1-正常 2-审核中 3-审核失败 | `2` |
+| rejectReason | String | 驳回原因（审核中或正常时为 null） | `店铺名称不合规` |
 
 #### 响应示例（审核中）
 ```json
@@ -8159,6 +8138,11 @@ list 数组内每个元素的字段：
     "code": 200,
     "msg": "操作成功",
     "data": {
+        "id": 1,
+        "name": "某某旗舰店",
+        "description": "主营手机电脑",
+        "phone": "13800138000",
+        "address": "深圳市南山区",
         "status": 2,
         "rejectReason": null
     }
@@ -8171,21 +8155,43 @@ list 数组内每个元素的字段：
     "code": 200,
     "msg": "操作成功",
     "data": {
+        "id": 1,
+        "name": "某某旗舰店",
+        "description": "主营手机电脑",
+        "phone": "13800138000",
+        "address": "深圳市南山区",
         "status": 3,
         "rejectReason": "店铺名称不合规"
     }
 }
 ```
 
+#### 响应示例（已注销）
+```json
+{
+    "code": 200,
+    "msg": "操作成功",
+    "data": {
+        "id": 1,
+        "name": "某某旗舰店",
+        "description": "主营手机电脑",
+        "phone": "13800138000",
+        "address": "深圳市南山区",
+        "status": 0,
+        "rejectReason": null
+    }
+}
+```
+
 ---
 
-### 15.10 重新提交开店申请
+### 15.11 重新提交开店申请（审核驳回后）
 
 **接口路径：** `/store/apply/re-submit`
 **HTTP方法：** POST
 **权限：** isAuthenticated()
 **Content-Type：** application/x-www-form-urlencoded
-**功能说明：** 用户被驳回后修改申请信息并重新提交，店铺 status 重置为 2(审核中)，清空驳回原因。
+**功能说明：** 用户被驳回（status=3）后修改申请信息并重新提交，店铺 status 重置为 2(审核中)，清空驳回原因。
 
 #### 请求参数 (Query/Form)
 
@@ -8208,17 +8214,56 @@ list 数组内每个元素的字段：
 
 ---
 
-### 15.11 管理员分页查询待审核列表
+### 15.12 重新申请开店（已注销后）
+
+**接口路径：** `/store/apply/reopen`
+**HTTP方法：** POST
+**权限：** isAuthenticated()
+**Content-Type：** application/x-www-form-urlencoded
+**功能说明：** 已注销店铺（status=0）的商家重新申请开店。系统校验店铺存在、属于当前用户、状态为已注销后，更新店铺信息并重置 status=2(审核中)。店铺名称修改时会校验唯一性（排除自身）。
+
+#### 请求参数 (Query/Form)
+
+| 参数名 | 类型 | 必填 | 说明 | 示例 |
+|--------|------|------|------|------|
+| storeId | Long | 是 | 店铺ID | `1` |
+| name | String | 否 | 店铺名称（不传则保持原值） | `某某旗舰店` |
+| description | String | 否 | 店铺描述 | `主营手机电脑配件` |
+| phone | String | 否 | 联系电话 | `13800138000` |
+| address | String | 否 | 店铺地址 | `深圳市南山区` |
+
+#### 响应示例
+```json
+{
+    "code": 200,
+    "msg": "开店申请已重新提交，请等待管理员审核",
+    "data": null
+}
+```
+
+#### 错误信息说明
+
+| 错误信息 | 说明 |
+|---------|------|
+| 店铺不存在 | storeId 对应的店铺不存在 |
+| 仅已注销的店铺可以重新申请 | 店铺 status 不为 0 |
+| 无权操作该店铺 | 当前用户不是该店铺所有者 |
+| 店铺名称已被占用 | 修改后的店铺名称已被其他店铺使用 |
+
+---
+
+### 15.13 管理员分页查询指定审核状态的开店申请
 
 **接口路径：** `/admin/store/apply/pending`
 **HTTP方法：** GET
 **权限：** hasRole('SUPER_ADMIN')
-**功能说明：** 管理员分页查询所有 status=2(审核中) 的开店申请列表。
+**功能说明：** 管理员分页查询指定审核状态的开店申请列表。仅支持 `status=2`（审核中）或 `status=3`（审核失败）。
 
 #### 请求参数 (Query)
 
 | 参数名 | 类型 | 必填 | 说明 | 示例 |
 |--------|------|------|------|------|
+| status | Integer | 是 | 审核状态，只能为 `2` 或 `3` | `2` |
 | page | Integer | 否 | 页码，默认第1页 | `1` |
 | pageSize | Integer | 否 | 每页数量，默认10条 | `10` |
 
@@ -8263,7 +8308,7 @@ list 数组内每个元素的字段：
 
 ---
 
-### 15.12 管理员审核通过
+### 15.14 管理员审核通过
 
 **接口路径：** `/admin/store/apply/approve/{id}`
 **HTTP方法：** PUT
@@ -8290,7 +8335,7 @@ list 数组内每个元素的字段：
 
 ---
 
-### 15.13 管理员驳回
+### 15.15 管理员驳回
 
 **接口路径：** `/admin/store/apply/reject/{id}`
 **HTTP方法：** PUT
@@ -8320,7 +8365,7 @@ list 数组内每个元素的字段：
 
 ---
 
-### 15.14 店铺注销
+### 15.16 店铺注销
 
 **接口路径：** `/store/deactivate`
 **HTTP方法：** POST
@@ -8329,7 +8374,8 @@ list 数组内每个元素的字段：
 1. 店铺下所有订单必须为完结状态（已完成/已取消/已退款）
 2. 存在进行中订单（待付款/待发货/待收货/退款中/已拒绝）则拒绝注销
 3. 校验通过后店铺 status 更新为 0（禁用/已注销）
-4. 同时移除用户的 SELLER 角色（用户不再是卖家身份）
+4. 该店铺下的所有 SPU 批量下架（status 置为 0）
+5. 移除用户的 SELLER 角色（用户不再是卖家身份）
 
 #### 请求参数 (Query/Form)
 
@@ -8670,7 +8716,97 @@ list 数组内每个元素的字段：
 
 ---
 
-### 17.3 获取商品销售排行
+### 17.3 获取销售时间序列数据（折线图）
+
+**接口路径：** `/store-admin/dashboard/sales/timeseries`
+**HTTP方法：** GET
+**权限：** hasAuthority('store:manage') or hasRole('SUPER_ADMIN') or hasRole('SELLER')
+**功能说明：** 统一接口，通过 period 参数切换不同时间维度。返回各时段/每日的销售额、订单量、销量三个指标，缺失时段自动补 0。只统计已完成订单（status=4）。
+
+#### 请求参数 (Query)
+
+| 参数名 | 类型 | 必填 | 说明 | 示例 |
+|--------|------|------|------|------|
+| period | String | 否 | 时间段，可选 `last24h`（最近24小时按小时）、`last7Days`、`thisMonth`、`last90Days`、`thisYear`，默认 `last7Days` | `last7Days` |
+
+#### 响应参数 (Response)
+
+| 参数名 | 类型 | 说明 |
+|--------|------|------|
+| period | String | 时间段标识 |
+| dataPoints | List\<DataPoint\> | 时间序列数据点列表，按时间升序排列 |
+
+**DataPoint 参数：**
+
+| 参数名 | 类型 | 说明 |
+|--------|------|------|
+| label | String | 时间标签，最近24小时为 `HH:mm` 格式（如 `14:00`），其余为 `MM-dd` 格式（如 `06-27`） |
+| salesAmount | BigDecimal | 该时段销售额（元），无数据为 0 |
+| orderCount | Integer | 该时段订单量（单），无数据为 0 |
+| salesVolume | Integer | 该时段销量（件），无数据为 0 |
+
+#### 响应示例（last24h）
+
+```json
+{
+    "code": 200,
+    "msg": "success",
+    "data": {
+        "period": "last24h",
+        "dataPoints": [
+            { "label": "00:00", "salesAmount": 120.00, "orderCount": 2, "salesVolume": 3 },
+            { "label": "01:00", "salesAmount": 0.00, "orderCount": 0, "salesVolume": 0 },
+            { "label": "02:00", "salesAmount": 0.00, "orderCount": 0, "salesVolume": 0 },
+            { "label": "03:00", "salesAmount": 0.00, "orderCount": 0, "salesVolume": 0 },
+            { "label": "04:00", "salesAmount": 0.00, "orderCount": 0, "salesVolume": 0 },
+            { "label": "05:00", "salesAmount": 0.00, "orderCount": 0, "salesVolume": 0 },
+            { "label": "06:00", "salesAmount": 0.00, "orderCount": 0, "salesVolume": 0 },
+            { "label": "07:00", "salesAmount": 0.00, "orderCount": 0, "salesVolume": 0 },
+            { "label": "08:00", "salesAmount": 0.00, "orderCount": 0, "salesVolume": 0 },
+            { "label": "09:00", "salesAmount": 350.00, "orderCount": 3, "salesVolume": 5 },
+            { "label": "10:00", "salesAmount": 1580.00, "orderCount": 10, "salesVolume": 25 },
+            { "label": "11:00", "salesAmount": 890.00, "orderCount": 6, "salesVolume": 15 },
+            { "label": "12:00", "salesAmount": 420.00, "orderCount": 4, "salesVolume": 8 },
+            { "label": "13:00", "salesAmount": 210.00, "orderCount": 2, "salesVolume": 3 },
+            { "label": "14:00", "salesAmount": 0.00, "orderCount": 0, "salesVolume": 0 },
+            { "label": "15:00", "salesAmount": 670.00, "orderCount": 5, "salesVolume": 12 },
+            { "label": "16:00", "salesAmount": 1200.00, "orderCount": 8, "salesVolume": 20 },
+            { "label": "17:00", "salesAmount": 900.00, "orderCount": 7, "salesVolume": 18 },
+            { "label": "18:00", "salesAmount": 1500.00, "orderCount": 12, "salesVolume": 30 },
+            { "label": "19:00", "salesAmount": 2300.00, "orderCount": 15, "salesVolume": 40 },
+            { "label": "20:00", "salesAmount": 1800.00, "orderCount": 11, "salesVolume": 22 },
+            { "label": "21:00", "salesAmount": 600.00, "orderCount": 4, "salesVolume": 10 },
+            { "label": "22:00", "salesAmount": 300.00, "orderCount": 3, "salesVolume": 6 },
+            { "label": "23:00", "salesAmount": 100.00, "orderCount": 1, "salesVolume": 2 }
+        ]
+    }
+}
+```
+
+#### 响应示例（last7Days）
+
+```json
+{
+    "code": 200,
+    "msg": "success",
+    "data": {
+        "period": "last7Days",
+        "dataPoints": [
+            { "label": "06-21", "salesAmount": 1200.00, "orderCount": 10, "salesVolume": 25 },
+            { "label": "06-22", "salesAmount": 800.00, "orderCount": 6, "salesVolume": 15 },
+            { "label": "06-23", "salesAmount": 3500.00, "orderCount": 20, "salesVolume": 45 },
+            { "label": "06-24", "salesAmount": 2100.00, "orderCount": 15, "salesVolume": 30 },
+            { "label": "06-25", "salesAmount": 0.00, "orderCount": 0, "salesVolume": 0 },
+            { "label": "06-26", "salesAmount": 1800.00, "orderCount": 12, "salesVolume": 28 },
+            { "label": "06-27", "salesAmount": 1580.00, "orderCount": 10, "salesVolume": 22 }
+        ]
+    }
+}
+```
+
+---
+
+### 17.4 获取商品销售排行
 
 **接口路径：** `/store-admin/dashboard/sales/product-ranking`
 **HTTP方法：** GET
@@ -9758,6 +9894,83 @@ list 数组内每个元素的字段：
         "last7Days": 85600.00,
         "thisMonth": 325000.00,
         "thisYear": 1850000.00
+    }
+}
+```
+
+---
+
+### 22.3 获取平台销售时间序列数据（折线图）
+
+**接口路径：** `/admin/dashboard/sales/timeseries`
+**HTTP方法：** GET
+**权限：** hasRole('SUPER_ADMIN')
+**功能说明：** 统一接口，通过 period 参数切换不同时间维度。返回各时段/每日的全平台销售额、订单量、销量三个指标，缺失时段自动补 0。只统计已完成订单（status=4）。
+
+#### 请求参数 (Query)
+
+| 参数名 | 类型 | 必填 | 说明 | 示例 |
+|--------|------|------|------|------|
+| period | String | 否 | 时间段，可选 `last24h`（最近24小时按小时）、`last7Days`、`thisMonth`、`last90Days`、`thisYear`，默认 `last7Days` | `last7Days` |
+
+#### 响应参数 (Response)
+
+| 参数名 | 类型 | 说明 |
+|--------|------|------|
+| period | String | 时间段标识 |
+| dataPoints | List\<DataPoint\> | 时间序列数据点列表，按时间升序排列 |
+
+**DataPoint 参数：**
+
+| 参数名 | 类型 | 说明 |
+|--------|------|------|
+| label | String | 时间标签，最近24小时为 `HH:mm` 格式（如 `14:00`），其余为 `MM-dd` 格式（如 `06-27`） |
+| salesAmount | BigDecimal | 该时段销售额（元），无数据为 0 |
+| orderCount | Integer | 该时段订单量（单），无数据为 0 |
+| salesVolume | Integer | 该时段销量（件），无数据为 0 |
+
+#### 响应示例（last24h）
+
+```json
+{
+    "code": 200,
+    "message": "success",
+    "data": {
+        "period": "last24h",
+        "dataPoints": [
+            { "label": "00:00", "salesAmount": 1200.00, "orderCount": 10, "salesVolume": 25 },
+            { "label": "01:00", "salesAmount": 0.00, "orderCount": 0, "salesVolume": 0 },
+            { "label": "02:00", "salesAmount": 0.00, "orderCount": 0, "salesVolume": 0 },
+            { "label": "09:00", "salesAmount": 3500.00, "orderCount": 20, "salesVolume": 45 },
+            { "label": "10:00", "salesAmount": 15800.00, "orderCount": 80, "salesVolume": 200 },
+            { "label": "11:00", "salesAmount": 8900.00, "orderCount": 60, "salesVolume": 150 },
+            { "label": "14:00", "salesAmount": 6700.00, "orderCount": 50, "salesVolume": 120 },
+            { "label": "15:00", "salesAmount": 12000.00, "orderCount": 75, "salesVolume": 190 },
+            { "label": "18:00", "salesAmount": 15000.00, "orderCount": 90, "salesVolume": 230 },
+            { "label": "19:00", "salesAmount": 23000.00, "orderCount": 120, "salesVolume": 300 },
+            { "label": "20:00", "salesAmount": 18000.00, "orderCount": 95, "salesVolume": 240 }
+        ]
+    }
+}
+```
+
+#### 响应示例（last7Days）
+
+```json
+{
+    "code": 200,
+    "message": "success",
+    "data": {
+        "period": "last7Days",
+        "dataPoints": [
+            { "label": "06-21", "salesAmount": 12000.00, "orderCount": 80, "salesVolume": 200 },
+            { "label": "06-22", "salesAmount": 8500.00, "orderCount": 60, "salesVolume": 150 },
+            { "label": "06-23", "salesAmount": 35000.00, "orderCount": 200, "salesVolume": 500 },
+            { "label": "06-24", "salesAmount": 21000.00, "orderCount": 150, "salesVolume": 380 },
+            { "label": "06-25", "salesAmount": 0.00, "orderCount": 0, "salesVolume": 0 },
+            { "label": "06-26", "salesAmount": 18000.00, "orderCount": 120, "salesVolume": 300 },
+            { "label": "06-27", "salesAmount": 15800.00, "orderCount": 100, "salesVolume": 250 }
+        ]
     }
 }
 ```

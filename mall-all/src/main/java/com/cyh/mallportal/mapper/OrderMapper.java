@@ -326,6 +326,40 @@ public interface OrderMapper extends BaseMapper<Order> {
      */
     Order selectByOrderNoForAdmin(@Param("orderNo") String orderNo);
 
+    // ==================== 商家仪表盘时间序列统计 ====================
+
+    /**
+     * 统计商家指定时间范围内各时段/每日的销售额、订单量、销量
+     * 通过 order_items 关联 spu 过滤商家，distinct 去重保证订单金额不重复求和
+     * 用于仪表盘时间序列折线图展示
+     *
+     * @param sellerId  商家用户ID
+     * @param startTime 时间范围起点
+     * @param isHourly  是否按小时分组（true=按小时，false=按天）
+     * @return key=时间标签, value={label=标签, salesAmount=销售额, orderCount=订单量, salesVolume=销量}
+     */
+    @MapKey("label")
+    Map<String, Map<String, Object>> selectSalesTimeSeries(
+            @Param("sellerId") Long sellerId,
+            @Param("startTime") LocalDateTime startTime,
+            @Param("isHourly") boolean isHourly);
+
+    // ==================== 管理员仪表盘时间序列统计 ====================
+
+    /**
+     * 统计平台指定时间范围内各时段/每日的销售额、订单量、销量
+     * 不区分商家，统计全部已完成订单（status=4）
+     * 用于管理员仪表盘时间序列折线图展示
+     *
+     * @param startTime 时间范围起点
+     * @param isHourly  是否按小时分组（true=按小时，false=按天）
+     * @return key=时间标签, value={label=标签, salesAmount=销售额, orderCount=订单量, salesVolume=销量}
+     */
+    @MapKey("label")
+    Map<String, Map<String, Object>> selectAdminSalesTimeSeries(
+            @Param("startTime") LocalDateTime startTime,
+            @Param("isHourly") boolean isHourly);
+
     // ==================== 平台仪表盘统计（超级管理员） ====================
 
     /**

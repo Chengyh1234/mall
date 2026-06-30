@@ -19,9 +19,7 @@ import com.cyh.mallportal.mapper.OrderDeliveryMapper;
 import com.cyh.mallportal.mapper.OrderItemMapper;
 import com.cyh.mallportal.mapper.OrderMapper;
 import com.cyh.mallportal.mapper.SkuMapper;
-import com.cyh.mallportal.mapper.SpuMapper;
 import com.cyh.mallportal.service.CartItemService;
-import com.cyh.mallportal.service.InventoryRedisService;
 import com.cyh.mallportal.mq.event.OrderCreatedEvent;
 import com.cyh.mallportal.mq.event.OrderExpireEvent;
 import com.cyh.mallportal.mq.publisher.OrderEventPublisher;
@@ -69,8 +67,6 @@ public class OrderServiceImpl implements OrderService {
     private final CartItemMapper cartItemMapper;
     private final CartItemService cartItemService;
     private final StockLuaScript stockLuaScript;
-    private final InventoryRedisService inventoryRedisService;
-    private final SpuMapper spuMapper;
     private final OrderEventPublisher orderEventPublisher;
 
     /**
@@ -182,9 +178,11 @@ public class OrderServiceImpl implements OrderService {
                         .setOrderId(finalOrderId)
                         .setOrderNo(orderNo)
                         .setUserId(userId)
-                        .setSkuIds(skuIds)
                         .setFromCart(false);
                 orderEventPublisher.publishOrderCreated(event);
+
+                // 发送库存同步事件
+                orderEventPublisher.publishStockSync(skuIds);
 
                 // 发送订单超时延迟消息（TTL 到期后自动取消）
                 orderEventPublisher.publishOrderExpire(
@@ -308,9 +306,11 @@ public class OrderServiceImpl implements OrderService {
                 OrderCreatedEvent event = new OrderCreatedEvent()
                         .setOrderId(firstOrderId)
                         .setUserId(userId)
-                        .setSkuIds(skuIds)
                         .setFromCart(true);
                 orderEventPublisher.publishOrderCreated(event);
+
+                // 发送库存同步事件
+                orderEventPublisher.publishStockSync(skuIds);
 
                 // 为每笔独立订单发送超时延迟消息
                 for (Map.Entry<Long, String> entry : orderIdToNo.entrySet()) {
@@ -557,10 +557,10 @@ public class OrderServiceImpl implements OrderService {
 
         // 释放 Redis 冻结库存
         List<OrderItem> items = orderItemMapper.selectByOrderId(orderId);
+        List<Long> skuIds = new ArrayList<>();
         for (OrderItem item : items) {
             stockLuaScript.releaseStock(item.getSkuId(), item.getQuantity());
-            // 同步释放后的库存到 MySQL
-            inventoryRedisService.syncStockToDb(item.getSkuId());
+            skuIds.add(item.getSkuId());
         }
 
         order.setStatus(5);
@@ -569,6 +569,14 @@ public class OrderServiceImpl implements OrderService {
 
         orderMapper.updateById(order);
         log.info("订单取消成功, 订单ID: {}", orderId);
+
+        // 事务提交后，异步同步库存到 MySQL
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                orderEventPublisher.publishStockSync(skuIds);
+            }
+        });
         return true;
     }
 
@@ -605,10 +613,10 @@ public class OrderServiceImpl implements OrderService {
 
         // 确认扣除库存（冻结 → 实扣）
         List<OrderItem> items = orderItemMapper.selectByOrderId(orderId);
+        List<Long> skuIds = new ArrayList<>();
         for (OrderItem item : items) {
             stockLuaScript.confirmStock(item.getSkuId(), item.getQuantity());
-            // 同步库存到 MySQL
-            inventoryRedisService.syncStockToDb(item.getSkuId());
+            skuIds.add(item.getSkuId());
         }
 
         order.setPayStatus(1);
@@ -619,6 +627,14 @@ public class OrderServiceImpl implements OrderService {
 
         orderMapper.updateById(order);
         log.info("订单支付成功, 订单ID: {}", orderId);
+
+        // 事务提交后，异步同步库存到 MySQL
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                orderEventPublisher.publishStockSync(skuIds);
+            }
+        });
         return true;
     }
 
@@ -639,6 +655,7 @@ public class OrderServiceImpl implements OrderService {
         // 校验结果容器
         List<Long> successIds = new ArrayList<>();
         List<Map<String, Object>> failList = new ArrayList<>();
+        List<Long> allSkuIds = new ArrayList<>();
 
         // 批量查询订单（自动过滤 is_deleted=0 且属于该用户）
         List<Order> orders = orderMapper.selectByIdsAndUserId(orderIds, userId);
@@ -684,7 +701,7 @@ public class OrderServiceImpl implements OrderService {
             List<OrderItem> items = orderItemMapper.selectByOrderId(orderId);
             for (OrderItem item : items) {
                 stockLuaScript.confirmStock(item.getSkuId(), item.getQuantity());
-                inventoryRedisService.syncStockToDb(item.getSkuId());
+                allSkuIds.add(item.getSkuId());
             }
 
             // 更新订单状态
@@ -708,6 +725,14 @@ public class OrderServiceImpl implements OrderService {
         result.put("failCount", failList.size());
 
         log.info("批量付款完成, 成功: {}, 失败: {}", successIds.size(), failList.size());
+
+        // 事务提交后，异步同步库存到 MySQL
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                orderEventPublisher.publishStockSync(allSkuIds);
+            }
+        });
         return result;
     }
 
@@ -786,13 +811,13 @@ public class OrderServiceImpl implements OrderService {
 
         orderMapper.updateById(order);
 
-        // 更新 SPU 销量：确认收货后累加销量, 不用清除 SPU 缓存，销量给个大概就行。
-        List<OrderItem> orderItems = orderItemMapper.selectByOrderId(orderId);
-        if (orderItems != null) {
-            for (OrderItem item : orderItems) {
-                spuMapper.increaseSales(item.getSpuId(), item.getQuantity());
+        // 事务提交后，异步更新 SPU 销量
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                orderEventPublisher.publishSalesIncrease(orderId);
             }
-        }
+        });
 
         log.info("订单确认收货成功, 订单ID: {}", orderId);
         return true;
@@ -1146,10 +1171,10 @@ public class OrderServiceImpl implements OrderService {
 
         // 2. 释放库存（无论原状态如何，只要有已支付/冻结库存就释放）
         List<OrderItem> items = orderItemMapper.selectByOrderId(orderId);
+        List<Long> skuIds = new ArrayList<>();
         for (OrderItem item : items) {
             stockLuaScript.releaseStock(item.getSkuId(), item.getQuantity());
-            // 同步释放后的库存到 MySQL
-            inventoryRedisService.syncStockToDb(item.getSkuId());
+            skuIds.add(item.getSkuId());
         }
 
         // 3. 更新订单状态为"已取消"，记录运营原因
@@ -1159,6 +1184,14 @@ public class OrderServiceImpl implements OrderService {
         orderMapper.updateById(order);
 
         log.info("管理员强制取消订单成功, 订单ID: {}", orderId);
+
+        // 事务提交后，异步同步库存到 MySQL
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                orderEventPublisher.publishStockSync(skuIds);
+            }
+        });
         return true;
     }
 
@@ -1333,9 +1366,10 @@ public class OrderServiceImpl implements OrderService {
 
         // 3. 释放库存
         List<OrderItem> items = orderItemMapper.selectByOrderId(orderId);
+        List<Long> skuIds = new ArrayList<>();
         for (OrderItem item : items) {
             stockLuaScript.releaseStock(item.getSkuId(), item.getQuantity());
-            inventoryRedisService.syncStockToDb(item.getSkuId());
+            skuIds.add(item.getSkuId());
         }
 
         // 4. 更新订单：status=7（已退款），pay_status=2（已退款），记录操作人
@@ -1347,6 +1381,14 @@ public class OrderServiceImpl implements OrderService {
         orderMapper.updateById(order);
 
         log.info("退款审核通过完成, 订单ID: {}", orderId);
+
+        // 事务提交后，异步同步库存到 MySQL
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                orderEventPublisher.publishStockSync(skuIds);
+            }
+        });
         return true;
     }
 

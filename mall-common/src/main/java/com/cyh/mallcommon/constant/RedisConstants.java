@@ -33,7 +33,7 @@ public class RedisConstants {
     /** 验证码 Redis Key 前缀，完整格式：captcha:{captchaKey} */
     public static final String CAPTCHA_PREFIX = "captcha:";
 
-    /** 验证码过期时间（秒），默认 1 分钟 */
+    /** 验证码过期时间（秒），默认 5 分钟 */
     public static final long CAPTCHA_EXPIRATION = 60L;
 
     // ==================== 邮箱验证码相关 ====================
@@ -47,19 +47,25 @@ public class RedisConstants {
     /** 重置密码邮箱验证码 Redis Key 前缀，完整格式：email:reset:pwd:{email} */
     public static final String EMAIL_RESET_PWD_CODE_PREFIX = "email:reset:pwd:";
 
-    /** 邮箱验证码过期时间（秒），默认 2 分钟 */
-    public static final long EMAIL_CODE_EXPIRATION = 120L;
+    /** 邮箱验证码过期时间（秒），默认 5 分钟 */
+    public static final long EMAIL_CODE_EXPIRATION = 80L;
 
     // ==================== SPU 缓存相关 ====================
 
-    /** SPU 列表缓存键前缀，完整格式：spu:page:c:{categoryId}:b:{brandId}:k:{keywordHash}:s:{status}:p:{page}:ps:{pageSize} */
-    public static final String SPU_CACHE_PREFIX = "spu:page:";
+    /** SPU 详情缓存 Key 前缀（公开），完整格式：spu:detail:{spuId} */
+    public static final String SPU_DETAIL_PREFIX = "spu:detail:";
 
-    /** SPU 总数缓存键前缀，完整格式：spu:count:c:{categoryId}:b:{brandId}:k:{keywordHash}:s:{status} */
-    public static final String SPU_COUNT_PREFIX = "spu:count:";
+    /** SPU 详情缓存 Key 前缀（商家），完整格式：spu:detail:seller:{spuId} */
+    public static final String SPU_DETAIL_SELLER_PREFIX = "spu:detail:seller:";
 
-    /** SPU 缓存过期时间（分钟），默认 30 分钟 */
-    public static final int SPU_CACHE_EXPIRE_MINUTES = 30;
+    /** SPU 详情缓存 Key 前缀（管理），完整格式：spu:detail:admin:{spuId} */
+    public static final String SPU_DETAIL_ADMIN_PREFIX = "spu:detail:admin:";
+
+    /** SPU 详情公开缓存 TTL（分钟），默认 30 分钟 */
+    public static final int SPU_DETAIL_CACHE_TTL_PUBLIC = 30;
+
+    /** SPU 详情商家/管理缓存 TTL（分钟），默认 10 分钟 */
+    public static final int SPU_DETAIL_CACHE_TTL_MGMT = 10;
 
     // ==================== 轮播图缓存相关 ====================
 
@@ -123,22 +129,22 @@ public class RedisConstants {
     /** 品牌 ID 缓存键前缀，完整格式：brand:id:{id} */
     public static final String BRAND_ID_PREFIX = "brand:id:";
 
-    /** 品牌状态缓存键前缀，完整格式：brand:status:{status} */
-    public static final String BRAND_STATUS_PREFIX = "brand:status:";
-
     /** 品牌排序缓存键 */
     public static final String BRAND_SORT_KEY = "brand:sort";
 
-    /** 品牌列表缓存键前缀，完整格式：brand:list:{hash} */
-    public static final String BRAND_LIST_PREFIX = "brand:list:";
-
-    /** 品牌分页缓存键前缀，完整格式：brand:page:{hash}:p:{page}:ps:{pageSize} */
-    public static final String BRAND_PAGE_PREFIX = "brand:page:";
+    /** 品牌缓存 TTL（分钟），默认 30 分钟 */
+    public static final long BRAND_CACHE_TTL_MINUTES = 30;
 
     // ==================== 店铺缓存相关 ====================
 
-    /** 店铺缓存 Key 前缀，完整格式：store:{id} */
+    /** 店铺实体缓存 Key 前缀，完整格式：store:{id} */
     public static final String STORE_CACHE_KEY = "store:";
+
+    /** 店铺详情 VO 缓存 Key 前缀，完整格式：store:detail:{id} */
+    public static final String STORE_DETAIL_KEY = "store:detail:";
+
+    /** 商家 ID → 店铺映射缓存 Key 前缀，完整格式：store:seller:{sellerId} */
+    public static final String STORE_SELLER_KEY = "store:seller:";
 
     /** 店铺缓存 TTL（小时），默认 1 小时 */
     public static final long STORE_CACHE_TTL_HOURS = 1;

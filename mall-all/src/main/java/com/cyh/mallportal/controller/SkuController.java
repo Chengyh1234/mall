@@ -347,9 +347,6 @@ public class SkuController {
     @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<Map<String, Object>> createSkuWithAttrs(@RequestBody @Validated SkuBatchCreateDto dto) {
         Long sellerId = getCurrentUserId();
-        if (sellerId == null) {
-            return Result.error("用户未登录");
-        }
 
         Long skuId = skuAttrService.createSkuWithAttrs(dto, sellerId);
         Map<String, Object> data = new HashMap<>();
@@ -368,9 +365,6 @@ public class SkuController {
     @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<Map<String, Object>> batchCreateSkuWithAttrs(@RequestBody @Validated List<SkuBatchCreateDto> dtoList) {
         Long sellerId = getCurrentUserId();
-        if (sellerId == null) {
-            return Result.error("用户未登录");
-        }
 
         Map<Long, Integer> resultMap = skuAttrService.batchCreateSkuWithAttrs(dtoList, sellerId);
         Map<String, Object> data = new HashMap<>();
@@ -389,9 +383,6 @@ public class SkuController {
     @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<Void> updateSkuWithAttrs(@RequestBody @Validated SkuUpdateDto dto) {
         Long sellerId = getCurrentUserId();
-        if (sellerId == null) {
-            return Result.error("用户未登录");
-        }
 
         boolean success = skuAttrService.updateSkuWithAttrs(dto, sellerId);
         return success ? Result.success("更新成功", null) : Result.error("更新失败");
@@ -407,9 +398,6 @@ public class SkuController {
     @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<Map<String, Object>> batchUpdateSkuWithAttrs(@RequestBody @Valid List<SkuUpdateDto> dtoList) {
         Long sellerId = getCurrentUserId();
-        if (sellerId == null) {
-            return Result.error("用户未登录");
-        }
 
         int successCount = skuAttrService.batchUpdateSkuWithAttrs(dtoList, sellerId);
         Map<String, Object> data = new HashMap<>();

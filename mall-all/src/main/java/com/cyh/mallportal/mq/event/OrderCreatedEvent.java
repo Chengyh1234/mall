@@ -4,7 +4,6 @@ import lombok.Data;
 import lombok.experimental.Accessors;
 
 import java.io.Serializable;
-import java.util.List;
 
 /**
  * 订单创建事件消息体
@@ -26,9 +25,6 @@ public class OrderCreatedEvent implements Serializable {
 
     /** 用户ID */
     private Long userId;
-
-    /** 涉及的 SKU ID 列表（用于批量同步库存到 DB） */
-    private List<Long> skuIds;
 
     /**
      * 是否来自购物车结算

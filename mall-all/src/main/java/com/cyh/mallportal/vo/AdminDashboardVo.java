@@ -5,6 +5,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 /**
  * 管理员仪表盘视图对象
@@ -31,6 +32,38 @@ public class AdminDashboardVo {
         private BigDecimal todaySales;
         /** 入驻卖家数（状态为正常的店铺数） */
         private Long settledSellers;
+    }
+
+    /**
+     * 销售时间序列
+     * 用于折线图展示不同时间维度的销售额、订单量、销量趋势
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class SalesTimeSeries {
+        /** 时间段标识：last24h | last7Days | thisMonth | last90Days | thisYear */
+        private String period;
+        /** 时间序列数据点列表，按时间升序排列 */
+        private List<TimeSeriesPoint> dataPoints;
+    }
+
+    /**
+     * 时间序列数据点
+     * 表示某个时间单位的销售汇总数据
+     */
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    public static class TimeSeriesPoint {
+        /** 时间标签：最近24小时为 HH:mm，其余为 MM-dd */
+        private String label;
+        /** 该时段销售额（元），无数据为 0 */
+        private BigDecimal salesAmount;
+        /** 该时段订单量（单），无数据为 0 */
+        private Integer orderCount;
+        /** 该时段销量（件），无数据为 0 */
+        private Integer salesVolume;
     }
 
     /**

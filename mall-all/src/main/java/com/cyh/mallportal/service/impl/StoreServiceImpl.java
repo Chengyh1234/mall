@@ -1,12 +1,15 @@
 package com.cyh.mallportal.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.cyh.mallportal.entity.Role;
+import com.cyh.mallportal.entity.Spu;
 import com.cyh.mallportal.entity.Store;
 import com.cyh.mallportal.entity.StoreAdmin;
 import com.cyh.mallportal.entity.UserRole;
 import com.cyh.mallportal.mapper.OrderMapper;
 import com.cyh.mallportal.mapper.RoleMapper;
+import com.cyh.mallportal.mapper.SpuMapper;
 import com.cyh.mallportal.mapper.StoreAdminMapper;
 import com.cyh.mallportal.mapper.StoreMapper;
 import com.cyh.mallportal.mapper.UserRoleMapper;
@@ -15,13 +18,24 @@ import com.cyh.mallportal.vo.StoreDetailVo;
 import com.cyh.mallportal.vo.StoreVo;
 import com.cyh.mallcommon.constant.RedisConstants;
 import com.cyh.mallcommon.exception.BusinessException;
+import com.cyh.mallportal.mq.event.CacheDomain;
+import com.cyh.mallportal.mq.event.CacheInvalidateEvent;
+import com.cyh.mallportal.mq.publisher.CacheEventPublisher;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.util.StringUtils;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -30,6 +44,7 @@ import java.util.concurrent.TimeUnit;
  * 店铺服务实现类
  * 提供店铺创建、修改、查询、权限管理等功能
  */
+@Slf4j
 @Service
 public class StoreServiceImpl implements StoreService {
 
@@ -49,7 +64,19 @@ public class StoreServiceImpl implements StoreService {
     private OrderMapper orderMapper;
 
     @Autowired
+    private SpuMapper spuMapper;
+
+    @Autowired
     private RedisTemplate<String, Object> redisTemplate;
+
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @Autowired
+    private CacheEventPublisher cacheEventPublisher;
 
     /**
      * 添加新店铺
@@ -74,50 +101,137 @@ public class StoreServiceImpl implements StoreService {
 
     /**
      * 更新店铺信息
-     * 自动更新修改时间
+     * 自动更新修改时间，事务提交后异步清除缓存
      *
      * @param store 待更新的店铺信息
      * @return 更新成功返回true，失败返回false
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public boolean update(Store store) {
         store.setUpdatedAt(LocalDateTime.now());
-        return storeMapper.updateById(store) > 0;
+        boolean success = storeMapper.updateById(store) > 0;
+
+        if (success && store.getId() != null) {
+            // 事务提交后，异步清除缓存
+            publishStoreCacheInvalidate(store.getId());
+        }
+
+        return success;
     }
 
     /**
-     * 根据ID查询店铺
+     * 根据ID查询店铺（Cache-Aside 模式）
+     * Step1: 查缓存 store:{id}
+     * Step2: 命中直接返回，未命中查 DB 并回写缓存
      *
      * @param id 店铺ID
      * @return 店铺实体，不存在返回null
      */
     @Override
     public Store getById(Long id) {
-        return storeMapper.selectById(id);
+        // Step1: 查缓存
+        String cacheKey = RedisConstants.STORE_CACHE_KEY + id;
+        String cached = stringRedisTemplate.opsForValue().get(cacheKey);
+        if (cached != null) {
+            try {
+                return objectMapper.readValue(cached, Store.class);
+            } catch (JsonProcessingException e) {
+                log.warn("反序列化店铺缓存失败, key: {}", cacheKey, e);
+                stringRedisTemplate.delete(cacheKey);
+            }
+        }
+
+        // Step2: 缓存未命中，查库
+        Store store = storeMapper.selectById(id);
+
+        // Step3: 回写缓存
+        if (store != null) {
+            try {
+                String json = objectMapper.writeValueAsString(store);
+                stringRedisTemplate.opsForValue().set(cacheKey, json, RedisConstants.STORE_CACHE_TTL_HOURS, TimeUnit.HOURS);
+            } catch (JsonProcessingException e) {
+                log.warn("序列化店铺缓存失败, key: {}", cacheKey, e);
+            }
+        }
+
+        return store;
     }
 
     /**
-     * 根据ID查询店铺详情（返回 StoreDetailVo）
-     * 用于公开展示店铺详细信息，不包含内部管理字段
+     * 根据ID查询店铺详情（Cache-Aside 模式）
+     * 返回 StoreDetailVo，用于公开展示，不包含内部管理字段
+     * 缓存 Key: store:detail:{id}，TTL: 1 小时
      *
      * @param id 店铺ID
      * @return 店铺详情 VO，店铺不存在返回 null
      */
     @Override
     public StoreDetailVo getDetailVO(Long id) {
+        // Step1: 查缓存
+        String cacheKey = RedisConstants.STORE_DETAIL_KEY + id;
+        String cached = stringRedisTemplate.opsForValue().get(cacheKey);
+        if (cached != null) {
+            try {
+                return objectMapper.readValue(cached, StoreDetailVo.class);
+            } catch (JsonProcessingException e) {
+                log.warn("反序列化店铺详情缓存失败, key: {}", cacheKey, e);
+                stringRedisTemplate.delete(cacheKey);
+            }
+        }
+
+        // Step2: 缓存未命中，查库
         Store store = storeMapper.selectById(id);
-        return StoreDetailVo.fromStore(store);
+        StoreDetailVo vo = StoreDetailVo.fromStore(store);
+
+        // Step3: 回写缓存
+        if (vo != null) {
+            try {
+                String json = objectMapper.writeValueAsString(vo);
+                stringRedisTemplate.opsForValue().set(cacheKey, json, RedisConstants.STORE_CACHE_TTL_HOURS, TimeUnit.HOURS);
+            } catch (JsonProcessingException e) {
+                log.warn("序列化店铺详情缓存失败, key: {}", cacheKey, e);
+            }
+        }
+
+        return vo;
     }
 
     /**
-     * 根据商家用户ID查询店铺
+     * 根据商家用户ID查询店铺（Cache-Aside 模式）
+     * 缓存 Key: store:seller:{sellerId}，TTL: 1 小时
      *
      * @param sellerId 商家用户ID
      * @return 店铺实体，不存在返回null
      */
     @Override
     public Store getBySellerId(Long sellerId) {
-        return storeMapper.selectBySellerId(sellerId);
+        // Step1: 查缓存
+        String cacheKey = RedisConstants.STORE_SELLER_KEY + sellerId;
+        String cached = stringRedisTemplate.opsForValue().get(cacheKey);
+        if (cached != null) {
+            try {
+                return objectMapper.readValue(cached, Store.class);
+            } catch (JsonProcessingException e) {
+                log.warn("反序列化商家店铺映射缓存失败, key: {}", cacheKey, e);
+                stringRedisTemplate.delete(cacheKey);
+            }
+        }
+
+        // Step2: 缓存未命中，查库
+        Store store = storeMapper.selectBySellerId(sellerId);
+
+        // Step3: 回写缓存
+        if (store != null) {
+            try {
+                String json = objectMapper.writeValueAsString(store);
+                stringRedisTemplate.opsForValue().set(cacheKey, json, RedisConstants.STORE_CACHE_TTL_HOURS, TimeUnit.HOURS);
+            } catch (JsonProcessingException e) {
+                log.warn("序列化商家店铺映射缓存失败, key: {}", cacheKey, e);
+            }
+        }
+
+        return store;
     }
 
     /**
@@ -230,19 +344,27 @@ public class StoreServiceImpl implements StoreService {
 
     /**
      * 更新店铺状态
-     * 同时自动更新修改时间
+     * 同时自动更新修改时间，事务提交后异步清除缓存
      *
      * @param id 店铺ID
      * @param status 新状态
      * @return 更新成功返回true，失败返回false
      */
     @Override
+    @Transactional(rollbackFor = Exception.class)
     public boolean updateStatus(Long id, Integer status) {
         Store store = new Store();
         store.setId(id);
         store.setStatus(status);
         store.setUpdatedAt(LocalDateTime.now());
-        return storeMapper.updateById(store) > 0;
+        boolean success = storeMapper.updateById(store) > 0;
+
+        if (success && id != null) {
+            // 事务提交后，异步清除缓存
+            publishStoreCacheInvalidate(id);
+        }
+
+        return success;
     }
 
     /**
@@ -304,7 +426,7 @@ public class StoreServiceImpl implements StoreService {
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Store apply(Long userId, String name, String description, String phone, String address) {
-        // 1. 校验用户是否已有店铺（通过seller_id唯一索引保证，但先做友好提示）
+        // 1. 校验用户是否已有店铺
         Store existStore = storeMapper.selectBySellerId(userId);
         if (existStore != null) {
             if (existStore.getStatus() == 1) {
@@ -313,6 +435,11 @@ public class StoreServiceImpl implements StoreService {
             if (existStore.getStatus() == 2) {
                 throw new BusinessException("您已提交开店申请，请等待审核");
             }
+            if (existStore.getStatus() == 0) {
+                throw new BusinessException("您的店铺已注销，如需重新开店请使用重新申请功能");
+            }
+            // status == 3（审核失败）
+            throw new BusinessException("您的开店申请已被驳回，请使用重新提交功能");
         }
 
         // 2. 校验店铺名称唯一性
@@ -374,8 +501,12 @@ public class StoreServiceImpl implements StoreService {
             UserRole userRole = new UserRole();
             userRole.setUserId(store.getSellerId());
             userRole.setRoleId(sellerRole.getId());
+            userRole.setCreatedAt(LocalDateTime.now());
             userRoleMapper.insert(userRole);
         }
+
+        // 事务提交后，异步清除缓存
+        publishStoreCacheInvalidate(id);
     }
 
     /**
@@ -397,6 +528,9 @@ public class StoreServiceImpl implements StoreService {
         store.setRejectReason(rejectReason);
         store.setUpdatedAt(LocalDateTime.now());
         storeMapper.updateById(store);
+
+        // 事务提交后，异步清除缓存
+        publishStoreCacheInvalidate(id);
     }
 
     /**
@@ -431,6 +565,51 @@ public class StoreServiceImpl implements StoreService {
         store.setRejectReason(null);   // 清空驳回原因
         store.setUpdatedAt(LocalDateTime.now());
         storeMapper.updateById(store);
+
+        // 事务提交后，异步清除缓存
+        publishStoreCacheInvalidate(storeId);
+    }
+
+    /**
+     * 已注销店铺重新申请开店
+     * 校验用户有status=0(已注销)的店铺，更新信息并重置status=2(审核中)
+     * 店铺名称修改时需校验唯一性（排除自身）
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void reApply(Long storeId, Long userId, String name, String description, String phone, String address) {
+        Store store = storeMapper.selectById(storeId);
+        if (store == null) {
+            throw new BusinessException("店铺不存在");
+        }
+        if (store.getStatus() != 0) {
+            throw new BusinessException("仅已注销的店铺可以重新申请");
+        }
+        if (!store.getSellerId().equals(userId)) {
+            throw new BusinessException("无权操作该店铺");
+        }
+
+        // 如果改了店铺名，校验唯一性（排除自身）
+        if (name != null && !name.equals(store.getName())) {
+            LambdaQueryWrapper<Store> nameQuery = new LambdaQueryWrapper<>();
+            nameQuery.eq(Store::getName, name)
+                     .ne(Store::getId, storeId);
+            if (storeMapper.selectCount(nameQuery) > 0) {
+                throw new BusinessException("店铺名称已被占用");
+            }
+            store.setName(name);
+        }
+
+        store.setDescription(description);
+        store.setPhone(phone);
+        store.setAddress(address);
+        store.setStatus(2);            // 重新进入审核中
+        store.setRejectReason(null);   // 清空驳回原因
+        store.setUpdatedAt(LocalDateTime.now());
+        storeMapper.updateById(store);
+
+        // 事务提交后，异步清除缓存
+        publishStoreCacheInvalidate(storeId);
     }
 
     /**
@@ -442,21 +621,23 @@ public class StoreServiceImpl implements StoreService {
     }
 
     /**
-     * 管理员分页查询待审核列表（status=2）
+     * 管理员分页查询指定审核状态的店铺申请列表
+     * 复用通用 selectPage 方法，通过 status 精确筛选
      */
     @Override
-    public List<Store> getPendingPage(Integer page, Integer pageSize) {
+    public List<Store> getPendingPage(Integer status, Integer page, Integer pageSize) {
         int offset = (page != null && page > 0 ? page - 1 : 0) * (pageSize != null ? pageSize : 10);
         int limit = pageSize != null ? pageSize : 10;
-        return storeMapper.selectPage(null, 2, offset, limit);
+        return storeMapper.selectPage(null, status, offset, limit);
     }
 
     /**
-     * 统计待审核数量
+     * 统计指定审核状态的店铺申请数量
+     * 复用通用 countPage 方法
      */
     @Override
-    public int countPending() {
-        return storeMapper.countPage(null, 2);
+    public int countPending(Integer status) {
+        return storeMapper.countPage(null, status);
     }
 
     // ========== 店铺注销实现 ==========
@@ -493,7 +674,13 @@ public class StoreServiceImpl implements StoreService {
         store.setUpdatedAt(LocalDateTime.now());
         storeMapper.updateById(store);
 
-        // 4. 移除用户的 SELLER 角色
+        // 4. 将该店铺下的所有 SPU 批量下架
+        Spu spuUpdate = new Spu();
+        spuUpdate.setStatus(0);
+        spuMapper.update(spuUpdate,
+                Wrappers.<Spu>lambdaUpdate().eq(Spu::getSellerId, userId));
+
+        // 5. 移除用户的 SELLER 角色
         Role sellerRole = roleMapper.selectByCode("SELLER");
         if (sellerRole != null) {
             LambdaQueryWrapper<UserRole> roleRemove = new LambdaQueryWrapper<>();
@@ -502,7 +689,7 @@ public class StoreServiceImpl implements StoreService {
             userRoleMapper.delete(roleRemove);
         }
 
-        // 5. 更新 Redis 缓存：移除 SELLER 角色
+        // 6. 更新 Redis 缓存：移除 SELLER 角色
         String token = (String) redisTemplate.opsForValue()
                 .get(RedisConstants.USER_ACTIVE_TOKEN_PREFIX + userId);
         if (token != null) {
@@ -525,6 +712,37 @@ public class StoreServiceImpl implements StoreService {
                 );
             }
         }
+
+        // 事务提交后，异步清除店铺缓存
+        publishStoreCacheInvalidate(storeId);
+    }
+
+    /**
+     * 事务提交后，异步发布店铺缓存失效事件（通过 storeId 回查 sellerId）
+     * <p>
+     * 精确删除 store:{id}、store:detail:{id}、store:seller:{sellerId} 三个 key
+     */
+    private void publishStoreCacheInvalidate(Long storeId) {
+        if (storeId == null) {
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                List<String> keys = new ArrayList<>();
+                keys.add(RedisConstants.STORE_CACHE_KEY + storeId);
+                keys.add(RedisConstants.STORE_DETAIL_KEY + storeId);
+                // 从 DB 回查最新 sellerId，清除 seller 映射缓存
+                Store current = storeMapper.selectById(storeId);
+                if (current != null && current.getSellerId() != null) {
+                    keys.add(RedisConstants.STORE_SELLER_KEY + current.getSellerId());
+                }
+                cacheEventPublisher.publishInvalidate(new CacheInvalidateEvent()
+                        .setDomain(CacheDomain.STORE)
+                        .setExactKeys(keys));
+                log.debug("发布店铺缓存失效事件, storeId: {}, keys: {}", storeId, keys);
+            }
+        });
     }
 
     /**

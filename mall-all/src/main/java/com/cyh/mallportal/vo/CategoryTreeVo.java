@@ -35,6 +35,11 @@ public class CategoryTreeVo {
     private String icon;
 
     /**
+     * 排序（越小越靠前）
+     */
+    private Integer sort;
+
+    /**
      * 子分类列表（递归结构）
      */
     private List<CategoryTreeVo> children;

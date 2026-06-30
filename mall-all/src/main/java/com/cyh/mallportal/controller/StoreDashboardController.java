@@ -38,12 +38,9 @@ public class StoreDashboardController {
      * @return KPI 总览数据
      */
     @GetMapping("/sales/kpi")
-    @PreAuthorize("hasAuthority('store:manage') or hasRole('SUPER_ADMIN') or hasRole('SELLER')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SELLER')")
     public Result<StoreDashboardVo.KpiOverview> getSalesKpiOverview() {
         Long currentUserId = getCurrentUserId();
-        if (currentUserId == null) {
-            return Result.error("用户未登录");
-        }
 
         Long storeId = storeService.getBySellerId(currentUserId) != null
                 ? storeService.getBySellerId(currentUserId).getId() : null;
@@ -66,12 +63,9 @@ public class StoreDashboardController {
      * @return 销售趋势数据
      */
     @GetMapping("/sales/trend")
-    @PreAuthorize("hasAuthority('store:manage') or hasRole('SUPER_ADMIN') or hasRole('SELLER')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SELLER')")
     public Result<StoreDashboardVo.SalesTrend> getSalesTrend() {
         Long currentUserId = getCurrentUserId();
-        if (currentUserId == null) {
-            return Result.error("用户未登录");
-        }
 
         Long storeId = storeService.getBySellerId(currentUserId) != null
                 ? storeService.getBySellerId(currentUserId).getId() : null;
@@ -88,6 +82,34 @@ public class StoreDashboardController {
     }
 
     /**
+     * 获取销售时间序列数据（折线图）只统计已完成的订单，即status=4
+     * 统一接口，通过 period 参数切换不同时间维度
+     * 返回各时段/每日的销售额、订单量、销量三个指标
+     *
+     * @param period 时间段：last24h（最近24小时按小时）| last7Days | thisMonth | last90Days | thisYear，默认 last7Days
+     * @return 时间序列数据
+     */
+    @GetMapping("/sales/timeseries")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SELLER')")
+    public Result<StoreDashboardVo.SalesTimeSeries> getSalesTimeSeries(
+            @RequestParam(defaultValue = "last7Days") String period) {
+        Long currentUserId = getCurrentUserId();
+
+        Long storeId = storeService.getBySellerId(currentUserId) != null
+                ? storeService.getBySellerId(currentUserId).getId() : null;
+        if (storeId == null) {
+            return Result.error("您还没有店铺");
+        }
+
+        if (!storeService.hasStorePermission(storeId, currentUserId)) {
+            return Result.error("无权操作此店铺");
+        }
+
+        StoreDashboardVo.SalesTimeSeries data = storeDashboardService.getSalesTimeSeries(currentUserId, period);
+        return Result.success(data);
+    }
+
+    /**
      * 获取商品销售排行 只统计已完成的订单，即status=4
      * 按销售额降序排列，支持时间段切换，可用于条形图和南丁格尔玫瑰图
      *
@@ -95,13 +117,10 @@ public class StoreDashboardController {
      * @return 商品销售排行列表
      */
     @GetMapping("/sales/product-ranking")
-    @PreAuthorize("hasAuthority('store:manage') or hasRole('SUPER_ADMIN') or hasRole('SELLER')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SELLER')")
     public Result<List<StoreDashboardVo.ProductRankItem>> getProductRanking(
             @RequestParam(defaultValue = "last7Days") String period) {
         Long currentUserId = getCurrentUserId();
-        if (currentUserId == null) {
-            return Result.error("用户未登录");
-        }
 
         Long storeId = storeService.getBySellerId(currentUserId) != null
                 ? storeService.getBySellerId(currentUserId).getId() : null;

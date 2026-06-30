@@ -49,9 +49,6 @@ public class SpuAttrController {
     @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<Map<String, Object>> bindBasicAttr(@RequestBody @Validated SpuBasicAttrBindDto dto) {
         Long sellerId = getCurrentUserId();
-        if (sellerId == null) {
-            return Result.error("用户未登录");
-        }
 
         Long id = spuAttrService.bindBasicAttr(dto, sellerId);
         Map<String, Object> data = new HashMap<>();
@@ -73,9 +70,6 @@ public class SpuAttrController {
     @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<Map<String, Object>> batchBindBasicAttr(@RequestBody List<SpuBasicAttrBindDto> dtoList) {
         Long sellerId = getCurrentUserId();
-        if (sellerId == null) {
-            return Result.error("用户未登录");
-        }
 
         int count = spuAttrService.batchBindBasicAttr(dtoList, sellerId);
         Map<String, Object> data = new HashMap<>();
@@ -95,9 +89,6 @@ public class SpuAttrController {
     @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<Void> updateBasicAttr(@PathVariable Long id, @RequestBody @Validated SpuBasicAttrBindDto dto) {
         Long sellerId = getCurrentUserId();
-        if (sellerId == null) {
-            return Result.error("用户未登录");
-        }
 
         boolean success = spuAttrService.updateBasicAttr(id, dto, sellerId);
         return success ? Result.success("更新成功", null) : Result.error("更新失败");
@@ -115,9 +106,6 @@ public class SpuAttrController {
     @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<Map<String, Object>> batchUpdateBasicAttr(@RequestBody @Valid List<SpuBasicAttrBindDto> dtoList) {
         Long sellerId = getCurrentUserId();
-        if (sellerId == null) {
-            return Result.error("用户未登录");
-        }
 
         if (dtoList == null || dtoList.isEmpty()) {
             return Result.error("更新列表不能为空");
@@ -140,9 +128,6 @@ public class SpuAttrController {
     @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<Void> deleteBasicAttr(@PathVariable Long id) {
         Long sellerId = getCurrentUserId();
-        if (sellerId == null) {
-            return Result.error("用户未登录");
-        }
 
         boolean success = spuAttrService.deleteBasicAttr(id, sellerId);
         return success ? Result.success("删除成功", null) : Result.error("删除失败");
@@ -174,9 +159,6 @@ public class SpuAttrController {
     @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<Map<String, Object>> bindSaleAttr(@RequestBody @Validated SpuSaleAttrBindDto dto) {
         Long sellerId = getCurrentUserId();
-        if (sellerId == null) {
-            return Result.error("用户未登录");
-        }
 
         Long id = spuAttrService.bindSaleAttr(dto, sellerId);
         Map<String, Object> data = new HashMap<>();
@@ -195,9 +177,6 @@ public class SpuAttrController {
     @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<Map<String, Object>> batchBindSaleAttr(@RequestBody @Valid List<SpuSaleAttrBindDto> dtoList) {
         Long sellerId = getCurrentUserId();
-        if (sellerId == null) {
-            return Result.error("用户未登录");
-        }
 
         int count = spuAttrService.batchBindSaleAttr(dtoList, sellerId);
         Map<String, Object> data = new HashMap<>();
@@ -218,9 +197,6 @@ public class SpuAttrController {
     @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<Void> updateSaleAttr(@PathVariable Long id, @RequestBody @Validated SpuSaleAttrBindDto dto) {
         Long sellerId = getCurrentUserId();
-        if (sellerId == null) {
-            return Result.error("用户未登录");
-        }
 
         boolean success = spuAttrService.updateSaleAttr(id, dto, sellerId);
         return success ? Result.success("更新成功", null) : Result.error("更新失败");
@@ -238,9 +214,6 @@ public class SpuAttrController {
     @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<Map<String, Object>> batchUpdateSaleAttr(@RequestBody List<SpuSaleAttrBindDto> dtoList) {
         Long sellerId = getCurrentUserId();
-        if (sellerId == null) {
-            return Result.error("用户未登录");
-        }
 
         if (dtoList == null || dtoList.isEmpty()) {
             return Result.error("更新列表不能为空");
@@ -263,9 +236,6 @@ public class SpuAttrController {
     @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<Void> deleteSaleAttr(@PathVariable Long id) {
         Long sellerId = getCurrentUserId();
-        if (sellerId == null) {
-            return Result.error("用户未登录");
-        }
 
         boolean success = spuAttrService.deleteSaleAttr(id, sellerId);
         return success ? Result.success("删除成功", null) : Result.error("删除失败");

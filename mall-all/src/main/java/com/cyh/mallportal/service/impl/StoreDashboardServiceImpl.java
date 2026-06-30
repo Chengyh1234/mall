@@ -17,6 +17,7 @@ import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
@@ -172,13 +173,152 @@ public class StoreDashboardServiceImpl implements StoreDashboardService {
     }
 
     /**
-     * 获取商品销售排行数据
-     * 按销售额降序排列，支持时间段参数，计算每个商品的销售额占比和销量占比
+     * 获取销售时间序列数据，聚合展示销售额、订单量、销量三个指标
+     * 根据 period 参数自动切换按小时/按日分组，缺失时段自动补 0
      *
      * @param sellerId 商家用户ID
-     * @param period   时间段：today | last7Days | thisMonth | thisYear，默认 last7Days
-     * @return 商品销售排行列表
+     * @param period   时间段：last24h | last7Days | thisMonth | last90Days | thisYear
+     * @return 时间序列数据
      */
+    @Override
+    public StoreDashboardVo.SalesTimeSeries getSalesTimeSeries(Long sellerId, String period) {
+        if (period == null || period.isEmpty()) {
+            period = "last7Days";
+        }
+        String key = "dashboard:store:timeseries:" + sellerId + ":" + period;
+
+        // Step1: 尝试从缓存读取
+        String cached = stringRedisTemplate.opsForValue().get(key);
+        if (cached != null) {
+            try {
+                return objectMapper.readValue(cached, StoreDashboardVo.SalesTimeSeries.class);
+            } catch (JsonProcessingException e) {
+                stringRedisTemplate.delete(key);
+            }
+        }
+
+        // Step2: 计算时间范围起点和分组模式
+        LocalDateTime startTime;
+        boolean isHourly;
+        LocalDate today = LocalDate.now();
+
+        switch (period) {
+            case "last24h":
+                // 最近24小时：从当前时间往前推23小时，取整到小时
+                startTime = LocalDateTime.now().minusHours(23).withMinute(0).withSecond(0).withNano(0);
+                isHourly = true;
+                break;
+            case "last7Days":
+                startTime = LocalDateTime.of(today.minusDays(6), LocalTime.MIN);
+                isHourly = false;
+                break;
+            case "thisMonth":
+                startTime = LocalDateTime.of(today.withDayOfMonth(1), LocalTime.MIN);
+                isHourly = false;
+                break;
+            case "last90Days":
+                startTime = LocalDateTime.of(today.minusDays(89), LocalTime.MIN);
+                isHourly = false;
+                break;
+            case "thisYear":
+                startTime = LocalDateTime.of(today.withDayOfYear(1), LocalTime.MIN);
+                isHourly = false;
+                break;
+            default:
+                startTime = LocalDateTime.of(today.minusDays(6), LocalTime.MIN);
+                isHourly = false;
+        }
+
+        // Step3: 查询数据库
+        Map<String, Map<String, Object>> resultMap = orderMapper.selectSalesTimeSeries(sellerId, startTime, isHourly);
+
+        // Step4: 将 DB 结果转换为 label → 数据点的映射，便于补零
+        Map<String, StoreDashboardVo.TimeSeriesPoint> dataMap = new LinkedHashMap<>();
+        if (resultMap != null) {
+            for (Map.Entry<String, Map<String, Object>> entry : resultMap.entrySet()) {
+                Map<String, Object> row = entry.getValue();
+                String label = row.get("label") != null ? row.get("label").toString() : "";
+                BigDecimal salesAmount = row.get("salesAmount") != null
+                        ? new BigDecimal(row.get("salesAmount").toString()) : BigDecimal.ZERO;
+                int orderCount = row.get("orderCount") != null
+                        ? ((Number) row.get("orderCount")).intValue() : 0;
+                int salesVolume = row.get("salesVolume") != null
+                        ? ((Number) row.get("salesVolume")).intValue() : 0;
+
+                dataMap.put(label, new StoreDashboardVo.TimeSeriesPoint(
+                        formatLabel(label, isHourly),
+                        salesAmount, orderCount, salesVolume));
+            }
+        }
+
+        // Step5: 生成完整时间序列，缺失时段补 0
+        List<StoreDashboardVo.TimeSeriesPoint> dataPoints = new ArrayList<>();
+
+        if (isHourly) {
+            // 最近24小时，逐个填充小时，缺失时段补 0
+            LocalDateTime hourCursor = startTime;
+            for (int i = 0; i < 24; i++) {
+                String dbKey = hourCursor.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                String displayLabel = hourCursor.format(DateTimeFormatter.ofPattern("HH:mm"));
+                StoreDashboardVo.TimeSeriesPoint point = dataMap.containsKey(dbKey)
+                        ? dataMap.get(dbKey)
+                        : new StoreDashboardVo.TimeSeriesPoint(displayLabel, BigDecimal.ZERO, 0, 0);
+                dataPoints.add(point);
+                hourCursor = hourCursor.plusHours(1);
+            }
+        } else {
+            // 按日填充，从 startTime 到 today
+            LocalDate dateCursor = startTime.toLocalDate();
+            LocalDate endDate = today;
+            while (!dateCursor.isAfter(endDate)) {
+                String dbKey = dateCursor.toString();
+                String displayLabel = dateCursor.format(DateTimeFormatter.ofPattern("MM-dd"));
+                StoreDashboardVo.TimeSeriesPoint point = dataMap.containsKey(dbKey)
+                        ? dataMap.get(dbKey)
+                        : new StoreDashboardVo.TimeSeriesPoint(displayLabel, BigDecimal.ZERO, 0, 0);
+                dataPoints.add(point);
+                dateCursor = dateCursor.plusDays(1);
+            }
+        }
+
+        StoreDashboardVo.SalesTimeSeries result = new StoreDashboardVo.SalesTimeSeries(period, dataPoints);
+
+        // Step6: 写入缓存，5 分钟过期
+        try {
+            stringRedisTemplate.opsForValue().set(key, objectMapper.writeValueAsString(result),
+                    RedisConstants.DASHBOARD_CACHE_TTL_MINUTES, TimeUnit.MINUTES);
+        } catch (JsonProcessingException e) {
+            log.error("序列化缓存数据失败, key: {}", key, e);
+        }
+
+        return result;
+    }
+
+    /**
+     * 将数据库返回的完整时间标签转换为前端展示格式
+     *
+     * @param fullLabel 数据库返回的完整标签（如 2024-06-27 14:00:00 或 2024-06-27）
+     * @param isHourly  是否按小时分组
+     * @return 展示格式标签（HH:00 或 MM-DD）
+     */
+    private String formatLabel(String fullLabel, boolean isHourly) {
+        if (fullLabel == null || fullLabel.isEmpty()) {
+            return "";
+        }
+        try {
+            if (isHourly) {
+                LocalDateTime dt = LocalDateTime.parse(fullLabel, DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+                return dt.format(DateTimeFormatter.ofPattern("HH:mm"));
+            } else {
+                LocalDate d = LocalDate.parse(fullLabel, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
+                return d.format(DateTimeFormatter.ofPattern("MM-dd"));
+            }
+        } catch (Exception e) {
+            // 解析失败时原样返回
+            return fullLabel;
+        }
+    }
+
     @Override
     public List<StoreDashboardVo.ProductRankItem> getProductRanking(Long sellerId, String period) {
         if (period == null || period.isEmpty()) {

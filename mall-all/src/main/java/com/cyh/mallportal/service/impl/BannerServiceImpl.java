@@ -1,8 +1,12 @@
 package com.cyh.mallportal.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.cyh.mallcommon.constant.RedisConstants;
 import com.cyh.mallportal.entity.Banner;
 import com.cyh.mallportal.mapper.BannerMapper;
+import com.cyh.mallportal.mq.event.CacheDomain;
+import com.cyh.mallportal.mq.event.CacheInvalidateEvent;
+import com.cyh.mallportal.mq.publisher.CacheEventPublisher;
 import com.cyh.mallportal.service.BannerCacheService;
 import com.cyh.mallportal.service.BannerService;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +32,9 @@ public class BannerServiceImpl implements BannerService {
     @Autowired
     private BannerCacheService bannerCacheService;
 
+    @Autowired
+    private CacheEventPublisher cacheEventPublisher;
+
     @Override
     public Long add(Banner banner) {
         try {
@@ -41,8 +48,10 @@ public class BannerServiceImpl implements BannerService {
             }
             int result = bannerMapper.insert(banner);
             if (result > 0) {
-                bannerCacheService.clearAllBannerCache();
-                log.info("新增轮播图成功，轮播图ID: {}, 标题: {}, 已清除轮播图缓存", banner.getId(), banner.getTitle());
+                cacheEventPublisher.publishInvalidate(new CacheInvalidateEvent()
+                        .setDomain(CacheDomain.BANNER)
+                        .setExactKeys(List.of(RedisConstants.BANNER_ACTIVE_KEY)));
+                log.info("新增轮播图成功，轮播图ID: {}, 标题: {}, 已发布缓存失效事件", banner.getId(), banner.getTitle());
                 return banner.getId();
             }
         } catch (Exception e) {
@@ -57,8 +66,10 @@ public class BannerServiceImpl implements BannerService {
             banner.setUpdatedAt(LocalDateTime.now());
             int result = bannerMapper.updateById(banner);
             if (result > 0) {
-                bannerCacheService.clearAllBannerCache();
-                log.info("更新轮播图成功，轮播图ID: {}, 标题: {}, 已清除轮播图缓存", banner.getId(), banner.getTitle());
+                cacheEventPublisher.publishInvalidate(new CacheInvalidateEvent()
+                        .setDomain(CacheDomain.BANNER)
+                        .setExactKeys(List.of(RedisConstants.BANNER_ACTIVE_KEY)));
+                log.info("更新轮播图成功，轮播图ID: {}, 标题: {}, 已发布缓存失效事件", banner.getId(), banner.getTitle());
                 return true;
             }
         } catch (Exception e) {
@@ -77,8 +88,10 @@ public class BannerServiceImpl implements BannerService {
             }
             int result = bannerMapper.deleteById(id);
             if (result > 0) {
-                bannerCacheService.clearAllBannerCache();
-                log.info("删除轮播图成功，轮播图ID: {}, 标题: {}, 已清除轮播图缓存", id, existing.getTitle());
+                cacheEventPublisher.publishInvalidate(new CacheInvalidateEvent()
+                        .setDomain(CacheDomain.BANNER)
+                        .setExactKeys(List.of(RedisConstants.BANNER_ACTIVE_KEY)));
+                log.info("删除轮播图成功，轮播图ID: {}, 标题: {}, 已发布缓存失效事件", id, existing.getTitle());
                 return true;
             }
         } catch (Exception e) {
@@ -99,8 +112,10 @@ public class BannerServiceImpl implements BannerService {
             banner.setUpdatedAt(LocalDateTime.now());
             int result = bannerMapper.updateById(banner);
             if (result > 0) {
-                bannerCacheService.clearAllBannerCache();
-                log.info("更新轮播图状态成功，轮播图ID: {}, 状态: {}, 已清除轮播图缓存", id, status);
+                cacheEventPublisher.publishInvalidate(new CacheInvalidateEvent()
+                        .setDomain(CacheDomain.BANNER)
+                        .setExactKeys(List.of(RedisConstants.BANNER_ACTIVE_KEY)));
+                log.info("更新轮播图状态成功，轮播图ID: {}, 状态: {}, 已发布缓存失效事件", id, status);
                 return true;
             }
         } catch (Exception e) {

@@ -378,6 +378,60 @@
         SELECT * FROM orders WHERE order_no = #{orderNo}
     </select>
 
+    <!-- ==================== 商家仪表盘时间序列统计 ==================== -->
+
+    <!-- 统计商家各时段/每日的销售额、订单量、销量
+         使用子查询对订单去重（DISTINCT）避免 pay_amount 因联表重复求和
+         外联 order_items 汇总总销量（quantity） -->
+    <select id="selectSalesTimeSeries" resultType="java.util.Map">
+        <bind name="dateFormat" value="isHourly ? '%Y-%m-%d %H:00:00' : '%Y-%m-%d'" />
+        SELECT
+            DATE_FORMAT(od.created_at, '${dateFormat}') AS `label`,
+            SUM(od.pay_amount) AS salesAmount,
+            COUNT(*) AS orderCount,
+            COALESCE(SUM(oq.totalQuantity), 0) AS salesVolume
+        FROM (
+            SELECT DISTINCT o.id, o.created_at, o.pay_amount
+            FROM orders o
+            INNER JOIN order_items oi ON o.id = oi.order_id
+            INNER JOIN spu s ON oi.spu_id = s.id
+            WHERE s.seller_id = #{sellerId}
+              AND o.status = 4
+              AND o.created_at >= #{startTime}
+        ) od
+        LEFT JOIN (
+            SELECT oi.order_id, SUM(oi.quantity) AS totalQuantity
+            FROM order_items oi
+            GROUP BY oi.order_id
+        ) oq ON od.id = oq.order_id
+        GROUP BY `label`
+        ORDER BY `label`
+    </select>
+
+    <!-- ==================== 管理员仪表盘时间序列统计 ==================== -->
+
+    <!-- 统计平台各时段/每日的销售额、订单量、销量（不区分商家）
+         直接查询 orders 表，无需 spu 关联和 seller_id 过滤
+         外联 order_items 汇总总销量（quantity） -->
+    <select id="selectAdminSalesTimeSeries" resultType="java.util.Map">
+        <bind name="dateFormat" value="isHourly ? '%Y-%m-%d %H:00:00' : '%Y-%m-%d'" />
+        SELECT
+            DATE_FORMAT(o.created_at, '${dateFormat}') AS `label`,
+            SUM(o.pay_amount) AS salesAmount,
+            COUNT(o.id) AS orderCount,
+            COALESCE(SUM(oq.totalQuantity), 0) AS salesVolume
+        FROM orders o
+        LEFT JOIN (
+            SELECT oi.order_id, SUM(oi.quantity) AS totalQuantity
+            FROM order_items oi
+            GROUP BY oi.order_id
+        ) oq ON o.id = oq.order_id
+        WHERE o.status = 4
+          AND o.created_at >= #{startTime}
+        GROUP BY `label`
+        ORDER BY `label`
+    </select>
+
     <!-- ==================== 平台仪表盘统计（超级管理员） ==================== -->
 
     <!-- 统计今日订单数 -->

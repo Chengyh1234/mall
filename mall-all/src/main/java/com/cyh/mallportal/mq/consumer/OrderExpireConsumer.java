@@ -6,7 +6,7 @@ import com.cyh.mallportal.entity.OrderItem;
 import com.cyh.mallportal.mapper.OrderItemMapper;
 import com.cyh.mallportal.mapper.OrderMapper;
 import com.cyh.mallportal.mq.event.OrderExpireEvent;
-import com.cyh.mallportal.service.InventoryRedisService;
+import com.cyh.mallportal.mq.publisher.OrderEventPublisher;
 import com.cyh.mallportal.service.StockLuaScript;
 import com.rabbitmq.client.Channel;
 import lombok.RequiredArgsConstructor;
@@ -15,9 +15,12 @@ import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.io.IOException;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -25,8 +28,10 @@ import java.util.List;
  * <p>
  * 消费延迟队列到期的消息，处理超时未支付订单：
  * 1. 检查订单是否仍为"待付款"(status=1)
- * 2. 是 → 取消订单 + 释放 Redis 冻结库存 + 同步库存到 DB
+ * 2. 是 → 取消订单 + 释放 Redis 冻结库存
  * 3. 否（已支付/已取消）→ 直接忽略，ACK 确认
+ * <p>
+ * 库存同步已统一迁移至 StockSyncConsumer，通过 afterCommit 发送 MQ 消息异步处理。
  */
 @Slf4j
 @Component
@@ -36,7 +41,7 @@ public class OrderExpireConsumer {
     private final OrderMapper orderMapper;
     private final OrderItemMapper orderItemMapper;
     private final StockLuaScript stockLuaScript;
-    private final InventoryRedisService inventoryRedisService;
+    private final OrderEventPublisher orderEventPublisher;
 
     @RabbitListener(queues = RabbitMQConfig.ORDER_EXPIRE_QUEUE)
     @Transactional(rollbackFor = Exception.class)
@@ -63,9 +68,10 @@ public class OrderExpireConsumer {
 
             // 3. 释放 Redis 冻结库存
             List<OrderItem> items = orderItemMapper.selectByOrderId(order.getId());
+            List<Long> skuIds = new ArrayList<>();
             for (OrderItem item : items) {
                 stockLuaScript.releaseStock(item.getSkuId(), item.getQuantity());
-                inventoryRedisService.syncStockToDb(item.getSkuId());
+                skuIds.add(item.getSkuId());
             }
 
             // 4. 更新订单状态为"已取消"
@@ -76,12 +82,19 @@ public class OrderExpireConsumer {
 
             log.info("延迟队列 - 超时订单已自动取消, orderId: {}, orderNo: {}", order.getId(), order.getOrderNo());
 
+            // 事务提交后，异步同步库存到 MySQL
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                        @Override
+                        public void afterCommit() {
+                            orderEventPublisher.publishStockSync(skuIds);
+                        }
+                    });
+
             channel.basicAck(deliveryTag, false);
             log.info("订单超时消息消费完成, orderId: {}", event.getOrderId());
 
         } catch (Exception e) {
             log.error("消费订单超时消息失败, orderId: {}, 异常: {}", event.getOrderId(), e.getMessage(), e);
-            // 重试耗尽后自动进入死信队列（default-requeue-rejected: false）
             channel.basicNack(deliveryTag, false, false);
         }
     }

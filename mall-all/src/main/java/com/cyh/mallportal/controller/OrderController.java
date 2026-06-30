@@ -114,7 +114,7 @@ public class OrderController {
     @PreAuthorize("hasRole('USER')")
     public Result<Map<String, Object>> getOrderListWithItems(@RequestParam(required = false) Integer status,
                                                              @RequestParam(defaultValue = "1") Integer page,
-                                                             @RequestParam(defaultValue = "10") Integer pageSize) {
+                                                             @RequestParam(defaultValue = "12") Integer pageSize) {
         Long userId = getCurrentUserId();
         List<OrderListItemVo> list = orderService.getOrderListWithItems(userId, status, page, pageSize);
         // 统计总数，用于前端分页
@@ -478,22 +478,6 @@ public class OrderController {
         return Result.error("发货失败，订单状态不允许");
     }
 
-
-    //==========不知道是否需要===
-    /**
-     * 获取订单状态描述（公开接口）？？？？？？？？？？？？
-     *
-     * @param status 订单状态
-     * @return 状态描述
-     */
-    @GetMapping("/status-desc/{status}")
-    public Result<Map<String, String>> getStatusDesc(@PathVariable Integer status) {
-        String desc = orderService.getStatusDesc(status);
-        Map<String, String> result = new HashMap<>();
-        result.put("status", String.valueOf(status));
-        result.put("desc", desc);
-        return Result.success(result);
-    }
 
     /**
      * 获取支付状态描述（公开接口）？？？？？？？？？？？？？？？
