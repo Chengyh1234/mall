@@ -7,7 +7,7 @@ import lombok.Data;
  * 用于公开页面展示店铺信息，仅包含店铺ID、名称、Logo 和描述
  */
 @Data
-public class StoreVO {
+public class StoreVo {
 
     /** 店铺ID */
     private Long id;
