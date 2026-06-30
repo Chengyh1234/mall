@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
  * 用于公开查询店铺详情，包含店铺完整展示信息，不含内部管理字段
  */
 @Data
-public class StoreDetailVo {
+public class StoreDetailVO {
 
     /** 店铺ID */
     private Long id;
@@ -34,13 +34,13 @@ public class StoreDetailVo {
     private LocalDateTime createdAt;
 
     /**
-     * 从 Store 实体创建 StoreDetailVo
+     * 从 Store 实体创建 StoreDetailVO
      */
-    public static StoreDetailVo fromStore(Store store) {
+    public static StoreDetailVO fromStore(Store store) {
         if (store == null) {
             return null;
         }
-        StoreDetailVo vo = new StoreDetailVo();
+        StoreDetailVO vo = new StoreDetailVO();
         vo.setId(store.getId());
         vo.setName(store.getName());
         vo.setLogo(store.getLogo());

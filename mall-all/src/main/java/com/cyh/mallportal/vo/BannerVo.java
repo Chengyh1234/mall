@@ -8,7 +8,7 @@ import lombok.Data;
  * 首页轮播图展示专用，仅包含前端需要的字段
  */
 @Data
-public class BannerVo {
+public class BannerVO {
 
     /** 主键ID */
     private Long id;
@@ -22,8 +22,8 @@ public class BannerVo {
     /** 跳转链接 */
     private String linkUrl;
 
-    public static BannerVo fromBanner(Banner banner) {
-        BannerVo vo = new BannerVo();
+    public static BannerVO fromBanner(Banner banner) {
+        BannerVO vo = new BannerVO();
         vo.setId(banner.getId());
         vo.setTitle(banner.getTitle());
         vo.setImageUrl(banner.getImageUrl());
