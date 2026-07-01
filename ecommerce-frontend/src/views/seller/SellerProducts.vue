@@ -624,7 +624,7 @@ interface SkuItem {
 
 const token = localStorage.getItem('token') || ''
 const userStore = useUserStore()
-const sellerId = computed(() => userStore.userInfo?.id || null)
+const sellerId = computed<number>(() => userStore.userInfo?.id || 0)
 
 const loading = ref(false)
 const showModal = ref(false)

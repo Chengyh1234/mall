@@ -199,7 +199,7 @@ export interface ApiResponse<T> {
 }
 
 // 获取分类属性
-export function getCategoryAttributes(categoryId: number): Promise<ApiResponse<any[]>> {
+export function getCategoryAttributes(categoryId: number): Promise<any[]> {
   return request({
     url: `/attribute/category/${categoryId}`,
     method: 'get'
@@ -223,7 +223,7 @@ export function getCategoryBasicAttributes(categoryId: number): Promise<SpuBasic
 }
 
 // 获取指定类型属性
-export function getCategoryAttributesByType(categoryId: number, type: number): Promise<ApiResponse<any[]>> {
+export function getCategoryAttributesByType(categoryId: number, type: number): Promise<any[]> {
   return request({
     url: `/attribute/category/${categoryId}/type/${type}`,
     method: 'get'
