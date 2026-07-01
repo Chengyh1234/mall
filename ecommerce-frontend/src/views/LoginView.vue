@@ -554,6 +554,8 @@ import {
   register as apiRegister
 } from '@/api/auth'
 import { useUserStore, UserRole } from '@/stores/user'
+import { BusinessError } from '@/utils/business-error'
+import { ErrorCode } from '@/utils/error-codes'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -665,7 +667,11 @@ const handlePwdLogin = async () => {
   if (!pwdFormRef.value) return
   try {
     await pwdFormRef.value.validate()
-    loading.value = true
+  } catch {
+    return // 表单校验失败，不刷新验证码
+  }
+  loading.value = true
+  try {
     const result = await login({
       account: pwdForm.account,
       password: pwdForm.password,
@@ -673,8 +679,12 @@ const handlePwdLogin = async () => {
       captcha: pwdForm.captcha
     })
     handleLoginSuccess(result)
-  } catch {
-    loadCaptcha()
+  } catch (err) {
+    if (err instanceof BusinessError && err.code === ErrorCode.CAPTCHA_EXPIRED) {
+      loadCaptcha() // 验证码过期/无效 → 刷新
+      ElMessage.warning('图形验证码已过期，请重新输入')
+    }
+    // 其他错误（密码错误、账号不存在等）不刷新验证码
   } finally {
     loading.value = false
   }
@@ -726,7 +736,12 @@ const sendEmailLoginCode = async () => {
         clearInterval(emailTimer); emailTimer = null
       }
     }, 1000)
-  } catch { /* ignored */ }
+  } catch (err) {
+    if (err instanceof BusinessError && err.code === ErrorCode.CAPTCHA_EXPIRED) {
+      loadEmailCaptcha() // 验证码过期/无效 → 刷新
+      ElMessage.warning('图形验证码已过期，请重新输入')
+    }
+  }
   finally { emailCodeSending.value = false }
 }
 
@@ -734,11 +749,15 @@ const handleEmailLogin = async () => {
   if (!emailFormRef.value) return
   try {
     await emailFormRef.value.validate()
-    emailLoading.value = true
+  } catch {
+    return // 表单校验失败，不刷新验证码
+  }
+  emailLoading.value = true
+  try {
     const result = await apiEmailCodeLogin({ email: emailForm.email, code: emailForm.code })
     handleLoginSuccess(result)
   } catch {
-    loadEmailCaptcha()
+    loadEmailCaptcha() // 仅 API 调用失败时刷新验证码
   } finally {
     emailLoading.value = false
   }
@@ -890,7 +909,12 @@ const sendRegisterCode = async () => {
         clearInterval(registerTimer); registerTimer = null
       }
     }, 1000)
-  } catch { /* ignored */ }
+  } catch (err) {
+    if (err instanceof BusinessError && err.code === ErrorCode.CAPTCHA_EXPIRED) {
+      loadRegisterCaptcha() // 验证码过期/无效 → 刷新
+      ElMessage.warning('图形验证码已过期，请重新输入')
+    }
+  }
   finally { registerCodeSending.value = false }
 }
 

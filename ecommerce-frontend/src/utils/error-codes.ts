@@ -24,6 +24,8 @@ export enum ErrorCode {
   BUSINESS_ERROR = 40000,
   /** 系统异常 */
   SYSTEM_ERROR = 500,
+  /** 验证码已过期或无效 */
+  CAPTCHA_EXPIRED = 40104,
 }
 
 /**
@@ -51,6 +53,7 @@ export const ERROR_CATEGORY_MAP: Record<number, ErrorCategory> = {
   [ErrorCode.NOT_FOUND]: ErrorCategory.NOTIFY,
   [ErrorCode.BUSINESS_ERROR]: ErrorCategory.USER_ACTION,
   [ErrorCode.SYSTEM_ERROR]: ErrorCategory.SYSTEM,
+  [ErrorCode.CAPTCHA_EXPIRED]: ErrorCategory.USER_ACTION,
 }
 
 /** 业务码 → 默认提示文案 */

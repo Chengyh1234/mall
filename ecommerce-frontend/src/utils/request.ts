@@ -117,6 +117,9 @@ request.interceptors.response.use(
           userStore.clearToken()
           router.push('/login')
           ElMessage.error(body?.msg || body?.message || ERROR_DEFAULT_MSG[ErrorCode.LOGIN_EXPIRED])
+        } else if (bizCode === ErrorCode.CAPTCHA_EXPIRED) {
+          // 验证码过期/无效 → 不清除登录态，不跳转，由调用方自行处理
+          return Promise.reject(new BusinessError(bizCode, body?.msg || body?.message || ERROR_DEFAULT_MSG[ErrorCode.CAPTCHA_EXPIRED]))
         } else {
           // 未知业务码的 401 → 清登录态，静默跳转
           userStore.clearToken()

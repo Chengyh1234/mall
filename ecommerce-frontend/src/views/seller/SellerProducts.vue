@@ -624,7 +624,7 @@ interface SkuItem {
 
 const token = localStorage.getItem('token') || ''
 const userStore = useUserStore()
-const sellerId = computed(() => userStore.userInfo?.id || 1)
+const sellerId = computed(() => userStore.userInfo?.id || null)
 
 const loading = ref(false)
 const showModal = ref(false)
@@ -1253,6 +1253,15 @@ const handleDeleteAllSku = async () => {
 }
 
 const loadProducts = async () => {
+  // 确保用户信息已加载且包含有效 id
+  if (!userStore.userInfo?.id) {
+    try {
+      await userStore.fetchUserInfo(true)
+    } catch {
+      return
+    }
+  }
+  if (!sellerId.value) return
   loading.value = true
   try {
     const result = await getSpuPageBySeller(sellerId.value, {
@@ -2230,6 +2239,10 @@ const submitProduct = async () => {
 }
 
 onMounted(() => {
+  loadProducts()
+})
+
+watch(() => userStore.userInfo, () => {
   loadProducts()
 })
 </script>

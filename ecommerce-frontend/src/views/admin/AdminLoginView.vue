@@ -104,6 +104,8 @@ import { ElMessage, type FormInstance, type FormRules } from 'element-plus'
 import { User, Lock, Key } from '@element-plus/icons-vue'
 import { adminLogin, getCaptcha } from '@/api/auth'
 import { useUserStore } from '@/stores/user'
+import { BusinessError } from '@/utils/business-error'
+import { ErrorCode } from '@/utils/error-codes'
 
 const UserIcon = h(User)
 const LockIcon = h(Lock)
@@ -150,8 +152,12 @@ const handleLogin = async () => {
   if (!loginFormRef.value) return
   try {
     await loginFormRef.value.validate()
-    loading.value = true
+  } catch {
+    return // 表单校验失败，不刷新验证码
+  }
+  loading.value = true
 
+  try {
     const result = await adminLogin({
       account: loginForm.username,
       password: loginForm.password,
@@ -198,8 +204,12 @@ const handleLogin = async () => {
 
     ElMessage.success('管理员登录成功')
     router.push('/admin')
-  } catch {
-    loadCaptcha()
+  } catch (err) {
+    if (err instanceof BusinessError && err.code === ErrorCode.CAPTCHA_EXPIRED) {
+      loadCaptcha() // 验证码过期/无效 → 刷新
+      ElMessage.warning('图形验证码已过期，请重新输入')
+    }
+    // 其他错误（密码错误、权限不足等）不刷新验证码
   } finally {
     loading.value = false
   }
