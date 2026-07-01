@@ -4,6 +4,8 @@ import cn.hutool.core.util.IdUtil;
 import com.cyh.mallcommon.constant.MyConstants;
 import com.cyh.mallcommon.constant.RedisConstants;
 import com.cyh.mallcommon.exception.BusinessException;
+import com.cyh.mallcommon.exception.CaptchaInvalidException;
+import com.cyh.mallcommon.exception.ErrorCode;
 import com.cyh.mallcommon.utils.Result;
 import com.cyh.mallcommon.validation.Password;
 import com.cyh.mallcommon.validation.Phone;
@@ -56,7 +58,6 @@ public class AuthController {
     private final PasswordEncoder passwordEncoder;
     private final RedisTemplate<String, Object> redisTemplate;
     private final RoleMapper roleMapper;
-    private final EmailService emailService;
     private final EmailEventPublisher emailEventPublisher;
     private final UserRoleMapper userRoleMapper;
 
@@ -78,7 +79,7 @@ public class AuthController {
 
         // 验证码不存在或已过期
         if (!StringUtils.hasText(storedCaptcha)) {
-            return Result.error("验证码已过期，请重新获取");
+            throw new CaptchaInvalidException();
         }
 
         // 忽略大小写比较验证码
@@ -99,7 +100,7 @@ public class AuthController {
 
         // 校验用户状态：被禁用的用户拒绝登录
         if (user.getStatus() == null || user.getStatus() != 1) {
-            throw new BusinessException("账号已被禁用，无法登录");//无法进行使用，需要使用security体系的异常
+            throw new BusinessException("账号已被禁用，无法登录");
         }
 
         // ========== 角色校验：仅允许普通用户(USER)角色登录 ==========
@@ -179,8 +180,9 @@ public class AuthController {
         String redisKey = RedisConstants.CAPTCHA_PREFIX + request.getCaptchaKey();
         String storedCaptcha = (String) redisTemplate.opsForValue().get(redisKey);
 
+        // 验证码不存在或已过期
         if (!StringUtils.hasText(storedCaptcha)) {
-            return Result.error("验证码已过期，请重新获取");
+            throw new CaptchaInvalidException();
         }
 
         if (!storedCaptcha.equalsIgnoreCase(request.getCaptcha())) {
@@ -276,8 +278,9 @@ public class AuthController {
         String captcha = request.getCaptcha();
         String storedCaptcha = (String) redisTemplate.opsForValue().get(RedisConstants.CAPTCHA_PREFIX + captchaKey);
 
+        // 验证码不存在或已过期
         if (!StringUtils.hasText(storedCaptcha)) {
-            return Result.error("图形验证码已过期，请重新获取");
+            throw new CaptchaInvalidException();
         }
 
         if (!storedCaptcha.equalsIgnoreCase(captcha)) {
@@ -325,8 +328,9 @@ public class AuthController {
         String redisKey = RedisConstants.EMAIL_REGISTER_CODE_PREFIX + request.getEmail();
         String storedCode = (String) redisTemplate.opsForValue().get(redisKey);
 
+        // 验证码不存在或已过期
         if (!StringUtils.hasText(storedCode)) {
-            return Result.error("验证码已过期，请重新获取");
+            throw new CaptchaInvalidException();
         }
 
         if (!storedCode.equals(request.getEmailCode())) {
@@ -395,8 +399,9 @@ public class AuthController {
         String captcha = request.getCaptcha();
         String storedCaptcha = (String) redisTemplate.opsForValue().get(RedisConstants.CAPTCHA_PREFIX + captchaKey);
 
+        // 验证码不存在或已过期
         if (!StringUtils.hasText(storedCaptcha)) {
-            return Result.error("图形验证码已过期，请重新获取");
+            throw new CaptchaInvalidException();
         }
 
         if (!storedCaptcha.equalsIgnoreCase(captcha)) {
@@ -443,7 +448,7 @@ public class AuthController {
         String storedCode = (String) redisTemplate.opsForValue().get(redisKey);
 
         if (!StringUtils.hasText(storedCode)) {
-            return Result.error("验证码已过期，请重新获取");
+            throw new CaptchaInvalidException();
         }
 
         if (!storedCode.equals(code)) {
@@ -554,7 +559,7 @@ public class AuthController {
         String storedCaptcha = (String) redisTemplate.opsForValue().get(RedisConstants.CAPTCHA_PREFIX + captchaKey);
 
         if (!StringUtils.hasText(storedCaptcha)) {
-            return Result.error("图形验证码已过期，请重新获取");
+            throw new CaptchaInvalidException();
         }
 
         if (!storedCaptcha.equalsIgnoreCase(captcha)) {
@@ -602,7 +607,7 @@ public class AuthController {
         String storedCode = (String) redisTemplate.opsForValue().get(redisKey);
 
         if (!StringUtils.hasText(storedCode)) {
-            return Result.error("验证码已过期，请重新获取");
+            throw new CaptchaInvalidException();
         }
 
         if (!storedCode.equals(code)) {

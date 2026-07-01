@@ -19,6 +19,8 @@ public enum ErrorCode {
     NOT_LOGGED_IN(40101, 401, "未登录，请先登录"),
     AUTH_FAILED(40102, 401, "用户名或密码错误"),
     LOGIN_EXPIRED(40103, 401, "登录已失效，请重新登录"),
+    CAPTCHA_INVALID(40104, 401, "验证码已过期或无效"),
+    ACCOUNT_DISABLED(40105, 401, "账号已被禁用，无法访问"),
 
 
     // ========== 权限不足 ==========

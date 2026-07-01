@@ -1,6 +1,7 @@
 package com.cyh.mallportal.handler;
 
 import com.cyh.mallcommon.exception.BusinessException;
+import com.cyh.mallcommon.exception.CaptchaInvalidException;
 import com.cyh.mallcommon.exception.ErrorCode;
 import com.cyh.mallcommon.exception.LoginExpiredException;
 import com.cyh.mallcommon.utils.Result;
@@ -75,6 +76,20 @@ public class GlobalExceptionHandler {
     public Result<?> handleLoginExpiredException(LoginExpiredException e, HttpServletResponse response) {
         response.setStatus(e.getErrorCode().getHttpStatus());
         log.warn("登录失效: {}", e.getMessage());
+        return Result.error(e.getErrorCode().getBusinessCode(), e.getMessage());
+    }
+
+    // ==================== 验证码过期或无效 ====================
+
+    /**
+     * 验证码过期或无效（图形验证码/邮箱验证码不存在或已过期）
+     * <p>
+     * HTTP 状态码：401 | 业务码：40104
+     */
+    @ExceptionHandler(CaptchaInvalidException.class)
+    public Result<?> handleCaptchaInvalidException(CaptchaInvalidException e, HttpServletResponse response) {
+        response.setStatus(e.getErrorCode().getHttpStatus());
+        log.warn("验证码过期或无效: {}", e.getMessage());
         return Result.error(e.getErrorCode().getBusinessCode(), e.getMessage());
     }
 

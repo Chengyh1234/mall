@@ -500,7 +500,7 @@ public class SpuController {
      * @return 商品分页列表
      */
     @GetMapping("/page-by-seller/{sellerId}")
-    @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Map<String, Object>> getPageBySellerId(@PathVariable Long sellerId,
                                                          @RequestParam(required = false) Integer status,
                                                          @RequestParam(required = false) String keyword,

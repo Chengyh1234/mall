@@ -185,8 +185,7 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
 
         // 6. 如果用户信息存在且当前未认证，则设置认证
         if (userInfoObj != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            // 强制类型转换
-            @SuppressWarnings("unchecked")
+
             Map<String, Object> userInfo = (Map<String, Object>) userInfoObj;
 
             // 单点登录验证：检查sessionId是否匹配
@@ -195,7 +194,7 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
             String currentSessionId = (String) redisTemplate.opsForValue().get(RedisConstants.USER_CURRENT_SESSION_PREFIX + userId);
 
             if (tokenSessionId == null || !tokenSessionId.equals(currentSessionId)) {
-                // 5.1. sessionId不匹配，说明用户已在其他设备登录，但是之前在redis中还记录，需要删除
+                // 5.1. sessionId不匹配，说明该用户已在其他设备登录，但是之前在redis中还记录，需要删除
                 redisTemplate.delete(RedisConstants.TOKEN_PREFIX + token);
                 return;
             }
@@ -208,7 +207,7 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
                 log.warn("被禁用的用户尝试访问: userId={}", user.getId());
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 response.setContentType("application/json;charset=UTF-8");
-                Result<Object> error = Result.error(ErrorCode.AUTH_FAILED.getBusinessCode(), "账号已被禁用，无法访问");
+                Result<Object> error = Result.error(ErrorCode.ACCOUNT_DISABLED.getBusinessCode(), ErrorCode.ACCOUNT_DISABLED.getMessage());
                 response.getWriter().write(JSONUtil.toJsonStr(error));
                 return;
             }
