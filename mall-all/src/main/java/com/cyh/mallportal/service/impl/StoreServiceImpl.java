@@ -505,7 +505,28 @@ public class StoreServiceImpl implements StoreService {
             userRoleMapper.insert(userRole);
         }
 
-        // 事务提交后，异步清除缓存
+        // 4. 更新 Redis 缓存：添加 SELLER 角色到当前登录会话
+        Long sellerId = store.getSellerId();
+        String token = (String) redisTemplate.opsForValue()
+                .get(RedisConstants.USER_ACTIVE_TOKEN_PREFIX + sellerId);
+        if (token != null) {
+            String tokenKey = RedisConstants.TOKEN_PREFIX + token;
+            Object userInfoObj = redisTemplate.opsForValue().get(tokenKey);
+            if (userInfoObj instanceof Map) {
+                Map<String, Object> userInfo = (Map<String, Object>) userInfoObj;
+                Map<String, String> roles = (Map<String, String>) userInfo.get("roles");
+                if (roles != null && !roles.containsKey("SELLER")) {
+                    roles.put("SELLER", sellerRole.getName());
+                }
+                // 写回 Redis，保持原过期时间
+                redisTemplate.opsForValue().set(
+                        tokenKey, userInfo,
+                        RedisConstants.TOKEN_EXPIRATION, TimeUnit.SECONDS
+                );
+            }
+        }
+
+        // 事务提交后，异步清除店铺缓存
         publishStoreCacheInvalidate(id);
     }
 

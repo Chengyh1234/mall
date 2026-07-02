@@ -250,6 +250,12 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
                     RedisConstants.TOKEN_EXPIRATION,
                     java.util.concurrent.TimeUnit.SECONDS
             );
+            //刷新用户活跃 Token 映射（userId → token 反向索引）
+            redisTemplate.expire(
+                    RedisConstants.USER_ACTIVE_TOKEN_PREFIX + userId,
+                    RedisConstants.TOKEN_EXPIRATION,
+                    java.util.concurrent.TimeUnit.SECONDS
+            );
         }
 
         // 7. 放行请求
@@ -274,7 +280,6 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
         // 解析角色信息
         Object rolesObj = userInfo.get("roles");
         if (rolesObj instanceof Map) {
-            @SuppressWarnings("unchecked")
             Map<String, String> rolesMap = (Map<String, String>) rolesObj;
             List<Role> roles = new ArrayList<>();
             for (Map.Entry<String, String> entry : rolesMap.entrySet()) {

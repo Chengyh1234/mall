@@ -58,17 +58,13 @@ public class OrderController {
             return Result.error("收货信息不能为空");
         }
 
-        try {
-            // 分布式锁：按用户粒度，防止重复提交订单
-            Long orderId = distributedLockService.executeWithLock(
-                    "lock:order:create:" + userId,
-                    3, -1, TimeUnit.SECONDS,
-                    () -> orderService.createOrder(userId, orderCreateDto)
-            );
-            return Result.success("订单创建成功", orderId);
-        } catch (BusinessException e) {
-            return Result.error(e.getMessage());
-        }
+        // 分布式锁：按用户粒度，防止重复提交订单
+        Long orderId = distributedLockService.executeWithLock(
+                "lock:order:create:" + userId,
+                3, -1, TimeUnit.SECONDS,
+                () -> orderService.createOrder(userId, orderCreateDto)
+        );
+        return Result.success("订单创建成功", orderId);
     }
 
     /**
@@ -85,20 +81,16 @@ public class OrderController {
                                                      @RequestParam(required = false) String buyerMessage) {
         Long userId = getCurrentUserId();
 
-        try {
-            // 分布式锁：按用户粒度，防止从购物车结算重复提交
-            List<Long> orderIds = distributedLockService.executeWithLock(
-                    "lock:order:create:cart:" + userId,
-                    3, -1, TimeUnit.SECONDS,
-                    () -> orderService.createOrderFromCart(userId, addressId, buyerMessage)
-            );
-            if (orderIds != null && !orderIds.isEmpty()) {
-                return Result.success("订单创建成功", orderIds);
-            }
-            return Result.error("购物车中没有选中的商品");
-        } catch (BusinessException e) {
-            return Result.error(e.getMessage());
+        // 分布式锁：按用户粒度，防止从购物车结算重复提交
+        List<Long> orderIds = distributedLockService.executeWithLock(
+                "lock:order:create:cart:" + userId,
+                3, -1, TimeUnit.SECONDS,
+                () -> orderService.createOrderFromCart(userId, addressId, buyerMessage)
+        );
+        if (orderIds != null && !orderIds.isEmpty()) {
+            return Result.success("订单创建成功", orderIds);
         }
+        return Result.error("购物车中没有选中的商品");
     }
 
     /**
@@ -223,23 +215,19 @@ public class OrderController {
             return Result.error("无权操作此订单");
         }
 
-        try {
-            // 分布式锁：按订单粒度，防止重复支付
-            distributedLockService.executeWithLock(
-                    "lock:order:pay:" + orderId,
-                    3, -1, TimeUnit.SECONDS,
-                    () -> {
-                        boolean success = orderService.payOrder(orderId, payType);
-                        if (!success) {
-                            throw new BusinessException("支付失败，订单状态不允许");
-                        }
-                        return null;
+        // 分布式锁：按订单粒度，防止重复支付
+        distributedLockService.executeWithLock(
+                "lock:order:pay:" + orderId,
+                3, -1, TimeUnit.SECONDS,
+                () -> {
+                    boolean success = orderService.payOrder(orderId, payType);
+                    if (!success) {
+                        throw new BusinessException("支付失败，订单状态不允许");
                     }
-            );
-            return Result.success("支付成功", null);
-        } catch (BusinessException e) {
-            return Result.error(e.getMessage());
-        }
+                    return null;
+                }
+        );
+        return Result.success("支付成功", null);
     }
 
     /**
@@ -254,18 +242,14 @@ public class OrderController {
     public Result<Map<String, Object>> batchPayOrders(@RequestBody @Valid BatchPayDto batchPayDto) {
         Long userId = getCurrentUserId();
 
-        try {
-            // 分布式锁：按用户粒度，防止批量支付重复提交
-            Map<String, Object> result = distributedLockService.executeWithLock(
-                    "lock:order:batch-pay:" + userId,
-                    3, -1, TimeUnit.SECONDS,
-                    () -> orderService.batchPayOrders(batchPayDto.getOrderIds(),
-                            batchPayDto.getPayType() != null ? batchPayDto.getPayType() : "alipay", userId)
-            );
-            return Result.success("批量付款处理完成", result);
-        } catch (BusinessException e) {
-            return Result.error(e.getMessage());
-        }
+        // 分布式锁：按用户粒度，防止批量支付重复提交
+        Map<String, Object> result = distributedLockService.executeWithLock(
+                "lock:order:batch-pay:" + userId,
+                3, -1, TimeUnit.SECONDS,
+                () -> orderService.batchPayOrders(batchPayDto.getOrderIds(),
+                        batchPayDto.getPayType() != null ? batchPayDto.getPayType() : "alipay", userId)
+        );
+        return Result.success("批量付款处理完成", result);
     }
 
     /**
