@@ -20,7 +20,6 @@ import com.cyh.mallportal.mapper.OrderItemMapper;
 import com.cyh.mallportal.mapper.OrderMapper;
 import com.cyh.mallportal.mapper.SkuMapper;
 import com.cyh.mallportal.service.CartItemService;
-import com.cyh.mallportal.mq.event.OrderCreatedEvent;
 import com.cyh.mallportal.mq.event.OrderExpireEvent;
 import com.cyh.mallportal.mq.publisher.OrderEventPublisher;
 import com.cyh.mallportal.service.OrderDeliveryService;
@@ -174,12 +173,6 @@ public class OrderServiceImpl implements OrderService {
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                OrderCreatedEvent event = new OrderCreatedEvent()
-                        .setOrderId(finalOrderId)
-                        .setOrderNo(orderNo)
-                        .setUserId(userId)
-                        .setFromCart(false);
-                orderEventPublisher.publishOrderCreated(event);
 
                 // 发送库存同步事件
                 orderEventPublisher.publishStockSync(skuIds);
@@ -298,16 +291,14 @@ public class OrderServiceImpl implements OrderService {
             orderIdToNo.put(order.getId(), orderNo);
         }
 
-        // 事务提交后，异步处理库存同步和清空购物车
-        Long firstOrderId = resultList.isEmpty() ? 0L : resultList.get(0);
+        // 清空购物车中已选中的商品（同一事务内，防止重复下单）
+        cartItemService.clearSelected(userId);
+
+        // 事务提交后，异步处理库存同步、发送超时延迟消息
+
         TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
             @Override
             public void afterCommit() {
-                OrderCreatedEvent event = new OrderCreatedEvent()
-                        .setOrderId(firstOrderId)
-                        .setUserId(userId)
-                        .setFromCart(true);
-                orderEventPublisher.publishOrderCreated(event);
 
                 // 发送库存同步事件
                 orderEventPublisher.publishStockSync(skuIds);
@@ -1539,7 +1530,7 @@ public class OrderServiceImpl implements OrderService {
         Map<String, String> typeMap = new HashMap<>();
         typeMap.put("alipay", "支付宝");
         typeMap.put("wechat", "微信支付");
-        return typeMap.getOrDefault(payType, "未知支付方式");
+        return typeMap.getOrDefault(payType, "未支付");
     }
 
     /**

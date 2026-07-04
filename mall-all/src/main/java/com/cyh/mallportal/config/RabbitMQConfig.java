@@ -14,16 +14,16 @@ import org.springframework.context.annotation.Configuration;
  * 架构：
  * ┌────────────────────────────────────────────────────┐
  * │   order.direct (Direct Exchange)                  │
- * │   routing keys: order.created, order.expire.delay │
- * │        ↓                    ↓                     │
- * │   order.created.queue   order.expire.delay.queue  │
- * │   (业务消费)             (TTL 队列,无消费者)        │
- * │        ↓                    ↓ (TTL 到期)           │
- * │        └──→ order.dead ←───┘                     │
- * │            (Dead Letter Exchange)                 │
- * │        ↓                    ↓                     │
- * │   order.created.dead.queue  order.expire.queue    │
- * │   (死信队列)               (超时取消消费)           │
+ * │   routing keys: order.expire.delay                │
+ * │                    ↓                              │
+ * │   order.expire.delay.queue                        │
+ * │   (TTL 队列,无消费者)                              │
+ * │                    ↓ (TTL 到期)                    │
+ * │              order.dead                            │
+ * │           (Dead Letter Exchange)                  │
+ * │                    ↓                              │
+ * │   order.expire.queue                              │
+ * │   (超时取消消费)                                    │
  * └────────────────────────────────────────────────────┘
  * <p>
  * ┌────────────────────────────────────────────────────┐
@@ -42,14 +42,9 @@ public class RabbitMQConfig {
 
     /** 业务交换机 */
     public static final String ORDER_EXCHANGE = "order.direct";
-    /** 订单创建队列 */
-    public static final String ORDER_CREATED_QUEUE = "order.created.queue";
-    /** 订单创建路由键 */
-    public static final String ORDER_CREATED_ROUTING_KEY = "order.created";
+
     /** 死信交换机 */
     public static final String DEAD_EXCHANGE = "order.dead";
-    /** 死信队列（订单创建消费失败） */
-    public static final String DEAD_CREATED_QUEUE = "order.created.dead.queue";
 
     // ==================== 库存同步 - 异步削峰 ====================
 
@@ -113,22 +108,6 @@ public class RabbitMQConfig {
                 .build();
     }
 
-    @Bean
-    public Queue orderCreatedQueue() {
-        return QueueBuilder.durable(ORDER_CREATED_QUEUE)
-                // 绑定死信交换机
-                .deadLetterExchange(DEAD_EXCHANGE)
-                .deadLetterRoutingKey(ORDER_CREATED_ROUTING_KEY)
-                .build();
-    }
-
-    @Bean
-    public Binding orderCreatedBinding() {
-        return BindingBuilder.bind(orderCreatedQueue())
-                .to(orderExchange())
-                .with(ORDER_CREATED_ROUTING_KEY);
-    }
-
     // ==================== 订单超时取消 - 延迟队列 & 超时队列 ====================
 
     /**
@@ -175,18 +154,6 @@ public class RabbitMQConfig {
         return ExchangeBuilder.directExchange(DEAD_EXCHANGE)
                 .durable(true)
                 .build();
-    }
-
-    @Bean
-    public Queue deadCreatedQueue() {
-        return QueueBuilder.durable(DEAD_CREATED_QUEUE).build();
-    }
-
-    @Bean
-    public Binding deadCreatedBinding() {
-        return BindingBuilder.bind(deadCreatedQueue())
-                .to(deadExchange())
-                .with(ORDER_CREATED_ROUTING_KEY);
     }
 
     // ==================== 邮件发送 - 异步削峰 ====================

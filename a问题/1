@@ -1,0 +1,27 @@
+你当前系统需要注意的问题
+看了你的代码后，发现几个潜在的改进点：
+
+问题 1：循环冻结非原子性
+
+在 OrderServiceImpl.java 中，多个 SKU 的冻结是逐个调用的：
+
+
+Java
+
+for (OrderItemDto itemDto : orderCreateDto.getItems()) {
+    boolean success = stockLuaScript.freezeStock(itemDto.getSkuId(), itemDto.getQuantity());
+    // ...
+}
+虽然失败了会回滚，但在高并发下，A 用户冻结了 SKU1 失败在 SKU2，回滚 SKU1 之前，B 用户可能抢不到 SKU1。
+
+建议： 写一个批量冻结的 Lua 脚本，一次性冻结所有 SKU，全部成功才返回成功。
+
+问题 2：运营强制取消时的库存释放可能重复
+
+在 adminCancelOrder 方法中，无论订单状态如何都释放库存。如果订单已经支付并确认扣减了库存，再调用 releaseStock 可能导致库存虚增。
+
+建议： 根据订单状态判断：
+
+待付款（status=1）：释放冻结库存
+已支付（status=2）：需要把库存加回去（不是释放冻结）
+已发货/已收货：不处理库存（走退货流程）

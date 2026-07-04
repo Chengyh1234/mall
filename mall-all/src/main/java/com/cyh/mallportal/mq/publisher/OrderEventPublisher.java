@@ -1,7 +1,6 @@
 package com.cyh.mallportal.mq.publisher;
 
 import com.cyh.mallportal.config.RabbitMQConfig;
-import com.cyh.mallportal.mq.event.OrderCreatedEvent;
 import com.cyh.mallportal.mq.event.OrderExpireEvent;
 import com.cyh.mallportal.mq.event.SalesIncreaseEvent;
 import com.cyh.mallportal.mq.event.StockSyncEvent;
@@ -30,20 +29,6 @@ public class OrderEventPublisher {
      */
     @Value("${mall.order.pay-expire-minutes:30}")
     private int payExpireMinutes;
-
-    /**
-     * 发布订单创建事件（清空购物车等后置处理）
-     *
-     * @param event 订单创建事件
-     */
-    public void publishOrderCreated(OrderCreatedEvent event) {
-        log.info("发布订单创建事件, orderId: {}, orderNo: {}", event.getOrderId(), event.getOrderNo());
-        rabbitTemplate.convertAndSend(
-                RabbitMQConfig.ORDER_EXCHANGE,
-                RabbitMQConfig.ORDER_CREATED_ROUTING_KEY,
-                event
-        );
-    }
 
     /**
      * 发布订单超时延迟消息
