@@ -1,6 +1,6 @@
 package com.cyh.mallportal.controller;
 
-import com.cyh.mallcommon.exception.BusinessException;
+
 import com.cyh.mallcommon.utils.Result;
 import com.cyh.mallportal.dto.BatchPayDto;
 import com.cyh.mallportal.dto.OrderCreateDto;
@@ -216,17 +216,14 @@ public class OrderController {
         }
 
         // 分布式锁：按订单粒度，防止重复支付
-        distributedLockService.executeWithLock(
+        Boolean paySuccess = distributedLockService.executeWithLock(
                 "lock:order:pay:" + orderId,
                 3, -1, TimeUnit.SECONDS,
-                () -> {
-                    boolean success = orderService.payOrder(orderId, payType);
-                    if (!success) {
-                        throw new BusinessException("支付失败，订单状态不允许");
-                    }
-                    return null;
-                }
+                () -> orderService.payOrder(orderId, payType)
         );
+        if (Boolean.FALSE.equals(paySuccess)) {
+            return Result.error("支付失败，订单状态不允许");
+        }
         return Result.success("支付成功", null);
     }
 

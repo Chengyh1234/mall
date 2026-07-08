@@ -3,7 +3,7 @@ package com.cyh.mallportal.controller;
 import cn.hutool.core.util.IdUtil;
 import com.cyh.mallcommon.constant.MyConstants;
 import com.cyh.mallcommon.constant.RedisConstants;
-import com.cyh.mallcommon.exception.BusinessException;
+
 import com.cyh.mallcommon.exception.CaptchaInvalidException;
 import com.cyh.mallcommon.exception.ErrorCode;
 import com.cyh.mallcommon.utils.Result;
@@ -100,7 +100,7 @@ public class AuthController {
 
         // 校验用户状态：被禁用的用户拒绝登录
         if (user.getStatus() == null || user.getStatus() != 1) {
-            throw new BusinessException("账号已被禁用，无法登录");
+            return Result.error("账号已被禁用，无法登录");
         }
 
         // ========== 角色校验：仅允许普通用户(USER)角色登录 ==========
@@ -199,7 +199,7 @@ public class AuthController {
         User user = (User) authentication.getPrincipal();
         // 校验用户状态：被禁用的用户拒绝登录
         if (user.getStatus() == null || user.getStatus() != 1) {
-            throw new BusinessException("账号已被禁用，无法登录");//无法进行使用，需要使用security体系的异常
+            return Result.error("账号已被禁用，无法登录");
         }
 
         // ========== 角色校验：仅允许超级管理员(SUPER_ADMIN)角色登录 ==========
@@ -465,7 +465,7 @@ public class AuthController {
         }
         // 校验用户状态：被禁用的用户拒绝登录
         if (user.getStatus() == null || user.getStatus() != 1) {
-            throw new BusinessException("账号已被禁用，无法登录");//无法进行使用，需要使用security体系的异常
+            return Result.error("账号已被禁用，无法登录");
         }
 
         // 3. 加载角色

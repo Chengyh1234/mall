@@ -1,0 +1,1 @@
+Controller中对于业务错误尽量使用Result.error，其他层使用抛出异常。
