@@ -12,7 +12,7 @@ import java.util.List;
  * 聚合平台级运营概览、销售统计数据，用于超级管理员后台首页展示
  */
 @Data
-public class AdminDashboardVo {
+public class DashboardAdminVo {
 
     /**
      * 平台运营概览

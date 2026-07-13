@@ -17,7 +17,7 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class OrderVo {
+public class OrderDatailVo {
 
     /** 订单ID */
     private Long id;

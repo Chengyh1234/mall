@@ -4,7 +4,7 @@ import com.cyh.mallcommon.utils.Result;
 import com.cyh.mallportal.dto.CategoryAttributeBindDto;
 import com.cyh.mallportal.dto.CategoryAttributeSortDto;
 import com.cyh.mallportal.service.CategoryAttributeManageService;
-import com.cyh.mallportal.vo.AvailableAttributeVo;
+import com.cyh.mallportal.vo.AttributeAvailableVo;
 import com.cyh.mallportal.vo.CategoryAttributeBoundVo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -60,8 +60,8 @@ public class CategoryAttributeManageController {
      */
     @GetMapping("/available/{categoryId}")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
-    public Result<List<AvailableAttributeVo>> getAvailableAttributes(@PathVariable Long categoryId) {
-        List<AvailableAttributeVo> list = categoryAttributeManageService.getAvailableAttributes(categoryId);
+    public Result<List<AttributeAvailableVo>> getAvailableAttributes(@PathVariable Long categoryId) {
+        List<AttributeAvailableVo> list = categoryAttributeManageService.getAvailableAttributes(categoryId);
         return Result.success(list);
     }
 

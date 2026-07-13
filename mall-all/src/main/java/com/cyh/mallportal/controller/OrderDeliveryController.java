@@ -6,7 +6,7 @@ import com.cyh.mallportal.entity.OrderDelivery;
 import com.cyh.mallportal.entity.User;
 import com.cyh.mallportal.service.OrderDeliveryService;
 import com.cyh.mallportal.service.OrderService;
-import com.cyh.mallportal.vo.OrderVo;
+import com.cyh.mallportal.vo.OrderDatailVo;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -69,8 +69,8 @@ public class OrderDeliveryController {
         if (!isAdmin && userId != null) {
             OrderDelivery delivery = orderDeliveryService.getByDeliveryNo(deliveryNo);
             if (delivery != null) {
-                OrderVo orderVo = orderService.getOrderById(delivery.getOrderId());
-                if (orderVo != null && !orderVo.getUserId().equals(userId)) {
+                OrderDatailVo orderDatailVo = orderService.getOrderById(delivery.getOrderId());
+                if (orderDatailVo != null && !orderDatailVo.getUserId().equals(userId)) {
                     return Result.error("无权操作此订单");
                 }
             }
@@ -115,8 +115,8 @@ public class OrderDeliveryController {
 
         // 非管理员需要验证订单归属
         if (!isAdmin && userId != null) {
-            OrderVo orderVo = orderService.getOrderById(orderId);
-            if (orderVo != null && !orderVo.getUserId().equals(userId)) {
+            OrderDatailVo orderDatailVo = orderService.getOrderById(orderId);
+            if (orderDatailVo != null && !orderDatailVo.getUserId().equals(userId)) {
                 return Result.error("无权查看此订单的发货记录");
             }
         }

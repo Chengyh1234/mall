@@ -2,7 +2,7 @@ package com.cyh.mallportal.service;
 
 import com.cyh.mallportal.dto.CategoryAttributeBindDto;
 import com.cyh.mallportal.dto.CategoryAttributeSortDto;
-import com.cyh.mallportal.vo.AvailableAttributeVo;
+import com.cyh.mallportal.vo.AttributeAvailableVo;
 import com.cyh.mallportal.vo.CategoryAttributeBoundVo;
 
 import java.util.List;
@@ -28,7 +28,7 @@ public interface CategoryAttributeManageService {
      * @param categoryId 分类ID
      * @return 未绑定的属性列表
      */
-    List<AvailableAttributeVo> getAvailableAttributes(Long categoryId);
+    List<AttributeAvailableVo> getAvailableAttributes(Long categoryId);
 
     /**
      * 绑定属性到分类

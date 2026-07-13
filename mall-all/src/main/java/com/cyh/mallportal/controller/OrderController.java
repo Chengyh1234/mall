@@ -11,7 +11,7 @@ import com.cyh.mallportal.service.OrderService;
 import com.cyh.mallportal.vo.OrderListAdminVo;
 import com.cyh.mallportal.vo.OrderListItemVo;
 import com.cyh.mallportal.vo.OrderStatusCountVo;
-import com.cyh.mallportal.vo.OrderVo;
+import com.cyh.mallportal.vo.OrderDatailVo;
 import com.cyh.mallportal.vo.RefundProgressVo;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -152,17 +152,17 @@ public class OrderController {
      */
     @GetMapping("/detail/{orderNo}")
     @PreAuthorize("hasRole('USER')")
-    public Result<OrderVo> getOrderByOrderNo(@PathVariable String orderNo) {
+    public Result<OrderDatailVo> getOrderByOrderNo(@PathVariable String orderNo) {
         Long userId = getCurrentUserId();
 
-        OrderVo orderVo = orderService.getOrderByOrderNo(orderNo);
-        if (orderVo == null) {
+        OrderDatailVo orderDatailVo = orderService.getOrderByOrderNo(orderNo);
+        if (orderDatailVo == null) {
             return Result.error("订单不存在");
         }
-        if (!orderVo.getUserId().equals(userId)) {
+        if (!orderDatailVo.getUserId().equals(userId)) {
             return Result.error("无权查看此订单");
         }
-        return Result.success(orderVo);
+        return Result.success(orderDatailVo);
     }
 
 
@@ -179,11 +179,11 @@ public class OrderController {
                                     @RequestParam(required = false) String cancelReason) {
         Long userId = getCurrentUserId();
 
-        OrderVo orderVo = orderService.getOrderByIdForUser(orderId);
-        if (orderVo == null) {
+        OrderDatailVo orderDatailVo = orderService.getOrderByIdForUser(orderId);
+        if (orderDatailVo == null) {
             return Result.error("订单不存在");
         }
-        if (!orderVo.getUserId().equals(userId)) {
+        if (!orderDatailVo.getUserId().equals(userId)) {
             return Result.error("无权操作此订单");
         }
 
@@ -207,11 +207,11 @@ public class OrderController {
                                  @RequestParam(defaultValue = "alipay") String payType) {
         Long userId = getCurrentUserId();
 
-        OrderVo orderVo = orderService.getOrderByIdForUser(orderId);
-        if (orderVo == null) {
+        OrderDatailVo orderDatailVo = orderService.getOrderByIdForUser(orderId);
+        if (orderDatailVo == null) {
             return Result.error("订单不存在");
         }
-        if (!orderVo.getUserId().equals(userId)) {
+        if (!orderDatailVo.getUserId().equals(userId)) {
             return Result.error("无权操作此订单");
         }
 
@@ -260,11 +260,11 @@ public class OrderController {
     public Result<Void> confirmOrder(@PathVariable Long orderId) {
         Long userId = getCurrentUserId();
 
-        OrderVo orderVo = orderService.getOrderByIdForUser(orderId);
-        if (orderVo == null) {
+        OrderDatailVo orderDatailVo = orderService.getOrderByIdForUser(orderId);
+        if (orderDatailVo == null) {
             return Result.error("订单不存在");
         }
-        if (!orderVo.getUserId().equals(userId)) {
+        if (!orderDatailVo.getUserId().equals(userId)) {
             return Result.error("无权操作此订单");
         }
 
@@ -286,11 +286,11 @@ public class OrderController {
     public Result<Void> deleteOrder(@PathVariable Long orderId) {
         Long userId = getCurrentUserId();
 
-        OrderVo orderVo = orderService.getOrderByIdForUser(orderId);
-        if (orderVo == null) {
+        OrderDatailVo orderDatailVo = orderService.getOrderByIdForUser(orderId);
+        if (orderDatailVo == null) {
             return Result.error("订单不存在");
         }
-        if (!orderVo.getUserId().equals(userId)) {
+        if (!orderDatailVo.getUserId().equals(userId)) {
             return Result.error("无权操作此订单");
         }
 
@@ -316,11 +316,11 @@ public class OrderController {
         Long userId = getCurrentUserId();
 
         // 校验订单归属
-        OrderVo orderVo = orderService.getOrderByIdForUser(orderId);
-        if (orderVo == null) {
+        OrderDatailVo orderDatailVo = orderService.getOrderByIdForUser(orderId);
+        if (orderDatailVo == null) {
             return Result.error("订单不存在");
         }
-        if (!orderVo.getUserId().equals(userId)) {
+        if (!orderDatailVo.getUserId().equals(userId)) {
             return Result.error("无权操作此订单");
         }
 
@@ -345,11 +345,11 @@ public class OrderController {
         Long userId = getCurrentUserId();
 
         // 校验订单归属
-        OrderVo orderVo = orderService.getOrderByIdForUser(orderId);
-        if (orderVo == null) {
+        OrderDatailVo orderDatailVo = orderService.getOrderByIdForUser(orderId);
+        if (orderDatailVo == null) {
             return Result.error("订单不存在");
         }
-        if (!orderVo.getUserId().equals(userId)) {
+        if (!orderDatailVo.getUserId().equals(userId)) {
             return Result.error("无权操作此订单");
         }
 
@@ -427,14 +427,14 @@ public class OrderController {
      */
     @GetMapping("/seller/detail/{orderNo}")
     @PreAuthorize("hasRole('SELLER') or hasRole('STORE_ADMIN') or hasRole('SUPER_ADMIN')")
-    public Result<OrderVo> getOrderDetailBySellerId(@PathVariable String orderNo) {
+    public Result<OrderDatailVo> getOrderDetailBySellerId(@PathVariable String orderNo) {
         Long sellerId = getCurrentUserId();
 
-        OrderVo orderVo = orderService.getOrderDetailBySellerId(orderNo, sellerId);
-        if (orderVo == null) {
+        OrderDatailVo orderDatailVo = orderService.getOrderDetailBySellerId(orderNo, sellerId);
+        if (orderDatailVo == null) {
             return Result.error("订单不存在或不属于您的店铺");
         }
-        return Result.success(orderVo);
+        return Result.success(orderDatailVo);
     }
 
 
@@ -536,12 +536,12 @@ public class OrderController {
      */
     @GetMapping("/admin/detail/{orderNo}")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
-    public Result<OrderVo> getOrderDetailByAdmin(@PathVariable String orderNo) {
-        OrderVo orderVo = orderService.getOrderDetailByOrderNoForAdmin(orderNo);
-        if (orderVo == null) {
+    public Result<OrderDatailVo> getOrderDetailByAdmin(@PathVariable String orderNo) {
+        OrderDatailVo orderDatailVo = orderService.getOrderDetailByOrderNoForAdmin(orderNo);
+        if (orderDatailVo == null) {
             return Result.error("订单不存在");
         }
-        return Result.success(orderVo);
+        return Result.success(orderDatailVo);
     }
 
     /**
@@ -645,11 +645,11 @@ public class OrderController {
         Long userId = getCurrentUserId();
 
         // 校验订单归属：订单所有者或管理员可查看
-        OrderVo orderVo = orderService.getOrderById(orderId);
-        if (orderVo == null) {
+        OrderDatailVo orderDatailVo = orderService.getOrderById(orderId);
+        if (orderDatailVo == null) {
             return Result.error("订单不存在");
         }
-        if (!orderVo.getUserId().equals(userId) && !isAdminUser()) {
+        if (!orderDatailVo.getUserId().equals(userId) && !isAdminUser()) {
             return Result.error("无权查看此订单");
         }
 

@@ -1,13 +1,11 @@
 package com.cyh.mallportal.controller;
 
-import com.alibaba.fastjson2.JSON;
 import com.cyh.mallcommon.utils.Result;
 import com.cyh.mallcommon.constant.FileConstants;
-import com.cyh.mallportal.dto.SkuDto;
 import com.cyh.mallportal.entity.Sku;
 import com.cyh.mallportal.service.FileService;
 import com.cyh.mallportal.service.SkuService;
-import com.cyh.mallportal.vo.AdminVo;
+import com.cyh.mallportal.vo.SkuAdminVo;
 import com.cyh.mallportal.vo.SkuStoreVo;
 import com.cyh.mallportal.vo.SkuVo;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import jakarta.validation.Valid;
-import java.math.BigDecimal;
+
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,7 +26,6 @@ import com.cyh.mallportal.service.SkuAttrService;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.validation.annotation.Validated;
-import java.util.stream.Collectors;
 
 /**
  * SKU管理控制器
@@ -328,8 +325,8 @@ public class SkuController {
      */
     @GetMapping("/admin/list-with-attributes")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
-    public Result<List<AdminVo>> getAdminBySpuIdWithAttributes(@RequestParam Long spuId) {
-        List<AdminVo> list = skuService.getAdminBySpuIdWithAttributes(spuId);
+    public Result<List<SkuAdminVo>> getAdminBySpuIdWithAttributes(@RequestParam Long spuId) {
+        List<SkuAdminVo> list = skuService.getAdminBySpuIdWithAttributes(spuId);
         return Result.success(list);
     }
 

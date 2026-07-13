@@ -27,7 +27,7 @@ import com.cyh.mallportal.service.OrderService;
 import com.cyh.mallportal.service.StockLuaScript;
 import com.cyh.mallportal.vo.OrderListItemVo;
 import com.cyh.mallportal.vo.OrderStatusCountVo;
-import com.cyh.mallportal.vo.OrderVo;
+import com.cyh.mallportal.vo.OrderDatailVo;
 import com.cyh.mallportal.vo.RefundProgressVo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -347,7 +347,7 @@ public class OrderServiceImpl implements OrderService {
      * @return 订单VO
      */
     @Override
-    public OrderVo getOrderById(Long id) {
+    public OrderDatailVo getOrderById(Long id) {
         log.info("获取订单详情, 订单ID: {}", id);
 
         Order order = orderMapper.selectById(id);
@@ -359,8 +359,8 @@ public class OrderServiceImpl implements OrderService {
         List<OrderDelivery> deliveries = orderDeliveryMapper.selectByOrderId(id);
 
         // 组装订单项VO
-        List<OrderVo.ItemVo> itemVos = items.stream().map(item -> {
-            OrderVo.ItemVo itemVo = new OrderVo.ItemVo();
+        List<OrderDatailVo.ItemVo> itemVos = items.stream().map(item -> {
+            OrderDatailVo.ItemVo itemVo = new OrderDatailVo.ItemVo();
             itemVo.setProductName(item.getProductName());
             itemVo.setProductImage(item.getProductImage());
             itemVo.setSkuSpecs(item.getSkuSpecs());
@@ -371,8 +371,8 @@ public class OrderServiceImpl implements OrderService {
         }).collect(Collectors.toList());
 
         // 组装发货记录VO
-        List<OrderVo.DeliveryVo> deliveryVos = deliveries.stream().map(d -> {
-            OrderVo.DeliveryVo deliveryVo = new OrderVo.DeliveryVo();
+        List<OrderDatailVo.DeliveryVo> deliveryVos = deliveries.stream().map(d -> {
+            OrderDatailVo.DeliveryVo deliveryVo = new OrderDatailVo.DeliveryVo();
             deliveryVo.setDeliveryCompany(d.getDeliveryCompany());
             deliveryVo.setDeliveryNo(d.getDeliveryNo());
             deliveryVo.setDeliveryStatus(d.getDeliveryStatus());
@@ -380,7 +380,7 @@ public class OrderServiceImpl implements OrderService {
             return deliveryVo;
         }).collect(Collectors.toList());
 
-        OrderVo vo = new OrderVo();
+        OrderDatailVo vo = new OrderDatailVo();
         vo.setId(order.getId());
         vo.setOrderNo(order.getOrderNo());
         vo.setTotalAmount(order.getTotalAmount());
@@ -419,7 +419,7 @@ public class OrderServiceImpl implements OrderService {
      * @return 订单VO，已删除时返回 null
      */
     @Override
-    public OrderVo getOrderByIdForUser(Long id) {
+    public OrderDatailVo getOrderByIdForUser(Long id) {
         log.info("获取订单详情（用户过滤）, 订单ID: {}", id);
 
         Order order = orderMapper.selectById(id);
@@ -439,7 +439,7 @@ public class OrderServiceImpl implements OrderService {
      * @return 订单VO
      */
     @Override
-    public OrderVo getOrderByOrderNo(String orderNo) {
+    public OrderDatailVo getOrderByOrderNo(String orderNo) {
         log.info("获取订单详情, 订单号: {}", orderNo);
 
         Order order = orderMapper.selectByOrderNo(orderNo);
@@ -1038,7 +1038,7 @@ public class OrderServiceImpl implements OrderService {
      * @return 订单详情 VO，不属于该商家时返回 null
      */
     @Override
-    public OrderVo getOrderDetailBySellerId(String orderNo, Long sellerId) {
+    public OrderDatailVo getOrderDetailBySellerId(String orderNo, Long sellerId) {
         log.info("商家获取订单详情, 商家ID: {}, 订单号: {}", sellerId, orderNo);
         Order order = orderMapper.selectByOrderNoAndSellerId(orderNo, sellerId);
         if (order == null) {
@@ -1057,7 +1057,7 @@ public class OrderServiceImpl implements OrderService {
      * @return 订单详情 VO
      */
     @Override
-    public OrderVo getOrderDetailByOrderNoForAdmin(String orderNo) {
+    public OrderDatailVo getOrderDetailByOrderNoForAdmin(String orderNo) {
         log.info("管理员查询订单详情, 订单号: {}", orderNo);
         Order order = orderMapper.selectByOrderNoForAdmin(orderNo);
         if (order == null) {

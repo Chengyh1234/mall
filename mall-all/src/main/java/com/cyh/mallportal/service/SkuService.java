@@ -1,11 +1,10 @@
 package com.cyh.mallportal.service;
 
 import com.cyh.mallportal.entity.Sku;
-import com.cyh.mallportal.vo.AdminVo;
+import com.cyh.mallportal.vo.SkuAdminVo;
 import com.cyh.mallportal.vo.SkuStoreVo;
 import com.cyh.mallportal.vo.SkuVo;
 
-import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -163,7 +162,7 @@ public interface SkuService {
      * @param spuId SPU ID
      * @return SKU列表（包含销售属性，管理员端字段）
      */
-    List<AdminVo> getAdminBySpuIdWithAttributes(Long spuId);
+    List<SkuAdminVo> getAdminBySpuIdWithAttributes(Long spuId);
 
     /**
      * 根据ID获取SKU详情（包含销售属性）

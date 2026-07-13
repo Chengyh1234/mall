@@ -3,7 +3,7 @@ package com.cyh.mallportal.vo;
 import lombok.Data;
 
 /**
- * 用户订单各状态数量 VO
+ * 用户中心个人看板 用户订单各状态数量 VO
  * 返回给前端显示"我的订单"各状态标签上的角标数字
  */
 @Data

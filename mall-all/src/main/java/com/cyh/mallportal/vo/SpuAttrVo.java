@@ -1,9 +1,6 @@
 package com.cyh.mallportal.vo;
 
-import com.cyh.mallportal.entity.SpuBasicAttrValue;
-import com.cyh.mallportal.entity.SpuSaleAttrChoice;
 import lombok.Data;
-
 import java.io.Serializable;
 import java.util.List;
 

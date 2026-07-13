@@ -9,7 +9,7 @@ import com.cyh.mallportal.mapper.SpuMapper;
 import com.cyh.mallportal.mapper.StoreMapper;
 import com.cyh.mallportal.mapper.UserMapper;
 import com.cyh.mallportal.service.AdminDashboardService;
-import com.cyh.mallportal.vo.AdminDashboardVo;
+import com.cyh.mallportal.vo.DashboardAdminVo;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
@@ -56,14 +56,14 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
     private ObjectMapper objectMapper;
 
     @Override
-    public AdminDashboardVo.DashboardOverview getDashboardOverview() {
+    public DashboardAdminVo.DashboardOverview getDashboardOverview() {
         String key = "dashboard:admin:overview";
 
         // Step1: 尝试从缓存读取
         String cached = stringRedisTemplate.opsForValue().get(key);
         if (cached != null) {
             try {
-                return objectMapper.readValue(cached, AdminDashboardVo.DashboardOverview.class);
+                return objectMapper.readValue(cached, DashboardAdminVo.DashboardOverview.class);
             } catch (JsonProcessingException e) {
                 // 反序列化失败，删除脏缓存，重新查库
                 stringRedisTemplate.delete(key);
@@ -87,7 +87,7 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
         Long settledSellers = storeMapper.selectCount(new LambdaQueryWrapper<Store>()
                 .eq(Store::getStatus, 1));
 
-        AdminDashboardVo.DashboardOverview result = new AdminDashboardVo.DashboardOverview(
+        DashboardAdminVo.DashboardOverview result = new DashboardAdminVo.DashboardOverview(
                 totalUsers,
                 todayOrders != null ? todayOrders : 0L,
                 totalProducts,
@@ -114,7 +114,7 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
      * @return 时间序列数据
      */
     @Override
-    public AdminDashboardVo.SalesTimeSeries getSalesTimeSeries(String period) {
+    public DashboardAdminVo.SalesTimeSeries getSalesTimeSeries(String period) {
         if (period == null || period.isEmpty()) {
             period = "last7Days";
         }
@@ -124,7 +124,7 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
         String cached = stringRedisTemplate.opsForValue().get(key);
         if (cached != null) {
             try {
-                return objectMapper.readValue(cached, AdminDashboardVo.SalesTimeSeries.class);
+                return objectMapper.readValue(cached, DashboardAdminVo.SalesTimeSeries.class);
             } catch (JsonProcessingException e) {
                 stringRedisTemplate.delete(key);
             }
@@ -166,7 +166,7 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
         Map<String, Map<String, Object>> resultMap = orderMapper.selectAdminSalesTimeSeries(startTime, isHourly);
 
         // Step4: 将 DB 结果转换为 label → 数据点的映射，便于补零
-        Map<String, AdminDashboardVo.TimeSeriesPoint> dataMap = new LinkedHashMap<>();
+        Map<String, DashboardAdminVo.TimeSeriesPoint> dataMap = new LinkedHashMap<>();
         if (resultMap != null) {
             for (Map.Entry<String, Map<String, Object>> entry : resultMap.entrySet()) {
                 Map<String, Object> row = entry.getValue();
@@ -178,14 +178,14 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
                 int salesVolume = row.get("salesVolume") != null
                         ? ((Number) row.get("salesVolume")).intValue() : 0;
 
-                dataMap.put(label, new AdminDashboardVo.TimeSeriesPoint(
+                dataMap.put(label, new DashboardAdminVo.TimeSeriesPoint(
                         formatLabel(label, isHourly),
                         salesAmount, orderCount, salesVolume));
             }
         }
 
         // Step5: 生成完整时间序列，缺失时段补 0
-        List<AdminDashboardVo.TimeSeriesPoint> dataPoints = new ArrayList<>();
+        List<DashboardAdminVo.TimeSeriesPoint> dataPoints = new ArrayList<>();
 
         if (isHourly) {
             // 最近24小时，逐个填充小时，缺失时段补 0
@@ -193,9 +193,9 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
             for (int i = 0; i < 24; i++) {
                 String dbKey = hourCursor.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
                 String displayLabel = hourCursor.format(DateTimeFormatter.ofPattern("HH:mm"));
-                AdminDashboardVo.TimeSeriesPoint point = dataMap.containsKey(dbKey)
+                DashboardAdminVo.TimeSeriesPoint point = dataMap.containsKey(dbKey)
                         ? dataMap.get(dbKey)
-                        : new AdminDashboardVo.TimeSeriesPoint(displayLabel, BigDecimal.ZERO, 0, 0);
+                        : new DashboardAdminVo.TimeSeriesPoint(displayLabel, BigDecimal.ZERO, 0, 0);
                 dataPoints.add(point);
                 hourCursor = hourCursor.plusHours(1);
             }
@@ -206,15 +206,15 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
             while (!dateCursor.isAfter(endDate)) {
                 String dbKey = dateCursor.toString();
                 String displayLabel = dateCursor.format(DateTimeFormatter.ofPattern("MM-dd"));
-                AdminDashboardVo.TimeSeriesPoint point = dataMap.containsKey(dbKey)
+                DashboardAdminVo.TimeSeriesPoint point = dataMap.containsKey(dbKey)
                         ? dataMap.get(dbKey)
-                        : new AdminDashboardVo.TimeSeriesPoint(displayLabel, BigDecimal.ZERO, 0, 0);
+                        : new DashboardAdminVo.TimeSeriesPoint(displayLabel, BigDecimal.ZERO, 0, 0);
                 dataPoints.add(point);
                 dateCursor = dateCursor.plusDays(1);
             }
         }
 
-        AdminDashboardVo.SalesTimeSeries result = new AdminDashboardVo.SalesTimeSeries(period, dataPoints);
+        DashboardAdminVo.SalesTimeSeries result = new DashboardAdminVo.SalesTimeSeries(period, dataPoints);
 
         // Step6: 写入缓存，5 分钟过期
         try {
@@ -252,14 +252,14 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
     }
 
     @Override
-    public AdminDashboardVo.SalesStatistics getSalesStatistics() {
+    public DashboardAdminVo.SalesStatistics getSalesStatistics() {
         String key = "dashboard:admin:sales-stats";
 
         // Step1: 尝试从缓存读取
         String cached = stringRedisTemplate.opsForValue().get(key);
         if (cached != null) {
             try {
-                return objectMapper.readValue(cached, AdminDashboardVo.SalesStatistics.class);
+                return objectMapper.readValue(cached, DashboardAdminVo.SalesStatistics.class);
             } catch (JsonProcessingException e) {
                 stringRedisTemplate.delete(key);
             }
@@ -277,7 +277,7 @@ public class AdminDashboardServiceImpl implements AdminDashboardService {
         BigDecimal thisMonthSales = orderMapper.sumAdminCompletedSalesByTimeRange(monthStart);
         BigDecimal thisYearSales = orderMapper.sumAdminCompletedSalesByTimeRange(yearStart);
 
-        AdminDashboardVo.SalesStatistics result = new AdminDashboardVo.SalesStatistics(
+        DashboardAdminVo.SalesStatistics result = new DashboardAdminVo.SalesStatistics(
                 todaySales != null ? todaySales : BigDecimal.ZERO,
                 last7DaysSales != null ? last7DaysSales : BigDecimal.ZERO,
                 thisMonthSales != null ? thisMonthSales : BigDecimal.ZERO,

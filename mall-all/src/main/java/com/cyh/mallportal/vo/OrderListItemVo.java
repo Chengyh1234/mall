@@ -9,7 +9,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 订单列表项VO（普通用户分页订单列表）
+ * 订单列表项VO（普通用户和商家分页订单列表）
  * 包含订单摘要信息 + 商品明细列表
  */
 @Data

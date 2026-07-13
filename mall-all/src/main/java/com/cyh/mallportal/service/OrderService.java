@@ -4,7 +4,7 @@ import com.cyh.mallportal.dto.OrderCreateDto;
 import com.cyh.mallportal.entity.Order;
 import com.cyh.mallportal.vo.OrderListItemVo;
 import com.cyh.mallportal.vo.OrderStatusCountVo;
-import com.cyh.mallportal.vo.OrderVo;
+import com.cyh.mallportal.vo.OrderDatailVo;
 import com.cyh.mallportal.vo.RefundProgressVo;
 
 import java.math.BigDecimal;
@@ -44,7 +44,7 @@ public interface OrderService {
      * @param id 订单ID
      * @return 订单VO
      */
-    OrderVo getOrderById(Long id);
+    OrderDatailVo getOrderById(Long id);
 
     /**
      * 根据ID获取订单详情（用户端使用，过滤 is_deleted=1 的已删除订单）
@@ -52,7 +52,7 @@ public interface OrderService {
      * @param id 订单ID
      * @return 订单VO，已删除时返回 null
      */
-    OrderVo getOrderByIdForUser(Long id);
+    OrderDatailVo getOrderByIdForUser(Long id);
 
     /**
      * 根据订单号获取订单详情
@@ -60,7 +60,7 @@ public interface OrderService {
      * @param orderNo 订单号
      * @return 订单VO
      */
-    OrderVo getOrderByOrderNo(String orderNo);
+    OrderDatailVo getOrderByOrderNo(String orderNo);
 
     /**
      * 分页获取用户订单列表（带商品明细，自动过滤 is_deleted=0）
@@ -272,7 +272,7 @@ public interface OrderService {
      * @param sellerId 商家用户ID
      * @return 订单详情 VO，不属于该商家时返回 null
      */
-    OrderVo getOrderDetailBySellerId(String orderNo, Long sellerId);
+    OrderDatailVo getOrderDetailBySellerId(String orderNo, Long sellerId);
 
     // ==================== 管理员订单查询（不过滤 is_deleted） ====================
 
@@ -282,7 +282,7 @@ public interface OrderService {
      * @param orderNo 订单号
      * @return 订单详情 VO
      */
-    OrderVo getOrderDetailByOrderNoForAdmin(String orderNo);
+    OrderDatailVo getOrderDetailByOrderNoForAdmin(String orderNo);
 
     // ==================== 全局订单查询（运营管理员/超级管理员） ====================
 

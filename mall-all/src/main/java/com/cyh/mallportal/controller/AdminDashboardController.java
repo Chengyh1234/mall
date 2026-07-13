@@ -2,7 +2,7 @@ package com.cyh.mallportal.controller;
 
 import com.cyh.mallcommon.utils.Result;
 import com.cyh.mallportal.service.AdminDashboardService;
-import com.cyh.mallportal.vo.AdminDashboardVo;
+import com.cyh.mallportal.vo.DashboardAdminVo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -31,8 +31,8 @@ public class AdminDashboardController {
      */
     @GetMapping("/overview")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
-    public Result<AdminDashboardVo.DashboardOverview> getDashboardOverview() {
-        AdminDashboardVo.DashboardOverview data = adminDashboardService.getDashboardOverview();
+    public Result<DashboardAdminVo.DashboardOverview> getDashboardOverview() {
+        DashboardAdminVo.DashboardOverview data = adminDashboardService.getDashboardOverview();
         return Result.success(data);
     }
 
@@ -46,9 +46,9 @@ public class AdminDashboardController {
      */
     @GetMapping("/sales/timeseries")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
-    public Result<AdminDashboardVo.SalesTimeSeries> getSalesTimeSeries(
+    public Result<DashboardAdminVo.SalesTimeSeries> getSalesTimeSeries(
             @RequestParam(defaultValue = "last7Days") String period) {
-        AdminDashboardVo.SalesTimeSeries data = adminDashboardService.getSalesTimeSeries(period);
+        DashboardAdminVo.SalesTimeSeries data = adminDashboardService.getSalesTimeSeries(period);
         return Result.success(data);
     }
 
@@ -61,8 +61,8 @@ public class AdminDashboardController {
      */
     @GetMapping("/sales")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
-    public Result<AdminDashboardVo.SalesStatistics> getSalesStatistics() {
-        AdminDashboardVo.SalesStatistics data = adminDashboardService.getSalesStatistics();
+    public Result<DashboardAdminVo.SalesStatistics> getSalesStatistics() {
+        DashboardAdminVo.SalesStatistics data = adminDashboardService.getSalesStatistics();
         return Result.success(data);
     }
 }

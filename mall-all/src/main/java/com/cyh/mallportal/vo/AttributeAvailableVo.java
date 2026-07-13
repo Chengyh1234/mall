@@ -10,7 +10,7 @@ import lombok.Data;
  *   GET /category/attribute/manage/available/{categoryId}
  */
 @Data
-public class AvailableAttributeVo {
+public class AttributeAvailableVo {
 
     /**
      * 属性ID

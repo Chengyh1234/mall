@@ -8,7 +8,7 @@ import com.cyh.mallportal.mq.event.CacheInvalidateEvent;
 import com.cyh.mallportal.mq.publisher.CacheEventPublisher;
 import com.cyh.mallportal.service.SkuService;
 import com.cyh.mallportal.service.SpuService;
-import com.cyh.mallportal.vo.AdminVo;
+import com.cyh.mallportal.vo.SkuAdminVo;
 import com.cyh.mallportal.vo.SkuStoreVo;
 import com.cyh.mallportal.vo.SkuVo;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -20,7 +20,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
-import org.springframework.util.CollectionUtils;
 
 import java.time.LocalDateTime;
 import java.util.*;
@@ -131,21 +130,21 @@ public class SkuServiceImpl implements SkuService {
      * 命中缓存时直接从Redis返回
      */
     @Override
-    public List<AdminVo> getAdminBySpuIdWithAttributes(Long spuId) {
+    public List<SkuAdminVo> getAdminBySpuIdWithAttributes(Long spuId) {
         String key = RedisConstants.SKU_CACHE_PREFIX + spuId + RedisConstants.SKU_CACHE_ADMIN_SUFFIX;
 
         String cached = stringRedisTemplate.opsForValue().get(key);
         if (cached != null) {
             try {
                 return objectMapper.readValue(cached,
-                        objectMapper.getTypeFactory().constructCollectionType(List.class, AdminVo.class));
+                        objectMapper.getTypeFactory().constructCollectionType(List.class, SkuAdminVo.class));
             } catch (JsonProcessingException e) {
                 log.error("反序列化管理SKU缓存失败, key: {}", key, e);
                 stringRedisTemplate.delete(key);
             }
         }
 
-        List<AdminVo> result = doGetAdminBySpuIdWithAttributes(spuId);
+        List<SkuAdminVo> result = doGetAdminBySpuIdWithAttributes(spuId);
         if (result == null) {
             return new ArrayList<>();
         }
@@ -217,7 +216,7 @@ public class SkuServiceImpl implements SkuService {
     /**
      * 实际查库：获取管理员SKU列表（不含缓存逻辑）
      */
-    private List<AdminVo> doGetAdminBySpuIdWithAttributes(Long spuId) {
+    private List<SkuAdminVo> doGetAdminBySpuIdWithAttributes(Long spuId) {
         List<Sku> skus = getBySpuId(spuId);
         if (skus == null || skus.isEmpty()) {
             return new ArrayList<>();
@@ -538,8 +537,8 @@ public class SkuServiceImpl implements SkuService {
         return vo;
     }
 
-    private AdminVo convertToAdminVo(Sku sku) {
-        AdminVo vo = new AdminVo();
+    private SkuAdminVo convertToAdminVo(Sku sku) {
+        SkuAdminVo vo = new SkuAdminVo();
         vo.setId(sku.getId());
         vo.setSpuId(sku.getSpuId());
         vo.setPrice(sku.getPrice());

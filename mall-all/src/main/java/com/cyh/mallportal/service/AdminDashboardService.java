@@ -1,6 +1,6 @@
 package com.cyh.mallportal.service;
 
-import com.cyh.mallportal.vo.AdminDashboardVo;
+import com.cyh.mallportal.vo.DashboardAdminVo;
 
 /**
  * 管理员仪表盘服务接口
@@ -15,7 +15,7 @@ public interface AdminDashboardService {
      * @param period 时间段：last24h | last7Days | thisMonth | last90Days | thisYear
      * @return 时间序列数据（含标签、销售额、订单量、销量）
      */
-    AdminDashboardVo.SalesTimeSeries getSalesTimeSeries(String period);
+    DashboardAdminVo.SalesTimeSeries getSalesTimeSeries(String period);
 
     /**
      * 获取平台运营概览
@@ -23,7 +23,7 @@ public interface AdminDashboardService {
      *
      * @return 平台运营概览数据
      */
-    AdminDashboardVo.DashboardOverview getDashboardOverview();
+    DashboardAdminVo.DashboardOverview getDashboardOverview();
 
     /**
      * 获取平台销售额统计
@@ -31,5 +31,5 @@ public interface AdminDashboardService {
      *
      * @return 销售额统计
      */
-    AdminDashboardVo.SalesStatistics getSalesStatistics();
+    DashboardAdminVo.SalesStatistics getSalesStatistics();
 }

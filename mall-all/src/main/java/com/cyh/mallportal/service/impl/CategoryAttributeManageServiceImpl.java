@@ -11,7 +11,7 @@ import com.cyh.mallportal.mapper.AttributeMapper;
 import com.cyh.mallportal.mapper.CategoryAttributeMapper;
 import com.cyh.mallportal.mapper.CategoryMapper;
 import com.cyh.mallportal.service.CategoryAttributeManageService;
-import com.cyh.mallportal.vo.AvailableAttributeVo;
+import com.cyh.mallportal.vo.AttributeAvailableVo;
 import com.cyh.mallportal.vo.CategoryAttributeBoundVo;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -84,7 +84,7 @@ public class CategoryAttributeManageServiceImpl implements CategoryAttributeMana
     }
 
     @Override
-    public List<AvailableAttributeVo> getAvailableAttributes(Long categoryId) {
+    public List<AttributeAvailableVo> getAvailableAttributes(Long categoryId) {
         log.info("获取分类可绑定的属性列表, categoryId={}", categoryId);
         List<Attribute> attributes = attributeMapper.getAvailableByCategoryId(categoryId);
         return attributes.stream().map(this::toAvailableAttributeVo).collect(Collectors.toList());
@@ -192,10 +192,10 @@ public class CategoryAttributeManageServiceImpl implements CategoryAttributeMana
     }
 
     /**
-     * 将 Attribute 实体转换为 AvailableAttributeVo
+     * 将 Attribute 实体转换为 AttributeAvailableVo
      */
-    private AvailableAttributeVo toAvailableAttributeVo(Attribute attribute) {
-        AvailableAttributeVo vo = new AvailableAttributeVo();
+    private AttributeAvailableVo toAvailableAttributeVo(Attribute attribute) {
+        AttributeAvailableVo vo = new AttributeAvailableVo();
         vo.setId(attribute.getId());
         vo.setName(attribute.getName());
         vo.setAttrType(attribute.getAttrType());

@@ -15,7 +15,7 @@ import java.io.Serializable;
 @EqualsAndHashCode(callSuper = true)
 @NoArgsConstructor
 @AllArgsConstructor
-public class AdminVo extends SkuStoreVo implements Serializable {
+public class SkuAdminVo extends SkuStoreVo implements Serializable {
 
     /** 冻结库存（预扣，待支付） */
     private Integer frozenStock;
