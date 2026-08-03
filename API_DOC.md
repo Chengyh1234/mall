@@ -6801,6 +6801,17 @@ list 数组内每个元素的字段：
 | spuId | Long | 是 | SPU ID | `3` |
 | attrId | Long | 是 | 销售属性ID | `1` |
 | selectedValueIds | Array | 是 | 选中的属性值ID列表 | `[1, 2, 3, 4]` |
+| customValues | Array\<String\> | 否 | 卖家自定义属性值文本，后端自动插入并合并到 selectedValueIds | `["樱粉色", "薄荷绿"]` |
+
+#### 请求示例
+```json
+{
+    "spuId": 3,
+    "attrId": 1,
+    "selectedValueIds": [1, 2, 3],
+    "customValues": ["樱粉色", "薄荷绿"]
+}
+```
 
 #### 响应示例
 ```json
@@ -6831,7 +6842,7 @@ list 数组内每个元素的字段：
 | SPU不存在 | 指定的商品SPU不存在 |
 | 属性不存在 | 指定的属性ID不存在 |
 | 该属性不是销售属性，无法绑定 | 属性类型不是销售属性（attr_type != 1） |
-| 属性值ID列表不能为空 | selectedValueIds列表为空 |
+| 请选择属性值或输入自定义值 | selectedValueIds 和 customValues 都为空 |
 | 属性值不存在 | 指定的属性值ID不存在 |
 | 属性值不属于该属性 | 属性值不属于指定的属性 |
 | 该销售属性已绑定 | 该SPU已绑定此销售属性，请先解绑或更新 |
@@ -6858,6 +6869,7 @@ list 数组内每个元素的字段：
 | spuId | Long | 是 | SPU ID |
 | attrId | Long | 是 | 属性ID |
 | selectedValueIds | Array | 是 | 属性值ID列表 |
+| customValues | Array\<String\> | 否 | 卖家自定义属性值文本 |
 
 #### 响应示例
 ```json
@@ -6917,13 +6929,15 @@ list 数组内每个元素的字段：
 | spuId | Long | 是 | SPU ID |
 | attrId | Long | 是 | 销售属性ID |
 | selectedValueIds | Long[] | 是 | 启用的属性值ID列表 |
+| customValues | Array\<String\> | 否 | 卖家自定义属性值文本，后端自动插入并合并到 selectedValueIds；被移除的卖家自定义值自动清理 |
 
 #### 请求示例
 ```json
 {
     "spuId": 3,
     "attrId": 1,
-    "selectedValueIds": [1, 2]
+    "selectedValueIds": [1, 2],
+    "customValues": ["樱粉色", "薄荷绿"]
 }
 ```
 
@@ -6951,7 +6965,7 @@ list 数组内每个元素的字段：
 |---------|------|
 | 用户未登录 | 当前用户未登录或登录已过期 |
 | 绑定记录不存在 | 指定的绑定记录ID不存在 |
-| 属性值ID列表不能为空 | selectedValueIds列表为空 |
+| 请选择属性值或输入自定义值 | selectedValueIds 和 customValues 都为空 |
 | 属性值不存在 | 指定的属性值ID不存在 |
 | 属性值不属于该属性 | 属性值不属于该属性 |
 | 无权操作该SPU | 当前商家无权操作该商品 |
@@ -6975,6 +6989,7 @@ list 数组内每个元素的字段：
 | spuId | Long | 是 | SPU ID |
 | attrId | Long | 是 | 销售属性ID |
 | selectedValueIds | Long[] | 是 | 启用的属性值ID列表 |
+| customValues | Array\<String\> | 否 | 卖家自定义属性值文本，后端自动插入并合并到 selectedValueIds；被移除的卖家自定义值自动清理 |
 
 #### 请求示例
 ```json
@@ -6983,7 +6998,8 @@ list 数组内每个元素的字段：
         "id": 1,
         "spuId": 3,
         "attrId": 1,
-        "selectedValueIds": [1, 2]
+        "selectedValueIds": [1, 2],
+        "customValues": ["樱粉色"]
     },
     {
         "id": 2,
@@ -7022,7 +7038,7 @@ list 数组内每个元素的字段：
 | 用户未登录 | 当前用户未登录或登录已过期 |
 | 更新列表不能为空 | 请求体为空 |
 | 绑定记录不存在 | 指定的绑定记录ID不存在 |
-| 属性值ID列表不能为空 | selectedValueIds列表为空 |
+| 请选择属性值或输入自定义值 | selectedValueIds 和 customValues 都为空 |
 | 属性值不存在 | 指定的属性值ID不存在 |
 | 属性值不属于该属性 | 属性值不属于该属性 |
 | 无权操作该SPU | 当前商家无权操作该商品 |
@@ -7081,17 +7097,20 @@ list 数组内每个元素的字段：
                 {
                     "valueId": 1,
                     "value": "黑色",
-                    "imageUrl": "/uploads/attr/black.jpg"
+                    "imageUrl": "/uploads/attr/black.jpg",
+                    "custom": false
                 },
                 {
                     "valueId": 2,
                     "value": "白色",
-                    "imageUrl": "/uploads/attr/white.jpg"
+                    "imageUrl": "/uploads/attr/white.jpg",
+                    "custom": false
                 },
                 {
-                    "valueId": 3,
-                    "value": "红色",
-                    "imageUrl": "/uploads/attr/red.jpg"
+                    "valueId": 303,
+                    "value": "樱粉色",
+                    "imageUrl": null,
+                    "custom": true
                 }
             ]
         },
@@ -7103,12 +7122,14 @@ list 数组内每个元素的字段：
                 {
                     "valueId": 4,
                     "value": "128GB",
-                    "imageUrl": null
+                    "imageUrl": null,
+                    "custom": false
                 },
                 {
                     "valueId": 5,
                     "value": "256GB",
-                    "imageUrl": null
+                    "imageUrl": null,
+                    "custom": false
                 }
             ]
         }
@@ -7175,12 +7196,20 @@ list 数组内每个元素的字段：
                     {
                         "valueId": 1,
                         "value": "黑色",
-                        "imageUrl": "/images/phone/black.png"
+                        "imageUrl": "/images/phone/black.png",
+                        "custom": false
                     },
                     {
                         "valueId": 2,
                         "value": "白色",
-                        "imageUrl": "/images/phone/white.png"
+                        "imageUrl": "/images/phone/white.png",
+                        "custom": false
+                    },
+                    {
+                        "valueId": 303,
+                        "value": "樱粉色",
+                        "imageUrl": null,
+                        "custom": true
                     }
                 ]
             }

@@ -36,7 +36,36 @@ spring:
     redis:
       host: 192.168.31.140
       port: 6379
- # ==================== 邮件配置 ====================
+
+  # ==================== RabbitMQ 配置 ====================
+  rabbitmq:
+    host: 192.168.31.140
+    port: 5672
+    username: admin
+    password: admin
+    virtual-host: /
+    listener:
+      simple:
+        acknowledge-mode: manual          # 手动 ACK，防止消息丢失
+        prefetch: 5                       # 每次预取 5 条 能者多劳
+        retry:
+          enabled: true                   # 开启重试
+          max-attempts: 3                 # 最大重试次数
+          initial-interval: 1000          # 首次重试间隔 1s
+          multiplier: 2                   # 间隔倍数（1s → 2s → 4s）
+        default-requeue-rejected: false   # 重试耗尽后不重新入队，进入 DLQ
+
+  #当用户请求的URL在Spring MVC中找不到任何匹配的控制器（Controller）来处理时，
+  #让系统抛出 NoHandlerFoundException 异常，而不是像默认那样直接返回一个404错误页面
+  mvc:
+    throw-exception-if-no-handler-found: true #这个需要配合下面进行使用
+  #Spring Boot默认会为 /** 路径映射一个静态资源处理器（ResourceHttpRequestHandler）。
+  #这意味着任何请求路径都会被这个处理器“接住”，从而不会触发 NoHandlerFoundException。
+  web:
+    resources:
+      add-mappings: false
+
+  # ==================== 邮件配置 ====================
   mail:
     default-encoding:
     host: smtp.qq.com
@@ -50,34 +79,13 @@ spring:
           starttls:
             enable: true
             required: true
-# ==================== RabbitMQ 配置 ====================
-  rabbitmq:
-    host: 192.168.31.140
-    port: 5672
-    username: admin
-    password: admin
-    virtual-host: /
-    listener:
-      simple:
-        acknowledge-mode: manual          # 手动 ACK，防止消息丢失
-        prefetch: 5                       # 每次预取 5 条
-        retry:
-          enabled: true                   # 开启重试
-          max-attempts: 3                 # 最大重试次数
-          initial-interval: 1000          # 首次重试间隔 1s
-          multiplier: 2                   # 间隔倍数（1s → 2s → 4s）
-        default-requeue-rejected: false   # 重试耗尽后不重新入队，进入 DLQ
 
-#当用户请求的URL在Spring MVC中找不到任何匹配的控制器（Controller）来处理时，
-#让系统抛出 NoHandlerFoundException 异常，而不是像默认那样直接返回一个404错误页面
-  mvc:
-    throw-exception-if-no-handler-found: true #这个需要配合下面进行使用
-#Spring Boot默认会为 /** 路径映射一个静态资源处理器（ResourceHttpRequestHandler）。
-#这意味着任何请求路径都会被这个处理器“接住”，从而不会触发 NoHandlerFoundException。
-  web:
-    resources:
-      add-mappings: false
 
+# ==================== Elasticsearch 配置 ====================
+elasticsearch:
+  host: 192.168.31.140
+  port: 9200
+  index: mall_spu
 
 file:
   upload:
@@ -89,6 +97,14 @@ file:
     stores-path: ./uploads/images/stores
     avatars-path: ./uploads/images/avatars
     banners-path: ./uploads/images/banners
+
+# ==================== 健康检查配置 ====================
+management:
+  health:
+    elasticsearch:
+      enabled: false
+    mail:
+      enabled: false
 
 mall:
   order:

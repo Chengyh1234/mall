@@ -64,6 +64,17 @@ public class RabbitMQConfig {
     /** SPU 销量累加路由键 */
     public static final String SALES_INCREASE_ROUTING_KEY = "sales.increase";
 
+    // ==================== SPU 同步 - 异步更新 ES 索引 ====================
+
+    /** SPU 同步交换机 */
+    public static final String SPU_SYNC_EXCHANGE = "spu.direct";
+    /** SPU 同步队列 */
+    public static final String SPU_SYNC_QUEUE = "spu.sync.queue";
+    /** SPU 同步死信队列 */
+    public static final String SPU_SYNC_DLQ = "spu.sync.dlq";
+    /** SPU 同步路由键 */
+    public static final String SPU_SYNC_ROUTING_KEY = "spu.sync";
+
     // ==================== 缓存失效 - 异步清除 ====================
 
     /** 缓存交换机 */
@@ -258,6 +269,42 @@ public class RabbitMQConfig {
         return BindingBuilder.bind(salesIncreaseDlq())
                 .to(deadExchange())
                 .with(SALES_INCREASE_ROUTING_KEY);
+    }
+
+    // ==================== SPU 同步 - 异步更新 ES 索引 ====================
+
+    @Bean
+    public DirectExchange spuSyncExchange() {
+        return ExchangeBuilder.directExchange(SPU_SYNC_EXCHANGE)
+                .durable(true)
+                .build();
+    }
+
+    @Bean
+    public Queue spuSyncQueue() {
+        return QueueBuilder.durable(SPU_SYNC_QUEUE)
+                .deadLetterExchange(DEAD_EXCHANGE)
+                .deadLetterRoutingKey(SPU_SYNC_ROUTING_KEY)
+                .build();
+    }
+
+    @Bean
+    public Binding spuSyncBinding() {
+        return BindingBuilder.bind(spuSyncQueue())
+                .to(spuSyncExchange())
+                .with(SPU_SYNC_ROUTING_KEY);
+    }
+
+    @Bean
+    public Queue spuSyncDlq() {
+        return QueueBuilder.durable(SPU_SYNC_DLQ).build();
+    }
+
+    @Bean
+    public Binding spuSyncDlqBinding() {
+        return BindingBuilder.bind(spuSyncDlq())
+                .to(deadExchange())
+                .with(SPU_SYNC_ROUTING_KEY);
     }
 
     // ==================== 缓存失效 - 异步清除 ====================

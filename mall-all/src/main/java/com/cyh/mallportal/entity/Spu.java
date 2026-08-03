@@ -135,4 +135,10 @@ public class Spu implements Serializable {
      */
     @TableField(exist = false)
     private String brandName;
+
+    /**
+     * 店铺名称（非数据库字段，仅用于接口返回）
+     */
+    @TableField(exist = false)
+    private String storeName;
 }

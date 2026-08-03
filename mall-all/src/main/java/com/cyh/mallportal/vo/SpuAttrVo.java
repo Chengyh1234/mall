@@ -137,5 +137,10 @@ public class SpuAttrVo implements Serializable {
          * 属性值图片URL
          */
         private String imageUrl;
+
+        /**
+         * 是否卖家自定义值（true=卖家自定义，false=平台预设）
+         */
+        private Boolean custom;
     }
 }

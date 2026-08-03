@@ -7,6 +7,7 @@ import com.cyh.mallportal.dto.SpuDto;
 import com.cyh.mallportal.entity.*;
 import com.cyh.mallportal.mapper.AttributeMapper;
 import com.cyh.mallportal.mapper.AttributeValueMapper;
+import com.cyh.mallportal.es.service.SpuSearchService;
 import com.cyh.mallportal.service.*;
 import com.cyh.mallportal.vo.*;
 import com.cyh.mallportal.vo.SpuVo;
@@ -19,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.validation.annotation.Validated;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
@@ -36,6 +38,9 @@ public class SpuController {
 
     @Autowired
     private SpuService spuService;
+
+    @Autowired
+    private SpuSearchService spuSearchService;
 
     @Autowired
     private CategoryService categoryService;
@@ -643,6 +648,56 @@ public class SpuController {
         if (keyword != null) data.put("keyword", keyword);
         if (categoryId != null) data.put("categoryId", categoryId);
         return Result.success(data);
+    }
+
+    /**
+     * ES 商品搜索（公开）
+     * <p>
+     * 替代原有的 MySQL LIKE 模糊搜索，提供关键词分词匹配、分类/品牌/价格筛选、
+     * 销量/价格/时间排序功能。仅返回上架商品。
+     *
+     * @param keyword    搜索关键词（可选）
+     * @param categoryId 分类 ID（可选）
+     * @param brandId    品牌 ID（可选）
+     * @param minPrice   最低售价下限（可选）
+     * @param maxPrice   最低售价上限（可选）
+     * @param sortBy     排序字段：sales / price / created_at，默认 created_at
+     * @param sortOrder  排序方向：asc / desc，默认 desc
+     * @param page       页码，默认 1
+     * @param pageSize   每页条数，默认 10
+     * @return 分页数据：{ list, total, page, pageSize }
+     */
+    @GetMapping("/search")
+    public Result<Map<String, Object>> search(
+            @RequestParam(required = false) String keyword,
+            @RequestParam(required = false) Long categoryId,
+            @RequestParam(required = false) Long brandId,
+            @RequestParam(required = false) BigDecimal minPrice,
+            @RequestParam(required = false) BigDecimal maxPrice,
+            @RequestParam(defaultValue = "created_at") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortOrder,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(defaultValue = "10") Integer pageSize) throws IOException {
+        Map<String, Object> result = spuSearchService.search(keyword, categoryId, brandId, null,
+                minPrice, maxPrice, sortBy, sortOrder, page, pageSize);
+        return Result.success(result);
+    }
+
+    /**
+     * 搜索建议（公开）
+     * <p>
+     * 基于商品名称的 Completion Suggester，用户在搜索框输入时自动补全。
+     *
+     * @param keyword 用户输入的前缀
+     * @param size    返回的建议数量，默认 5
+     * @return 建议词列表
+     */
+    @GetMapping("/suggest")
+    public Result<List<String>> suggest(
+            @RequestParam String keyword,
+            @RequestParam(defaultValue = "5") Integer size) throws IOException {
+        List<String> suggestions = spuSearchService.suggest(keyword, size);
+        return Result.success(suggestions);
     }
 
     /**

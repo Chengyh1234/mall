@@ -4,6 +4,7 @@ import lombok.Data;
 
 import jakarta.validation.constraints.NotNull;
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -36,6 +37,13 @@ public class SpuSaleAttrBindDto implements Serializable {
      * 该SPU启用的属性值ID列表
      * 例如：[1, 2, 3, 4] 表示该SPU有4个颜色可选
      */
-    @NotNull(message = "属性值ID列表不能为空")
+    //@NotNull(message = "属性值ID列表不能为空")
     private List<Long> selectedValueIds;
+
+    /**
+     * 自定义属性值列表
+     * 前端传入的自定义值文本，如 ["樱粉色", "薄荷绿"]
+     * 后端自动插入 attribute_values 表并合并到 selectedValueIds
+     */
+    private List<String> customValues;
 }

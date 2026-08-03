@@ -114,9 +114,11 @@ public class AttributeManageServiceImpl implements AttributeManageService {
                 new LambdaQueryWrapper<Attribute>().orderByAsc(Attribute::getSort)
         );
 
-        // 查询所有属性值，按属性ID分组
+        // 查询所有属性值（仅平台预设值，排除商家自定义值），按属性ID分组
         List<AttributeValue> allValues = attributeValueMapper.selectList(
-                new LambdaQueryWrapper<AttributeValue>().orderByAsc(AttributeValue::getSort)
+                new LambdaQueryWrapper<AttributeValue>()
+                        .isNull(AttributeValue::getSellerId)
+                        .orderByAsc(AttributeValue::getSort)
         );
         var valueMap = allValues.stream()
                 .collect(Collectors.groupingBy(AttributeValue::getAttrId));

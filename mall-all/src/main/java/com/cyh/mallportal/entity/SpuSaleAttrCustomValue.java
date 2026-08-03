@@ -9,13 +9,17 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
- * 属性值实体类
+ * SPU销售属性自定义值实体
+ * 商家为 SPU 的销售属性添加的自定义值（如：蓝色、金色）
+ * 生命周期跟随 SPU，删除 SPU 时级联删除
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName(value = "attribute_values", autoResultMap = true)
-public class AttributeValue implements Serializable {
+@TableName(value = "spu_sale_attr_custom_values", autoResultMap = true)
+public class SpuSaleAttrCustomValue implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     /**
      * 主键ID
@@ -24,19 +28,25 @@ public class AttributeValue implements Serializable {
     private Long id;
 
     /**
-     * 属性ID
+     * SPU ID
+     */
+    @TableField(value = "spu_id")
+    private Long spuId;
+
+    /**
+     * 销售属性ID
      */
     @TableField(value = "attr_id")
     private Long attrId;
 
     /**
-     * 属性值（黑色、8G、5000mAh等）
+     * 自定义属性值（如：蓝色、金色）
      */
     @TableField(value = "value")
     private String value;
 
     /**
-     * 销售属性可配图片（如颜色色块）
+     * 图片（如颜色色块）
      */
     @TableField(value = "image_url")
     private String imageUrl;
@@ -46,12 +56,6 @@ public class AttributeValue implements Serializable {
      */
     @TableField(value = "sort")
     private Integer sort;
-
-    /**
-     * 卖家ID（NULL=平台预设值，非NULL=卖家自定义值）
-     */
-    @TableField(value = "seller_id")
-    private Long sellerId;
 
     /**
      * 创建时间

@@ -312,29 +312,40 @@ public class SpuAttrServiceImpl implements SpuAttrService {
             throw new BusinessException("该属性不是销售属性，无法绑定");
         }
 
-        // 校验属性值列表
-        if (CollectionUtils.isEmpty(dto.getSelectedValueIds())) {
-            throw new BusinessException("属性值ID列表不能为空");
-        }
-
-        // 校验所有属性值是否属于该属性
-        for (Long valueId : dto.getSelectedValueIds()) {
-            AttributeValue attrValue = attributeValueMapper.selectById(valueId);
-            if (attrValue == null) {
-                throw new BusinessException("属性值不存在: " + valueId);
-            }
-            if (!attrValue.getAttrId().equals(dto.getAttrId())) {
-                throw new BusinessException("属性值" + valueId + " 不属于该属性");
-            }
+        // 校验属性值列表（至少需要选择已有值或输入自定义值）
+        if (CollectionUtils.isEmpty(dto.getSelectedValueIds()) && CollectionUtils.isEmpty(dto.getCustomValues())) {
+            throw new BusinessException("请选择属性值或输入自定义值");
         }
 
         // 检查是否已存在绑定关系
         LambdaQueryWrapper<SpuSaleAttrChoice> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(SpuSaleAttrChoice::getSpuId, dto.getSpuId())
-               .eq(SpuSaleAttrChoice::getAttrId, dto.getAttrId());
+                .eq(SpuSaleAttrChoice::getAttrId, dto.getAttrId());
         SpuSaleAttrChoice exist = spuSaleAttrChoiceMapper.selectOne(wrapper);
         if (exist != null) {
             throw new BusinessException("该销售属性已绑定，请先解绑或更新");
+        }
+
+        // 校验所有属性值是否属于该属性
+        if (!CollectionUtils.isEmpty(dto.getSelectedValueIds())) {
+            for (Long valueId : dto.getSelectedValueIds()) {
+                AttributeValue attrValue = attributeValueMapper.selectById(valueId);
+                if (attrValue == null) {
+                    throw new BusinessException("属性值不存在: " + valueId);
+                }
+                if (!attrValue.getAttrId().equals(dto.getAttrId())) {
+                    throw new BusinessException("属性值" + valueId + " 不属于该属性");
+                }
+            }
+        }
+
+        // 处理自定义属性值：插入 attribute_values 表并纳入 selectedValueIds
+        List<Long> customValueIds = processCustomValues(dto.getAttrId(), dto.getCustomValues(), sellerId);
+        if (!customValueIds.isEmpty()) {
+            if (dto.getSelectedValueIds() == null) {
+                dto.setSelectedValueIds(new ArrayList<>());
+            }
+            dto.getSelectedValueIds().addAll(customValueIds);
         }
 
         // 保存绑定关系
@@ -398,20 +409,31 @@ public class SpuAttrServiceImpl implements SpuAttrService {
         // 校验商家权限
         checkSpuPermission(entity.getSpuId(), sellerId);
 
-        // 校验属性值列表
-        if (CollectionUtils.isEmpty(dto.getSelectedValueIds())) {
-            throw new BusinessException("属性值ID列表不能为空");
+        // 校验属性值列表（至少需要选择已有值或输入自定义值）
+        if (CollectionUtils.isEmpty(dto.getSelectedValueIds()) && CollectionUtils.isEmpty(dto.getCustomValues())) {
+            throw new BusinessException("请选择属性值或输入自定义值");
         }
 
         // 校验所有属性值是否属于该属性
-        for (Long valueId : dto.getSelectedValueIds()) {
-            AttributeValue attrValue = attributeValueMapper.selectById(valueId);
-            if (attrValue == null) {
-                throw new BusinessException("属性值不存在: " + valueId);
+        if (!CollectionUtils.isEmpty(dto.getSelectedValueIds())) {
+            for (Long valueId : dto.getSelectedValueIds()) {
+                AttributeValue attrValue = attributeValueMapper.selectById(valueId);
+                if (attrValue == null) {
+                    throw new BusinessException("属性值不存在: " + valueId);
+                }
+                if (!attrValue.getAttrId().equals(entity.getAttrId())) {
+                    throw new BusinessException("属性值" + valueId + " 不属于该属性");
+                }
             }
-            if (!attrValue.getAttrId().equals(entity.getAttrId())) {
-                throw new BusinessException("属性值" + valueId + " 不属于该属性");
+        }
+
+        // 处理自定义属性值：插入 attribute_values 表并纳入 selectedValueIds
+        List<Long> customValueIds = processCustomValues(dto.getAttrId(), dto.getCustomValues(), sellerId);
+        if (!customValueIds.isEmpty()) {
+            if (dto.getSelectedValueIds() == null) {
+                dto.setSelectedValueIds(new ArrayList<>());
             }
+            dto.getSelectedValueIds().addAll(customValueIds);
         }
 
         // 检查被移除的属性值是否已被SKU绑定（即：旧值中有但新值中没有的，且已被SKU使用）
@@ -447,6 +469,10 @@ public class SpuAttrServiceImpl implements SpuAttrService {
         entity.setUpdatedAt(LocalDateTime.now());
 
         int result = spuSaleAttrChoiceMapper.updateById(entity);
+
+        // 清理被移除的卖家自定义属性值
+        cleanupRemovedCustomValues(oldValueIds, dto.getSelectedValueIds(), sellerId);
+
         log.info("商家 {} 更新SPU销售属性绑定 {} 成功", sellerId, id);
 
         return result > 0;
@@ -472,19 +498,21 @@ public class SpuAttrServiceImpl implements SpuAttrService {
             // 校验权限
             checkSpuPermission(entity.getSpuId(), sellerId);
 
-            // 校验属性值列表
-            if (CollectionUtils.isEmpty(dto.getSelectedValueIds())) {
-                throw new BusinessException("属性值ID列表不能为空，attrId: " + dto.getAttrId());
+            // 校验属性值列表（至少需要选择已有值或输入自定义值）
+            if (CollectionUtils.isEmpty(dto.getSelectedValueIds()) && CollectionUtils.isEmpty(dto.getCustomValues())) {
+                throw new BusinessException("请选择属性值或输入自定义值，attrId: " + dto.getAttrId());
             }
 
             // 校验所有属性值是否属于该属性
-            for (Long valueId : dto.getSelectedValueIds()) {
-                AttributeValue attrValue = attributeValueMapper.selectById(valueId);
-                if (attrValue == null) {
-                    throw new BusinessException("属性值不存在: " + valueId);
-                }
-                if (!attrValue.getAttrId().equals(entity.getAttrId())) {
-                    throw new BusinessException("属性值" + valueId + " 不属于该属性");
+            if (!CollectionUtils.isEmpty(dto.getSelectedValueIds())) {
+                for (Long valueId : dto.getSelectedValueIds()) {
+                    AttributeValue attrValue = attributeValueMapper.selectById(valueId);
+                    if (attrValue == null) {
+                        throw new BusinessException("属性值不存在: " + valueId);
+                    }
+                    if (!attrValue.getAttrId().equals(entity.getAttrId())) {
+                        throw new BusinessException("属性值" + valueId + " 不属于该属性");
+                    }
                 }
             }
 
@@ -520,9 +548,24 @@ public class SpuAttrServiceImpl implements SpuAttrService {
         int count = 0;
         for (SpuSaleAttrBindDto dto : dtoList) {
             SpuSaleAttrChoice entity = spuSaleAttrChoiceMapper.selectById(dto.getId());
+            List<Long> oldValueIds = JSON.parseArray(entity.getSelectedValues(), Long.class);
+
+            // 处理自定义属性值
+            List<Long> customValueIds = processCustomValues(dto.getAttrId(), dto.getCustomValues(), sellerId);
+            if (!customValueIds.isEmpty()) {
+                if (dto.getSelectedValueIds() == null) {
+                    dto.setSelectedValueIds(new ArrayList<>());
+                }
+                dto.getSelectedValueIds().addAll(customValueIds);
+            }
+
             entity.setSelectedValues(JSON.toJSONString(dto.getSelectedValueIds()));
             entity.setUpdatedAt(LocalDateTime.now());
             spuSaleAttrChoiceMapper.updateById(entity);
+
+            // 清理被移除的卖家自定义属性值
+            cleanupRemovedCustomValues(oldValueIds, dto.getSelectedValueIds(), sellerId);
+
             count++;
             log.info("商家 {} 更新SPU销售属性绑定 {} 成功", sellerId, dto.getId());
         }
@@ -603,6 +646,7 @@ public class SpuAttrServiceImpl implements SpuAttrService {
                         valueVo.setValueId(valueId);
                         valueVo.setValue(attrValue.getValue());
                         valueVo.setImageUrl(attrValue.getImageUrl());
+                        valueVo.setCustom(attrValue.getSellerId() != null);
                         valueVos.add(valueVo);
                     }
                 }
@@ -683,6 +727,7 @@ public class SpuAttrServiceImpl implements SpuAttrService {
                         valueVo.setValueId(valueId);
                         valueVo.setValue(attrValue.getValue());
                         valueVo.setImageUrl(attrValue.getImageUrl());
+                        valueVo.setCustom(attrValue.getSellerId() != null);
                         valueVos.add(valueVo);
                     }
                 }
@@ -693,6 +738,66 @@ public class SpuAttrServiceImpl implements SpuAttrService {
         vo.setSaleAttrs(saleAttrVos);
 
         return vo;
+    }
+
+    // ==================== 自定义属性值处理 ====================
+
+    /**
+     * 处理自定义属性值：插入 attribute_values 表（已存在则直接返回ID）
+     *
+     * @param attrId      属性ID
+     * @param customValues 前端传入的自定义值文本列表
+     * @param sellerId    当前卖家ID
+     * @return 新插入（或已存在）的属性值ID列表
+     */
+    private List<Long> processCustomValues(Long attrId, List<String> customValues, Long sellerId) {
+        if (CollectionUtils.isEmpty(customValues)) {
+            return Collections.emptyList();
+        }
+        List<Long> newIds = new ArrayList<>();
+        for (String customValue : customValues) {
+            // 先查该卖家是否已添加过相同的值，避免重复
+            LambdaQueryWrapper<AttributeValue> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(AttributeValue::getAttrId, attrId)
+                   .eq(AttributeValue::getSellerId, sellerId)
+                   .eq(AttributeValue::getValue, customValue);
+            AttributeValue existing = attributeValueMapper.selectOne(wrapper);
+
+            if (existing != null) {
+                newIds.add(existing.getId());
+            } else {
+                AttributeValue newValue = new AttributeValue();
+                newValue.setAttrId(attrId);
+                newValue.setValue(customValue);
+                newValue.setSellerId(sellerId);
+                attributeValueMapper.insert(newValue);
+                newIds.add(newValue.getId());
+            }
+        }
+        return newIds;
+    }
+
+    /**
+     * 清理被移除的卖家自定义属性值
+     * 将旧值中属于卖家自定义、但不在新值列表中的，从 attribute_values 删除
+     *
+     * @param oldValueIds 旧的属性值ID列表
+     * @param newValueIds 新的属性值ID列表
+     * @param sellerId    当前卖家ID
+     */
+    private void cleanupRemovedCustomValues(List<Long> oldValueIds, List<Long> newValueIds, Long sellerId) {
+        if (CollectionUtils.isEmpty(oldValueIds)) return;
+        // 查出旧值中属于该卖家自定义的值
+        List<AttributeValue> sellerValues = attributeValueMapper.selectList(
+                new LambdaQueryWrapper<AttributeValue>()
+                        .in(AttributeValue::getId, oldValueIds)
+                        .eq(AttributeValue::getSellerId, sellerId)
+        );
+        for (AttributeValue sv : sellerValues) {
+            if (!newValueIds.contains(sv.getId())) {
+                attributeValueMapper.deleteById(sv.getId());
+            }
+        }
     }
 
     /**

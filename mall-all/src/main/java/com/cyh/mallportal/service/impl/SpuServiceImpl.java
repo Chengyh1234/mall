@@ -11,6 +11,7 @@ import com.cyh.mallportal.mapper.*;
 import com.cyh.mallportal.mq.event.CacheDomain;
 import com.cyh.mallportal.mq.event.CacheInvalidateEvent;
 import com.cyh.mallportal.mq.publisher.CacheEventPublisher;
+import com.cyh.mallportal.mq.publisher.SpuEventPublisher;
 import com.cyh.mallportal.service.SpuCacheService;
 import com.cyh.mallportal.service.SpuService;
 import com.cyh.mallportal.vo.*;
@@ -59,6 +60,9 @@ public class SpuServiceImpl implements SpuService {
     private CacheEventPublisher cacheEventPublisher;
 
     @Autowired
+    private SpuEventPublisher spuEventPublisher;
+
+    @Autowired
     private CategoryMapper categoryMapper;
 
     @Autowired
@@ -101,6 +105,10 @@ public class SpuServiceImpl implements SpuService {
             spu.setSales(0);                  // 默认销量 0
         }
         int result = spuMapper.insert(spu);
+        if (result > 0) {
+            spuEventPublisher.publishSync(spu.getId(), "CREATE");
+            log.info("新增商品后发布 ES 同步事件: spuId={}", spu.getId());
+        }
         return result > 0 ? spu.getId() : null;
     }
 
@@ -119,7 +127,8 @@ public class SpuServiceImpl implements SpuService {
                             RedisConstants.SPU_DETAIL_SELLER_PREFIX + id,
                             RedisConstants.SPU_DETAIL_ADMIN_PREFIX + id
                     )));
-            log.info("删除商品后发布缓存失效事件: spuId={}", id);
+            spuEventPublisher.publishSync(id, "DELETE");
+            log.info("删除商品后发布缓存失效事件和 ES 同步事件: spuId={}", id);
         }
         return result > 0;
     }
@@ -142,7 +151,8 @@ public class SpuServiceImpl implements SpuService {
                             RedisConstants.SPU_DETAIL_SELLER_PREFIX + id,
                             RedisConstants.SPU_DETAIL_ADMIN_PREFIX + id
                     )));
-            log.info("恢复商品后发布缓存失效事件: spuId={}", id);
+            spuEventPublisher.publishSync(id, "UPDATE");
+            log.info("恢复商品后发布缓存失效事件和 ES 同步事件: spuId={}", id);
         }
         return result > 0;
     }
@@ -220,7 +230,8 @@ public class SpuServiceImpl implements SpuService {
                             RedisConstants.SPU_DETAIL_SELLER_PREFIX + spu.getId(),
                             RedisConstants.SPU_DETAIL_ADMIN_PREFIX + spu.getId()
                     )));
-            log.info("更新商品后发布缓存失效事件: spuId={}", spu.getId());
+            spuEventPublisher.publishSync(spu.getId(), "UPDATE");
+            log.info("更新商品后发布缓存失效事件和 ES 同步事件: spuId={}", spu.getId());
         }
         return result > 0;
     }
@@ -421,7 +432,7 @@ public class SpuServiceImpl implements SpuService {
         spu.setMinPrice(minPrice);
         spuMapper.updateById(spu);
 
-        // 最低售价变化 → 详情页、列表页都需要更新 → 发布缓存失效事件
+        // 最低售价变化 → 详情页、列表页都需要更新 → 发布缓存失效事件 + ES 同步事件
         cacheEventPublisher.publishInvalidate(new CacheInvalidateEvent()
                 .setDomain(CacheDomain.SPU)
                 .setExactKeys(List.of(
@@ -429,7 +440,8 @@ public class SpuServiceImpl implements SpuService {
                         RedisConstants.SPU_DETAIL_SELLER_PREFIX + spuId,
                         RedisConstants.SPU_DETAIL_ADMIN_PREFIX + spuId
                 )));
-        log.info("更新SPU[{}]的最低售价: {}, 已发布缓存失效事件", spuId, minPrice);
+        spuEventPublisher.publishSync(spuId, "UPDATE");
+        log.info("更新SPU[{}]的最低售价: {}, 已发布缓存失效事件和 ES 同步事件", spuId, minPrice);
     }
 
     /**

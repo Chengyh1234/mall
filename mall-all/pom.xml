@@ -127,19 +127,19 @@
             <artifactId>spring-boot-starter-amqp</artifactId>
         </dependency>
 
-    </dependencies>
-    <!--<dependencyManagement>-->
-    <!--    <dependencies>-->
-    <!--        <dependency>-->
-    <!--            <groupId>org.springframework.boot</groupId>-->
-    <!--            <artifactId>spring-boot-dependencies</artifactId>-->
-    <!--            <version>${spring-boot.version}</version>-->
-    <!--            <type>pom</type>-->
-    <!--            <scope>import</scope>-->
-    <!--        </dependency>-->
-    <!--    </dependencies>-->
-    <!--</dependencyManagement>-->
+        <!-- Elasticsearch 7.x Rest High Level Client -->
+        <dependency>
+            <groupId>org.elasticsearch.client</groupId>
+            <artifactId>elasticsearch-rest-high-level-client</artifactId>
+            <version>7.12.1</version>
+        </dependency>
+        <dependency>
+            <groupId>org.elasticsearch</groupId>
+            <artifactId>elasticsearch</artifactId>
+            <version>7.12.1</version>
+        </dependency>
 
+    </dependencies>
     <build>
         <plugins>
             <plugin>
