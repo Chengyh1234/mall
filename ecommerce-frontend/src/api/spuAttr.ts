@@ -17,6 +17,8 @@ export interface SpuSaleAttrBind {
   spuId: number
   attrId: number
   selectedValueIds: number[]
+  /** 新增的自定义值（文本），后端会创建并返回对应的 valueId */
+  customValues?: string[]
 }
 
 /**
@@ -73,6 +75,8 @@ export interface SpuAttrValue {
   valueId: number
   value: string
   imageUrl?: string
+  /** true=卖家自定义，false=平台预设 */
+  custom?: boolean
 }
 
 /**
@@ -220,6 +224,8 @@ export interface BatchUpdateSaleAttrItem {
   spuId: number
   attrId: number
   selectedValueIds: number[]
+  /** 新增的自定义值（文本），后端会创建并返回对应的 valueId */
+  customValues?: string[]
 }
 
 /**

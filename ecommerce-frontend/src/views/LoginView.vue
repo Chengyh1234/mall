@@ -54,7 +54,7 @@
             @click="activeTab = 'email'; loadEmailCaptcha()"
           >
             <span class="tab-icon">📧</span>
-            验证码登录
+            邮箱登录
           </button>
         </div>
 

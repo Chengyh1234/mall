@@ -265,16 +265,98 @@
               <div v-for="attr in salesAttributes" :key="attr.attrId" class="attr-item sale">
                 <div class="attr-header">
                   <span class="attr-name">{{ attr.attrName }}</span>
-                  <button type="button" class="select-all-btn" @click="selectAllSaleAttr(attr.attrId)">
-                    全选
-                  </button>
                 </div>
-                <div class="sale-attr-controls">
-                  <el-checkbox-group v-model="selectedSaleAttrValues[attr.attrId]" class="attr-checkbox-group">
-                    <el-checkbox v-for="val in attr.values" :key="val.valueId" :label="val.valueId">
-                      {{ val.value }}
-                    </el-checkbox>
-                  </el-checkbox-group>
+                <div class="sale-attr-input-area">
+                  <div class="sale-attr-inputs">
+                    <div
+                      v-for="(item, idx) in getSaleAttrValues(attr.attrId)"
+                      :key="idx"
+                      class="sale-attr-input-item"
+                    >
+                      <span
+                        v-if="!item.isCustom"
+                        class="sale-attr-badge badge-preset"
+                        title="系统标准值，不可编辑"
+                      >标准</span>
+                      <span
+                        v-else-if="item.isPersisted"
+                        class="sale-attr-badge badge-custom-persisted"
+                        title="已保存的自定义值"
+                      >自定义</span>
+                      <span
+                        v-else
+                        class="sale-attr-badge badge-custom-new"
+                        title="新增的自定义值，输入后自动匹配标准值"
+                      >新增</span>
+                      <el-input
+                        v-model="item.value"
+                        placeholder="输入值"
+                        class="sale-attr-input"
+                        :class="{ 'input-custom': item.isCustom }"
+                        :readonly="!item.isCustom"
+                        @blur="autoMatchSaleAttrValue(attr.attrId, idx)"
+                        @keyup.enter="($event.target as HTMLInputElement).blur()"
+                      />
+                      <button
+                        type="button"
+                        class="sale-remove-btn"
+                        title="移除"
+                        @click="removeSaleAttrValue(attr.attrId, idx)"
+                      >
+                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <line x1="18" y1="6" x2="6" y2="18"/>
+                          <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                  <!-- 添加值按钮（弹出面板，标准值 + 自定义） -->
+                  <el-popover
+                    v-model:visible="salePickerVisible[attr.attrId]"
+                    placement="bottom-start"
+                    :width="300"
+                    trigger="click"
+                    @show="onSalePickerShow(attr.attrId)"
+                  >
+                    <template #reference>
+                      <button type="button" class="sale-add-btn" title="添加值">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                          <line x1="12" y1="5" x2="12" y2="19"/>
+                          <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                      </button>
+                    </template>
+                    <div class="sale-picker-content">
+                      <div class="sale-picker-title">选择 {{ attr.attrName }}</div>
+                      <!-- 标准值多选 -->
+                      <el-checkbox-group v-model="saleTempSelection[attr.attrId]">
+                        <el-checkbox
+                          v-for="val in attr.values"
+                          :key="val.valueId"
+                          :label="val.valueId"
+                        >
+                          {{ val.value }}
+                        </el-checkbox>
+                      </el-checkbox-group>
+                      <!-- 自定义添加 -->
+                      <div class="custom-add-section">
+                        <div class="custom-add-divider">或自定义输入</div>
+                        <div class="custom-add-row">
+                          <el-input
+                            v-model="customInputText[attr.attrId]"
+                            placeholder="输入自定义值"
+                            size="small"
+                            @keyup.enter="addCustomSaleAttrValue(attr.attrId)"
+                          />
+                          <el-button size="small" @click="addCustomSaleAttrValue(attr.attrId)">添加</el-button>
+                        </div>
+                      </div>
+                      <div class="sale-picker-actions">
+                        <el-button size="small" @click="cancelSalePicker(attr.attrId)">取消</el-button>
+                        <el-button size="small" type="primary" @click="confirmSalePicker(attr.attrId)">确定</el-button>
+                      </div>
+                    </div>
+                  </el-popover>
                 </div>
               </div>
             </div>
@@ -748,6 +830,20 @@ const singleSkuForm = reactive({
   status: 1,
   selectedAttrValues: {} as Record<number, number | null>
 })
+
+// 销售属性已选值项
+interface SaleAttrItem {
+  valueId: number | string  // 预定义值用 number，自定义值用临时 string ID
+  value: string
+  isCustom: boolean
+  isPersisted?: boolean     // 自定义值是否已持久化到后端（仅 isCustom=true 时有效）
+}
+
+// 销售属性展示状态（预定义 + 自定义）
+const saleAttrDisplayValues = ref<Record<number, SaleAttrItem[]>>({})
+const salePickerVisible = ref<Record<number, boolean>>({})
+const saleTempSelection = ref<Record<number, number[]>>({})
+const customInputText = ref<Record<number, string>>({})
 
 const existingSkuCombinations = computed(() => {
   const set = new Set<string>()
@@ -1252,6 +1348,154 @@ const handleDeleteAllSku = async () => {
   }
 }
 
+// ===== 销售属性通用辅助函数（预定义 + 自定义） =====
+
+/** 获取销售属性已选值列表（有序） */
+const getSaleAttrValues = (attrId: number): SaleAttrItem[] => {
+  return saleAttrDisplayValues.value[attrId] || []
+}
+
+/** 点击 [+] 生成空白输入框 */
+const addBlankSaleAttrValue = (attrId: number) => {
+  const values = saleAttrDisplayValues.value[attrId] || []
+  const tempId = `custom_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
+  values.push({ valueId: tempId, value: '', isCustom: true, isPersisted: false })
+  saleAttrDisplayValues.value[attrId] = [...values]
+}
+
+/** 弹窗内添加自定义值 */
+const addCustomSaleAttrValue = (attrId: number) => {
+  const text = customInputText.value[attrId]?.trim()
+  if (!text) return
+
+  const values = saleAttrDisplayValues.value[attrId] || []
+  if (values.some(v => v.value === text)) return
+
+  const tempId = `custom_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`
+  values.push({ valueId: tempId, value: text, isCustom: true, isPersisted: false })
+  saleAttrDisplayValues.value[attrId] = [...values]
+  customInputText.value[attrId] = ''
+}
+
+/** 失焦时自动匹配标准值 */
+const autoMatchSaleAttrValue = (attrId: number, index: number) => {
+  const values = saleAttrDisplayValues.value[attrId]
+  if (!values) return
+
+  const item = values[index]
+  if (!item || !item.isCustom) return
+
+  const text = item.value.trim()
+  if (!text) return
+
+  const attr = salesAttributes.value.find(a => a.attrId === attrId)
+  if (!attr) return
+
+  // 按名称匹配标准值
+  const matched = attr.values.find(v => v.value === text)
+  if (matched) {
+    values[index] = { valueId: matched.valueId, value: matched.value, isCustom: false }
+    saleAttrDisplayValues.value[attrId] = [...values]
+    // 同步到 selectedSaleAttrValues 供保存使用
+    const currentIds = selectedSaleAttrValues.value[attrId] || []
+    if (!currentIds.includes(matched.valueId)) {
+      selectedSaleAttrValues.value[attrId] = [...currentIds, matched.valueId]
+    }
+  }
+  // 无匹配 → 保持自定义状态，不做任何转换
+}
+
+/** 选择器弹出时初始化临时选择 */
+const onSalePickerShow = (attrId: number) => {
+  saleTempSelection.value[attrId] = (saleAttrDisplayValues.value[attrId] || [])
+    .filter(item => !item.isCustom)
+    .map(item => item.valueId as number)
+}
+
+/** 确认选择（多选弹窗） */
+const confirmSalePicker = (attrId: number) => {
+  const selectedIds = saleTempSelection.value[attrId] || []
+  const attr = salesAttributes.value.find(a => a.attrId === attrId)
+  if (attr) {
+    // 保留已有的自定义值
+    const existingCustom = (saleAttrDisplayValues.value[attrId] || [])
+      .filter(item => item.isCustom)
+
+    // 从预定义值中更新选中项
+    const predefinedValues: SaleAttrItem[] = selectedIds
+      .map(id => {
+        const val = attr.values.find(v => v.valueId === id)
+        return val ? { valueId: val.valueId, value: val.value, isCustom: false } : null
+      })
+      .filter((v): v is SaleAttrItem => v !== null)
+
+    saleAttrDisplayValues.value[attrId] = [...existingCustom, ...predefinedValues]
+
+    // 同步到 selectedSaleAttrValues 供保存使用（包含已持久化的自定义值 ID）
+    selectedSaleAttrValues.value[attrId] = [
+      ...predefinedValues.map(v => v.valueId as number),
+      ...existingCustom.filter(v => v.isPersisted).map(v => v.valueId as number)
+    ]
+  }
+  salePickerVisible.value[attrId] = false
+}
+
+/** 取消选择 */
+const cancelSalePicker = (attrId: number) => {
+  salePickerVisible.value[attrId] = false
+}
+
+/** 移除已选值 */
+const removeSaleAttrValue = (attrId: number, index: number) => {
+  const values = saleAttrDisplayValues.value[attrId]
+  if (values) {
+    values.splice(index, 1)
+    saleAttrDisplayValues.value[attrId] = [...values]
+    // 同步 selectedSaleAttrValues（包含已持久化的自定义值 ID）
+    selectedSaleAttrValues.value[attrId] = values
+      .filter(v => !v.isCustom || (v.isCustom && v.isPersisted))
+      .map(v => v.valueId as number)
+  }
+}
+
+/** 从后端返回的销售属性数据还原展示值 */
+const initSaleAttrValues = (saleAttrs?: Array<{ attrId: number; selectedValues: Array<{ valueId: number; value: string; custom?: boolean }> }>) => {
+  salesAttributes.value.forEach(attr => {
+    const selectedIds = selectedSaleAttrValues.value[attr.attrId] || []
+    // 保留已有的自定义值（未持久化的，比如刚添加还未保存的）
+    const existingCustom = (saleAttrDisplayValues.value[attr.attrId] || [])
+      .filter(item => item.isCustom && !item.isPersisted)
+
+    // 获取后端返回的当前属性的 selectedValues
+    const backendAttr = saleAttrs?.find(sa => sa.attrId === attr.attrId)
+    const backendValues = backendAttr?.selectedValues || []
+
+    // 从后端 selectedValues 中按 ID 还原（使用 custom 字段判断）
+    const predefinedValues: SaleAttrItem[] = selectedIds
+      .map(id => {
+        // 优先使用后端返回的完整数据（含 custom 标识）
+        const bv = backendValues.find(v => v.valueId === id)
+        if (bv) {
+          return {
+            valueId: bv.valueId,
+            value: bv.value,
+            isCustom: bv.custom === true,
+            isPersisted: bv.custom === true ? true : undefined
+          }
+        }
+        // 回退：从预设值列表中查找
+        const val = attr.values.find(v => v.valueId === id)
+        if (val) return { valueId: val.valueId, value: val.value, isCustom: false }
+        // 兜底
+        return { valueId: id, value: String(id), isCustom: true, isPersisted: true }
+      })
+      .filter((v): v is SaleAttrItem => v !== null)
+
+    // 合并：未持久化的自定义值 + 后端已持久化的值（预设 + 已持久化自定义）
+    saleAttrDisplayValues.value[attr.attrId] = [...existingCustom, ...predefinedValues]
+  })
+}
+
 const loadProducts = async () => {
   // 确保用户信息已加载且包含有效 id
   if (!userStore.userInfo?.id) {
@@ -1287,13 +1531,6 @@ const loadCategoriesAndBrands = async () => {
     categoryTree.value = treeData || []
     brandList.value = brands || []
   } catch { /* ignore */ }
-}
-
-const selectAllSaleAttr = (attrId: number) => {
-  const attr = salesAttributes.value.find(a => a.attrId === attrId)
-  if (attr) {
-    selectedSaleAttrValues.value[attrId] = attr.values.map(v => v.valueId)
-  }
 }
 
 const handleCategoryChange = async (categoryId: number) => {
@@ -1336,6 +1573,10 @@ const handleCategoryChange = async (categoryId: number) => {
     selectedBasicAttrs.value = {}
     customBasicAttrs.value = {}
     selectedSaleAttrValues.value = {}
+    saleAttrDisplayValues.value = {}
+    salePickerVisible.value = {}
+    saleTempSelection.value = {}
+    customInputText.value = {}
     basicAttributes.value.forEach(attr => {
       selectedBasicAttrs.value[attr.attrId] = 0
       customBasicAttrs.value[attr.attrId] = ''
@@ -1527,6 +1768,9 @@ const nextStep = async () => {
                 }))
             }
           })
+
+        // ── 同步销售属性展示值（使用后端 custom 字段）──
+        initSaleAttrValues(spuAttrs.saleAttrs)
       } else {
         basicAttributes.value.forEach((attr: any) => {
           if (selectedBasicAttrs.value[attr.attrId] === undefined) {
@@ -1539,6 +1783,7 @@ const nextStep = async () => {
             selectedSaleAttrValues.value[attr.attrId] = []
           }
         })
+        initSaleAttrValues()
       }
     } catch {
     }
@@ -1711,17 +1956,44 @@ const saveSaleAttrs = async () => {
 
   savingSaleAttrs.value = true
   try {
-    const updateItems: Array<{ id: number; spuId: number; attrId: number; selectedValueIds: number[] }> = []
-    const bindItems: Array<{ spuId: number; attrId: number; selectedValueIds: number[] }> = []
+    const updateItems: Array<{
+      id: number; spuId: number; attrId: number;
+      selectedValueIds: number[]; customValues?: string[]
+    }> = []
+    const bindItems: Array<{
+      spuId: number; attrId: number;
+      selectedValueIds: number[]; customValues?: string[]
+    }> = []
 
-    for (const attrId of Object.keys(selectedSaleAttrValues.value)) {
-      const valueIds = selectedSaleAttrValues.value[Number(attrId)]
-      const bindId = saleAttrBindIds.value[Number(attrId)]
-      if (valueIds && valueIds.length > 0) {
+    // 从 saleAttrDisplayValues 构建完整数据
+    for (const attrIdStr of Object.keys(saleAttrDisplayValues.value)) {
+      const attrId = Number(attrIdStr)
+      const displayValues = saleAttrDisplayValues.value[attrId] || []
+      if (displayValues.length === 0) continue
+
+      // 预设值 ID + 已持久化的自定义值 ID
+      const selectedValueIds = displayValues
+        .filter(v => !v.isCustom || (v.isCustom && v.isPersisted))
+        .map(v => v.valueId as number)
+
+      // 新增的自定义值（未持久化）
+      const customValues = displayValues
+        .filter(v => v.isCustom && !v.isPersisted)
+        .map(v => v.value)
+
+      const bindId = saleAttrBindIds.value[attrId]
+
+      if (selectedValueIds.length > 0 || customValues.length > 0) {
+        const payload = {
+          spuId,
+          attrId,
+          selectedValueIds,
+          ...(customValues.length > 0 ? { customValues } : {})
+        }
         if (bindId) {
-          updateItems.push({ id: bindId, spuId, attrId: Number(attrId), selectedValueIds: valueIds })
+          updateItems.push({ id: bindId, ...payload })
         } else {
-          bindItems.push({ spuId, attrId: Number(attrId), selectedValueIds: valueIds })
+          bindItems.push(payload)
         }
       }
     }
@@ -1744,6 +2016,9 @@ const saveSaleAttrs = async () => {
           }
         })
         saleAttrBindIds.value = saleBindIds
+
+        // ── 同步销售属性展示值（使用后端 custom 字段）──
+        initSaleAttrValues(spuAttrs.saleAttrs)
 
         salesAttrsForSkuCombinations.value = (spuAttrs.saleAttrs || []).map((attr: any) => ({
           attrId: attr.attrId,
@@ -2044,6 +2319,9 @@ const editProduct = async (row: SpuItem) => {
         })
     }
 
+    // ── 同步销售属性展示值（使用后端 custom 字段）──
+    initSaleAttrValues(spuAttrs.saleAttrs)
+
     await loadCategoriesAndBrands()
     showModal.value = true
   } catch {
@@ -2187,6 +2465,10 @@ const resetForm = () => {
   selectedBasicAttrs.value = {}
   customBasicAttrs.value = {}
   selectedSaleAttrValues.value = {}
+  saleAttrDisplayValues.value = {}
+  salePickerVisible.value = {}
+  saleTempSelection.value = {}
+  customInputText.value = {}
   currentStep.value = 0
   savedSpuId.value = undefined
   spuCreated.value = false
@@ -2615,22 +2897,6 @@ watch(() => userStore.userInfo, () => {
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-
-.select-all-btn {
-  align-self: flex-start;
-  padding: 4px 10px;
-  font-size: 12px;
-  color: #3B6E6E;
-  background: rgba(59, 110, 110, 0.08);
-  border-radius: 6px;
-  border: none;
-  cursor: pointer;
-  transition: background 0.2s ease;
-}
-
-.select-all-btn:hover {
-  background: rgba(59, 110, 110, 0.14);
 }
 
 /* ====== SKU 区域 ====== */
@@ -3142,5 +3408,237 @@ watch(() => userStore.userInfo, () => {
 
 .sku-form :deep(.el-switch__label) {
   color: #6B6B6E;
+}
+
+/* ====== 销售属性输入框 UI ====== */
+.sale-attr-input-area {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  width: 100%;
+}
+
+.sale-attr-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  flex: 1;
+}
+
+.sale-attr-input-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+/* 销售属性值标签：预设 / 自定义 / 新增 */
+.sale-attr-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  line-height: 1;
+  padding: 2px 5px;
+  border-radius: 4px;
+  white-space: nowrap;
+  user-select: none;
+  margin-right: 2px;
+}
+.badge-preset {
+  color: #3B6E6E;
+  background: #E8F4F4;
+  border: 1px solid #C8E0E0;
+}
+.badge-custom-persisted {
+  color: #5B6ABF;
+  background: #EEF0FA;
+  border: 1px solid #D0D5F0;
+}
+.badge-custom-new {
+  color: #C9603A;
+  background: #FEF0EA;
+  border: 1px solid #F5D4C4;
+}
+
+/* 自定义值的输入框边框微调 */
+.input-custom :deep(.el-input__wrapper) {
+  box-shadow: 0 0 0 1px #D0D5F0 inset;
+}
+
+/* 标准值（预设）只读样式 */
+.sale-attr-input:not(.input-custom) :deep(.el-input__inner) {
+  cursor: default;
+  color: #5B5B5E;
+}
+.sale-attr-input:not(.input-custom) :deep(.el-input__wrapper) {
+  background: #F8F8F6;
+}
+
+.sale-attr-input {
+  width: 120px;
+}
+
+.sale-attr-input :deep(.el-input__wrapper) {
+  background: #FFFFFF;
+  box-shadow: 0 0 0 1px #E5E5E0 inset;
+  border-radius: 6px;
+  padding: 0 6px;
+  transition: box-shadow 0.2s ease;
+}
+
+.sale-attr-input :deep(.el-input__wrapper:hover) {
+  box-shadow: 0 0 0 1px #3B6E6E inset;
+}
+
+.sale-attr-input :deep(.el-input__wrapper.is-focus) {
+  box-shadow: 0 0 0 1px #3B6E6E inset, 0 0 0 3px rgba(59, 110, 110, 0.08);
+}
+
+.sale-attr-input :deep(.el-input__inner) {
+  font-size: 13px;
+  color: #1C1C1E;
+}
+
+.sale-attr-input :deep(.el-input__suffix) {
+  display: flex;
+  align-items: center;
+}
+
+.sale-remove-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: #A1A1AA;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.sale-remove-btn:hover {
+  background: rgba(184, 92, 92, 0.1);
+  color: #B85C5C;
+}
+
+.sale-add-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 1px dashed #C8C8C2;
+  border-radius: 6px;
+  background: #FAFAF9;
+  color: #A1A1AA;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.sale-add-btn:hover {
+  border-color: #3B6E6E;
+  color: #3B6E6E;
+  background: rgba(59, 110, 110, 0.04);
+}
+
+/* ====== 添加值弹窗 ====== */
+.sale-picker-content {
+  padding: 4px;
+}
+
+.sale-picker-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1C1C1E;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #F0F0EE;
+}
+
+.sale-picker-content :deep(.el-checkbox-group) {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+  margin-bottom: 8px;
+  padding: 2px 0;
+}
+
+.sale-picker-content :deep(.el-checkbox) {
+  margin-right: 0;
+  height: 28px;
+}
+
+.sale-picker-content :deep(.el-checkbox__label) {
+  font-size: 13px;
+  color: #1C1C1E;
+}
+
+.sale-picker-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #F0F0EE;
+}
+
+.sale-picker-actions .el-button {
+  border-radius: 6px;
+  font-weight: 600;
+  padding: 6px 16px;
+}
+
+/* ====== 弹窗内自定义添加区 ====== */
+.custom-add-section {
+  margin-bottom: 8px;
+}
+
+.custom-add-divider {
+  font-size: 12px;
+  color: #A1A1AA;
+  margin-bottom: 8px;
+  text-align: center;
+  position: relative;
+}
+
+.custom-add-divider::before,
+.custom-add-divider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 35%;
+  height: 1px;
+  background: #F0F0EE;
+}
+
+.custom-add-divider::before {
+  left: 0;
+}
+
+.custom-add-divider::after {
+  right: 0;
+}
+
+.custom-add-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.custom-add-row .el-input {
+  flex: 1;
+}
+
+.custom-add-row .el-button {
+  flex-shrink: 0;
+  border-radius: 6px;
+  font-weight: 600;
 }
 </style>

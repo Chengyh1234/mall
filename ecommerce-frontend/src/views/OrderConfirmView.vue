@@ -221,9 +221,6 @@
         </div>
 
         <div class="action-group centered">
-          <button class="secondary-button" @click="goBack">
-            返回修改
-          </button>
           <button class="primary-button" @click="handlePayOrder">
             立即支付
           </button>
