@@ -11,6 +11,7 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * ES 商品索引映射实体
@@ -66,7 +67,7 @@ public class SpuIndex {
     private String mainImage;
 
     /** 状态（1-上架 0-下架） */
-    private Integer status;
+    //private Integer status;
 
     /** 创建时间 */
     private LocalDateTime createdAt;
@@ -119,11 +120,15 @@ public class SpuIndex {
                         .startObject("min_price").field("type", "double").endObject()
                         .startObject("sales").field("type", "integer").endObject()
                         .startObject("main_image").field("type", "keyword").endObject()
-                        .startObject("status").field("type", "integer").endObject()
+                        //.startObject("status").field("type", "integer").endObject()
                         .startObject("created_at").field("type", "date")
                             .field("format", "yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis")
                         .endObject()
-                        .startObject("suggest").field("type", "completion").endObject()
+                        .startObject("suggest")
+                            .field("type", "completion")
+                            .field("analyzer", "ik_smart")  // 中文分词器
+                            .field("preserve_separators", true)// 保留分隔符（如空格、符号）
+                        .endObject()
                     .endObject()
                 .endObject();
     }

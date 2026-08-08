@@ -105,7 +105,6 @@ public class SpuSyncConsumer {
                 .setMinPrice(spu.getMinPrice())
                 .setSales(spu.getSales())
                 .setMainImage(spu.getMainImage())
-                .setStatus(spu.getStatus())
                 .setCreatedAt(spu.getCreatedAt());
     }
 }

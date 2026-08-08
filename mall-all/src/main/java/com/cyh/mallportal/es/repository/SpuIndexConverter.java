@@ -6,7 +6,9 @@ import org.elasticsearch.search.SearchHit;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -39,14 +41,29 @@ public class SpuIndexConverter {
         map.put("min_price", index.getMinPrice() != null ? index.getMinPrice().doubleValue() : null);
         map.put("sales", index.getSales());
         map.put("main_image", index.getMainImage());
-        map.put("status", index.getStatus());
+        //map.put("status", index.getStatus());
         map.put("created_at", index.getCreatedAt() != null ? index.getCreatedAt().format(DT_FORMATTER) : null);
-        // suggest 字段使用 name 作为补全输入
-        if (index.getName() != null) {
-            Map<String, Object> suggest = new HashMap<>();
-            suggest.put("input", index.getName());
-            map.put("suggest", suggest);
+        // suggest 字段使用 name,description,category_name,brand_name,store_name 作为补全输入
+        Map<String, Object> suggest = new HashMap<>();
+        List<String> inputs = new ArrayList<>();
+        if(index.getName()!=null) {
+            inputs.add(index.getName());
         }
+        if(index.getDescription()!=null) {
+            inputs.add(index.getDescription());
+        }
+        if(index.getBrandName()!=null) {
+            inputs.add(index.getBrandName());
+        }
+        if(index.getCategoryName()!=null) {
+            inputs.add(index.getCategoryName());
+        }
+        if(index.getStoreName()!=null) {
+            inputs.add(index.getStoreName());
+        }
+        suggest.put("input", inputs);
+        map.put("suggest", suggest);
+
         return map;
     }
 
@@ -73,7 +90,7 @@ public class SpuIndexConverter {
         index.setMinPrice(toBigDecimal(source.get("min_price")));
         index.setSales(toInteger(source.get("sales")));
         index.setMainImage(toString(source.get("main_image")));
-        index.setStatus(toInteger(source.get("status")));
+        //index.setStatus(toInteger(source.get("status")));
         index.setCreatedAt(toLocalDateTime(toString(source.get("created_at"))));
         return index;
     }

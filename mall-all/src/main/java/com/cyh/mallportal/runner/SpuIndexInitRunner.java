@@ -1,5 +1,6 @@
 package com.cyh.mallportal.runner;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.cyh.mallportal.entity.Brand;
 import com.cyh.mallportal.entity.Category;
 import com.cyh.mallportal.entity.Spu;
@@ -46,9 +47,11 @@ public class SpuIndexInitRunner implements ApplicationRunner {
                 log.info("ES 索引 mall_spu 已存在，跳过创建");
             }
 
-            // 2. 全量同步所有上架商品（status=1）
+            // 2. 全量同步所有上架商品（status=1）且未删除
             log.info("开始全量同步 SPU 到 ES...");
-            List<Spu> allSpu = spuMapper.selectList(null);
+            List<Spu> allSpu = spuMapper.selectList(new QueryWrapper<Spu>().
+                    eq("status",1).
+                    eq("is_deleted", false));
             if (allSpu == null || allSpu.isEmpty()) {
                 log.info("数据库无 SPU 数据，跳过全量同步");
                 return;
@@ -103,7 +106,6 @@ public class SpuIndexInitRunner implements ApplicationRunner {
                 .setMinPrice(spu.getMinPrice())
                 .setSales(spu.getSales())
                 .setMainImage(spu.getMainImage())
-                .setStatus(spu.getStatus())
                 .setCreatedAt(spu.getCreatedAt());
     }
 }

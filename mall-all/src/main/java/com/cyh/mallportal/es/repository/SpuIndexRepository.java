@@ -23,7 +23,6 @@ import org.elasticsearch.search.suggest.SuggestionBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
-
 import java.io.IOException;
 import java.util.List;
 
@@ -126,10 +125,13 @@ public class SpuIndexRepository {
      */
     public SearchResponse suggest(String prefix, int size) throws IOException {
         SearchRequest request = new SearchRequest(indexName);
+        // 添加 Completion 补全建议（输入前缀联想）
         SuggestionBuilder<?> suggestionBuilder = SuggestBuilders.completionSuggestion("suggest")
                 .prefix(prefix)
                 .size(size)
                 .skipDuplicates(true);
+
+        // cyhcanadd 还可以使用 Term ,进行添加 Term 纠错建议（单词拼写错误修正）
         request.source().suggest(new SuggestBuilder().addSuggestion("spu_suggest", suggestionBuilder));
         return client.search(request, RequestOptions.DEFAULT);
     }
