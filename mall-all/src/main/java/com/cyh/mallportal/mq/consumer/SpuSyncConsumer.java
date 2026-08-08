@@ -2,7 +2,6 @@ package com.cyh.mallportal.mq.consumer;
 
 import com.cyh.mallportal.config.RabbitMQConfig;
 import com.cyh.mallportal.entity.Spu;
-import com.cyh.mallportal.entity.Store;
 import com.cyh.mallportal.es.entity.SpuIndex;
 import com.cyh.mallportal.es.repository.SpuIndexRepository;
 import com.cyh.mallportal.mapper.BrandMapper;

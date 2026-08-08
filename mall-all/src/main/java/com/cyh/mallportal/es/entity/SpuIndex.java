@@ -11,7 +11,6 @@ import org.elasticsearch.common.xcontent.XContentFactory;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.List;
 
 /**
  * ES 商品索引映射实体
@@ -120,7 +119,6 @@ public class SpuIndex {
                         .startObject("min_price").field("type", "double").endObject()
                         .startObject("sales").field("type", "integer").endObject()
                         .startObject("main_image").field("type", "keyword").endObject()
-                        //.startObject("status").field("type", "integer").endObject()
                         .startObject("created_at").field("type", "date")
                             .field("format", "yyyy-MM-dd HH:mm:ss||yyyy-MM-dd||epoch_millis")
                         .endObject()

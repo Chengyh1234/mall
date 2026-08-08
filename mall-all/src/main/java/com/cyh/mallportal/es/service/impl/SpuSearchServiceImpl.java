@@ -10,14 +10,12 @@ import org.elasticsearch.index.query.BoolQueryBuilder;
 import org.elasticsearch.index.query.QueryBuilders;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.builder.SearchSourceBuilder;
-import org.elasticsearch.search.sort.SortBuilders;
 import org.elasticsearch.search.sort.SortOrder;
 import org.elasticsearch.search.suggest.Suggest;
 import org.elasticsearch.search.suggest.completion.CompletionSuggestion;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
-
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.*;
@@ -159,7 +157,7 @@ public class SpuSearchServiceImpl implements SpuSearchService {
             }
         }
 
-        long total = response.getHits().getTotalHits().value;
+        long total = Objects.requireNonNull(response.getHits().getTotalHits()).value;
 
         Map<String, Object> result = new HashMap<>();
         result.put("list", list);
