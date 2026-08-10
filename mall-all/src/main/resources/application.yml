@@ -2,15 +2,15 @@ server:
   port: 8888
   servlet:
     context-path: /api
+
 spring:
+  profiles:
+    active: dev
   application:
     name: reggie_take_out
   datasource:
     type: com.alibaba.druid.pool.DruidDataSource
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://localhost:3306/ecommerce_platform?serverTimezone=Asia/Shanghai&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&useSSL=false&allowPublicKeyRetrieval=true
-    username: root
-    password: 123456
     druid:
       initial-size: 5
       min-idle: 5
@@ -32,17 +32,9 @@ spring:
   cache:
     redis:
       time-to-live: 180000
-  data:
-    redis:
-      host: 192.168.31.140
-      port: 6379
 
   # ==================== RabbitMQ 配置 ====================
   rabbitmq:
-    host: 192.168.31.140
-    port: 5672
-    username: admin
-    password: admin
     virtual-host: /
     listener:
       simple:
@@ -82,21 +74,7 @@ spring:
 
 
 # ==================== Elasticsearch 配置 ====================
-elasticsearch:
-  host: 192.168.31.140
-  port: 9200
-  index: mall_spu
 
-file:
-  upload:
-    base-path: ./uploads
-    images-path: ./uploads/images
-    spu-path: ./uploads/images/spu
-    sku-path: ./uploads/images/sku
-    brands-path: ./uploads/images/brands
-    stores-path: ./uploads/images/stores
-    avatars-path: ./uploads/images/avatars
-    banners-path: ./uploads/images/banners
 
 # ==================== 健康检查配置 ====================
 management:
@@ -120,4 +98,4 @@ mybatis-plus:
   configuration:
     #在映射实体或者属性时，将数据库中表名和字段名中的下划线去掉，按照驼峰命名法映射
     map-underscore-to-camel-case: true
-    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+#    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl

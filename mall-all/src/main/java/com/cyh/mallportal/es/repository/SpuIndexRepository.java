@@ -96,19 +96,50 @@ public class SpuIndexRepository {
         if (list == null || list.isEmpty()) {
             return;
         }
-        BulkRequest bulkRequest = new BulkRequest();
-        for (SpuIndex spuIndex : list) {
-            IndexRequest request = new IndexRequest(indexName)
-                    .id(spuIndex.getId().toString())
-                    .source(SpuIndexConverter.toMap(spuIndex), XContentType.JSON);
-            bulkRequest.add(request);
+        // 1. 定义每批大小（可根据文档平均大小调整，例如 1000 条）
+        int batchSize = 1000;
+        // 也可按估算字节数拆分，此处以条数为例
+
+        // 2. 分批循环
+        for (int i = 0; i < list.size(); i += batchSize) {
+            int end = Math.min(i + batchSize, list.size());
+            List<SpuIndex> subList = list.subList(i, end);
+
+            BulkRequest bulkRequest = new BulkRequest();
+            for (SpuIndex spuIndex : subList) {
+                IndexRequest request = new IndexRequest(indexName)
+                        .id(spuIndex.getId().toString())
+                        .source(SpuIndexConverter.toMap(spuIndex), XContentType.JSON);
+                bulkRequest.add(request);
+            }
+
+            // 3. 发送并处理响应（可选：增加重试）
+            try {
+                BulkResponse response = client.bulk(bulkRequest, RequestOptions.DEFAULT);
+                if (response.hasFailures()) {
+                    log.error("批量索引失败 (批次 {}-{}): {}", i, end, response.buildFailureMessage());
+                    // 可根据失败原因决定是否抛出异常或重试
+                } else {
+                    log.info("批量索引成功 (批次 {}-{}): {} 条", i, end, subList.size());
+                }
+            } catch (IOException e) {
+                log.error("批量索引请求异常 (批次 {}-{})", i, end, e);
+                throw e; // 或实现重试逻辑
+            }
         }
-        BulkResponse response = client.bulk(bulkRequest, RequestOptions.DEFAULT);
-        if (response.hasFailures()) {
-            log.error("ES 批量索引失败: {}", response.buildFailureMessage());
-        } else {
-            log.info("ES 批量索引成功: {} 条", list.size());
-        }
+        //BulkRequest bulkRequest = new BulkRequest();
+        //for (SpuIndex spuIndex : list) {
+        //    IndexRequest request = new IndexRequest(indexName)
+        //            .id(spuIndex.getId().toString())
+        //            .source(SpuIndexConverter.toMap(spuIndex), XContentType.JSON);
+        //    bulkRequest.add(request);
+        //}
+        //BulkResponse response = client.bulk(bulkRequest, RequestOptions.DEFAULT);
+        //if (response.hasFailures()) {
+        //    log.error("ES 批量索引失败: {}", response.buildFailureMessage());
+        //} else {
+        //    log.info("ES 批量索引成功: {} 条", list.size());
+        //}
     }
 
     /**
