@@ -154,6 +154,53 @@ export function getSpuList(params: {
   })
 }
 
+// ===== ES 搜索建议（自动补全）=====
+export function suggestSpu(keyword: string, size = 5): Promise<string[]> {
+  return request({
+    url: '/spu/suggest',
+    method: 'get',
+    params: { keyword, size }
+  })
+}
+
+// ===== ES 商品搜索 VO =====
+export interface SpuSearchVO {
+  id: number
+  name: string
+  description?: string
+  keywords?: string
+  categoryId: number
+  categoryName?: string
+  brandId?: number
+  brandName?: string
+  storeId?: number
+  storeName?: string
+  minPrice?: number
+  sales: number
+  mainImage?: string
+  status: number
+  createdAt: string
+}
+
+// ===== ES 商品搜索（关键词 + 筛选 + 排序 + 分页）=====
+export function searchSpu(params: {
+  keyword?: string
+  categoryId?: number
+  brandId?: number
+  minPrice?: number
+  maxPrice?: number
+  sortBy?: 'sales' | 'price' | 'created_at'
+  sortOrder?: 'asc' | 'desc'
+  page?: number
+  pageSize?: number
+}): Promise<PageResult<SpuSearchVO>> {
+  return request({
+    url: '/spu/search',
+    method: 'get',
+    params
+  })
+}
+
 // ===== 管理员分页（全平台全部商品）=====
 export function getSpuPageAll(params: {
   page?: number

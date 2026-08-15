@@ -118,8 +118,29 @@
                   :placeholder="searchType === 'product' ? '搜索商品名称...' : '搜索店铺名称...'"
                   class="search-input"
                   @keyup.enter="handleSearch"
+                  @input="handleSearchInput"
+                  @focus="showSuggestions = true"
+                  @blur="hideSuggestions"
                 />
                 <button class="search-btn" @click="handleSearch" aria-label="搜索">搜索</button>
+                <!-- 搜索建议下拉（仅商品模式） -->
+                <div
+                  v-if="searchType === 'product' && showSuggestions && suggestions.length > 0"
+                  class="search-suggest-dropdown"
+                >
+                  <div
+                    v-for="item in suggestions"
+                    :key="item"
+                    class="suggest-item"
+                    @mousedown="selectSuggestion(item)"
+                  >
+                    <svg class="suggest-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="11" cy="11" r="8"/>
+                      <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                    </svg>
+                    <span>{{ item }}</span>
+                  </div>
+                </div>
               </div>
             </div>
             <button class="view-all-btn" @click="goToProducts">
@@ -224,6 +245,7 @@ import { ref, onMounted, onUnmounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getProductPage, type ProductPageResult, getCategoryTree, type Category } from '@/api/product'
+import { suggestSpu } from '@/api/spu'
 import { useUserStore } from '@/stores/user'
 import NavBar from '@/components/NavBar.vue'
 import { getSpuImageUrl, getBannerUrl } from '@/utils/resource'
@@ -240,6 +262,44 @@ const selectedCategoryId = ref<number | null>(null)
 const hoverCategoryId = ref<number | null>(null)
 const searchKeyword = ref('')
 const searchType = ref('product')
+
+// 搜索建议
+const suggestions = ref<string[]>([])
+const showSuggestions = ref(false)
+let suggestTimer: ReturnType<typeof setTimeout> | null = null
+
+// 防抖获取搜索建议
+const fetchSuggestions = (keyword: string) => {
+  if (suggestTimer) clearTimeout(suggestTimer)
+  if (!keyword.trim() || searchType.value !== 'product') {
+    suggestions.value = []
+    return
+  }
+  suggestTimer = setTimeout(async () => {
+    try {
+      suggestions.value = await suggestSpu(keyword.trim(), 5)
+    } catch {
+      suggestions.value = []
+    }
+  }, 300)
+}
+
+const handleSearchInput = () => {
+  fetchSuggestions(searchKeyword.value)
+}
+
+// 延迟隐藏，允许点击建议项
+const hideSuggestions = () => {
+  setTimeout(() => {
+    showSuggestions.value = false
+  }, 200)
+}
+
+const selectSuggestion = (item: string) => {
+  searchKeyword.value = item
+  showSuggestions.value = false
+  handleSearch()
+}
 
 // 计算一级分类（parentId === 0 为顶级分类）
 const firstLevelCategories = computed(() => {
@@ -689,6 +749,7 @@ onUnmounted(() => {
   align-items: center;
   gap: var(--space-2);
   padding: 0 var(--space-2);
+  position: relative;
 }
 
 .search-icon {
@@ -726,6 +787,46 @@ onUnmounted(() => {
 .search-btn:hover {
   background: var(--color-brand-600);
   box-shadow: var(--shadow-brand-sm);
+}
+
+/* 搜索建议下拉 */
+.search-suggest-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-md);
+  z-index: var(--z-dropdown);
+  overflow: hidden;
+  padding: 4px 0;
+}
+
+.suggest-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 8px 14px;
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.suggest-item:hover {
+  background: var(--surface-muted);
+  color: var(--color-brand-600);
+}
+
+.suggest-icon {
+  color: var(--ink-faint);
+  flex-shrink: 0;
+}
+
+.suggest-item:hover .suggest-icon {
+  color: var(--color-brand-500);
 }
 
 /* 查看全部按钮 */

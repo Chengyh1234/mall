@@ -18,12 +18,33 @@
             :placeholder="searchType === 'product' ? '搜索商品...' : '搜索店铺...'"
             class="search-input"
             @keyup.enter="handleSearch"
+            @input="handleSearchInput"
+            @focus="showSuggestions = true"
+            @blur="hideSuggestions"
             clearable
           >
             <template #append>
               <el-button :icon="Search" @click="handleSearch" />
             </template>
           </el-input>
+          <!-- 搜索建议下拉（仅商品模式） -->
+          <div
+            v-if="searchType === 'product' && showSuggestions && suggestions.length > 0"
+            class="search-suggest-dropdown"
+          >
+            <div
+              v-for="item in suggestions"
+              :key="item"
+              class="suggest-item"
+              @mousedown="selectSuggestion(item)"
+            >
+              <svg class="suggest-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <span>{{ item }}</span>
+            </div>
+          </div>
         </div>
         
         <!-- 商品筛选（仅商品搜索模式显示） -->
@@ -64,7 +85,7 @@
         </template>
         
         <!-- 当前筛选标签 -->
-        <div class="filter-tags" v-if="searchType === 'product' && (selectedCategoryId || selectedBrandId || searchKeyword)">
+        <div class="filter-tags" v-if="searchType === 'product' && (selectedCategoryId || selectedBrandId || searchKeyword || minPrice !== null || maxPrice !== null)">
           <el-tag v-if="selectedCategoryId" type="warning" closable @close="clearCategory">
             {{ getSelectedCategoryName }}
           </el-tag>
@@ -74,7 +95,68 @@
           <el-tag v-if="searchKeyword" type="primary" closable @close="clearSearch">
             关键字: {{ searchKeyword }}
           </el-tag>
+          <el-tag v-if="minPrice !== null || maxPrice !== null" type="danger" closable @close="clearPrice">
+            价格: {{ minPrice !== null ? '¥' + minPrice : '¥0' }} - {{ maxPrice !== null ? '¥' + maxPrice : '不限' }}
+          </el-tag>
           <el-button size="small" link @click="clearAll">清除全部</el-button>
+        </div>
+      </div>
+
+      <!-- 排序与价格筛选栏（仅商品模式） -->
+      <div v-if="searchType === 'product'" class="sort-price-bar">
+        <!-- 排序 Tab -->
+        <div class="sort-tabs">
+          <button
+            :class="['sort-tab', { active: activeSortTab === 'default' }]"
+            @click="handleSortChange('default')"
+          >综合</button>
+          <button
+            :class="['sort-tab', { active: activeSortTab === 'sales' }]"
+            @click="handleSortChange('sales')"
+          >销量</button>
+          <button
+            :class="['sort-tab', { active: activeSortTab === 'price' }]"
+            @click="handleSortChange('price')"
+          >
+            价格
+            <span v-if="activeSortTab === 'price'" class="sort-arrow">{{ sortOrder === 'asc' ? '↑' : '↓' }}</span>
+          </button>
+          <button
+            :class="['sort-tab', { active: activeSortTab === 'newest' }]"
+            @click="handleSortChange('newest')"
+          >最新上架</button>
+        </div>
+
+        <!-- 价格区间筛选 -->
+        <div class="price-filter">
+          <span class="price-label">价格：</span>
+          <button
+            v-for="range in priceRanges"
+            :key="range.value"
+            :class="['price-tag', { active: selectedPriceRange === range.value }]"
+            @click="handlePriceRangeChange(range.value)"
+          >{{ range.label }}</button>
+          <!-- 自定义价格输入 -->
+          <div class="custom-price-input">
+            <el-input-number
+              v-model="customMinPrice"
+              :placeholder="'最低'"
+              :controls="false"
+              :min="0"
+              size="small"
+              class="price-input"
+            />
+            <span class="price-separator">-</span>
+            <el-input-number
+              v-model="customMaxPrice"
+              :placeholder="'最高'"
+              :controls="false"
+              :min="0"
+              size="small"
+              class="price-input"
+            />
+            <el-button size="small" type="primary" plain @click="handleCustomPriceConfirm">确定</el-button>
+          </div>
         </div>
       </div>
 
@@ -204,7 +286,8 @@ import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { Search } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
-import { getProductPage, type ProductPageResult, getCategoryTree, type Category, getBrandList, type Brand } from '@/api/product'
+import { getCategoryTree, type Category, getBrandList, type Brand } from '@/api/product'
+import { searchSpu, suggestSpu, type SpuSearchVO } from '@/api/spu'
 import { getStorePage, type Store } from '@/api/shop'
 import NavBar from '@/components/NavBar.vue'
 import { getSpuImageUrl, getStoreLogoUrl } from '@/utils/resource'
@@ -228,6 +311,31 @@ const searchType = ref('product')
 const selectedCategoryId = ref<number | null>(null)
 const selectedBrandId = ref<number | null>(null)
 const shopLoading = ref(false)
+
+// ES 搜索：排序与价格筛选
+const activeSortTab = ref<'default' | 'sales' | 'price' | 'newest'>('default')
+const sortBy = ref<'sales' | 'price' | 'created_at'>('created_at')
+const sortOrder = ref<'asc' | 'desc'>('desc')
+const minPrice = ref<number | null>(null)
+const maxPrice = ref<number | null>(null)
+const selectedPriceRange = ref<string>('')
+const customMinPrice = ref<number | null>(null)
+const customMaxPrice = ref<number | null>(null)
+
+// 预设价格区间
+const priceRanges = [
+  { label: '全部', value: '' },
+  { label: '¥0-100', value: '0-100' },
+  { label: '¥100-500', value: '100-500' },
+  { label: '¥500-1000', value: '500-1000' },
+  { label: '¥1000-5000', value: '1000-5000' },
+  { label: '¥5000以上', value: '5000-' }
+]
+
+// 搜索建议
+const suggestions = ref<string[]>([])
+const showSuggestions = ref(false)
+let suggestTimer: ReturnType<typeof setTimeout> | null = null
 
 // 获取店铺列表
 const fetchShops = async (page = 1, size = 10) => {
@@ -292,7 +400,7 @@ const getSelectedBrandName = computed(() => {
   return brand ? brand.name : ''
 })
 
-// 获取商品列表
+// 获取商品列表（ES 搜索）
 const fetchProducts = async (page = 1, size = 10) => {
   try {
     loading.value = true
@@ -306,24 +414,33 @@ const fetchProducts = async (page = 1, size = 10) => {
     if (searchKeyword.value) {
       params.keyword = searchKeyword.value
     }
-    const result: ProductPageResult = await getProductPage(params)
-    
+    if (minPrice.value !== null) {
+      params.minPrice = minPrice.value
+    }
+    if (maxPrice.value !== null) {
+      params.maxPrice = maxPrice.value
+    }
+    params.sortBy = sortBy.value
+    params.sortOrder = sortOrder.value
+
+    const result = await searchSpu(params)
+
     if (result && result.list) {
       currentPage.value = result.page || page
       pageSize.value = result.pageSize || size
       total.value = result.total || result.list.length
-      
-      products.value = result.list.map((item: any) => ({
+
+      products.value = result.list.map((item: SpuSearchVO) => ({
         id: item.id,
         name: item.name,
         description: item.description,
         price: item.minPrice || 0,
-        originalPrice: item.originalPrice || item.marketPrice || 0,
+        originalPrice: 0,
         image: item.mainImage ? getSpuImageUrl(item.mainImage) : 'https://via.placeholder.com/300x300/f5f5f5/999999?text=找不到图片',
-        images: item.images ? JSON.parse(item.images) : [],
-        stock: item.stock || 100,
+        images: [],
+        stock: 100,
         sales: item.sales,
-        unit: item.unit,
+        unit: '',
         categoryId: item.categoryId
       }))
     }
@@ -365,6 +482,103 @@ const handleFilterChange = () => {
   updateQuery()
 }
 
+// ===== 搜索建议 =====
+const fetchSuggestions = (keyword: string) => {
+  if (suggestTimer) clearTimeout(suggestTimer)
+  if (!keyword.trim() || searchType.value !== 'product') {
+    suggestions.value = []
+    return
+  }
+  suggestTimer = setTimeout(async () => {
+    try {
+      suggestions.value = await suggestSpu(keyword.trim(), 5)
+    } catch {
+      suggestions.value = []
+    }
+  }, 300)
+}
+
+const handleSearchInput = () => {
+  fetchSuggestions(searchKeyword.value)
+}
+
+const hideSuggestions = () => {
+  setTimeout(() => {
+    showSuggestions.value = false
+  }, 200)
+}
+
+const selectSuggestion = (item: string) => {
+  searchKeyword.value = item
+  showSuggestions.value = false
+  handleSearch()
+}
+
+// ===== 排序处理 =====
+const handleSortChange = (tab: 'default' | 'sales' | 'price' | 'newest') => {
+  // 价格 Tab 重复点击切换升降序
+  if (tab === 'price' && activeSortTab.value === 'price') {
+    sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc'
+  } else {
+    activeSortTab.value = tab
+    switch (tab) {
+      case 'default':
+        sortBy.value = 'created_at'
+        sortOrder.value = 'desc'
+        break
+      case 'sales':
+        sortBy.value = 'sales'
+        sortOrder.value = 'desc'
+        break
+      case 'price':
+        sortBy.value = 'price'
+        sortOrder.value = 'asc'
+        break
+      case 'newest':
+        sortBy.value = 'created_at'
+        sortOrder.value = 'desc'
+        break
+    }
+  }
+  currentPage.value = 1
+  updateQuery()
+}
+
+// ===== 价格区间处理 =====
+const handlePriceRangeChange = (range: string) => {
+  selectedPriceRange.value = range
+  customMinPrice.value = null
+  customMaxPrice.value = null
+  if (!range) {
+    minPrice.value = null
+    maxPrice.value = null
+  } else {
+    const parts = range.split('-')
+    minPrice.value = Number(parts[0])
+    maxPrice.value = parts[1] ? Number(parts[1]) : null
+  }
+  currentPage.value = 1
+  updateQuery()
+}
+
+const handleCustomPriceConfirm = () => {
+  selectedPriceRange.value = ''
+  minPrice.value = customMinPrice.value !== null ? customMinPrice.value : null
+  maxPrice.value = customMaxPrice.value !== null ? customMaxPrice.value : null
+  currentPage.value = 1
+  updateQuery()
+}
+
+const clearPrice = () => {
+  minPrice.value = null
+  maxPrice.value = null
+  selectedPriceRange.value = ''
+  customMinPrice.value = null
+  customMaxPrice.value = null
+  currentPage.value = 1
+  updateQuery()
+}
+
 // 更新URL参数
 const updateQuery = () => {
   const query: Record<string, any> = {}
@@ -377,6 +591,17 @@ const updateQuery = () => {
   }
   if (searchKeyword.value) {
     query.keyword = searchKeyword.value
+  }
+  if (minPrice.value !== null) {
+    query.minPrice = minPrice.value
+  }
+  if (maxPrice.value !== null) {
+    query.maxPrice = maxPrice.value
+  }
+  if (activeSortTab.value !== 'default') {
+    query.sortBy = sortBy.value
+    query.sortOrder = sortOrder.value
+    query.sortTab = activeSortTab.value
   }
   router.replace({
     path: '/products',
@@ -410,6 +635,14 @@ const clearAll = () => {
   searchKeyword.value = ''
   selectedCategoryId.value = null
   selectedBrandId.value = null
+  minPrice.value = null
+  maxPrice.value = null
+  selectedPriceRange.value = ''
+  customMinPrice.value = null
+  customMaxPrice.value = null
+  activeSortTab.value = 'default'
+  sortBy.value = 'created_at'
+  sortOrder.value = 'desc'
   currentPage.value = 1
   router.push('/products')
 }
@@ -500,6 +733,27 @@ watch(() => route.query, (newQuery) => {
   } else {
     selectedBrandId.value = null
   }
+  // 价格区间
+  if (newQuery.minPrice) {
+    minPrice.value = Number(newQuery.minPrice)
+  } else {
+    minPrice.value = null
+  }
+  if (newQuery.maxPrice) {
+    maxPrice.value = Number(newQuery.maxPrice)
+  } else {
+    maxPrice.value = null
+  }
+  // 排序
+  if (newQuery.sortTab) {
+    activeSortTab.value = newQuery.sortTab as 'default' | 'sales' | 'price' | 'newest'
+    sortBy.value = (newQuery.sortBy as 'sales' | 'price' | 'created_at') || 'created_at'
+    sortOrder.value = (newQuery.sortOrder as 'asc' | 'desc') || 'desc'
+  } else {
+    activeSortTab.value = 'default'
+    sortBy.value = 'created_at'
+    sortOrder.value = 'desc'
+  }
   if (searchType.value === 'product') {
     fetchProducts(1, pageSize.value)
   } else {
@@ -520,6 +774,19 @@ onMounted(() => {
   }
   if (route.query.brandId) {
     selectedBrandId.value = Number(route.query.brandId)
+  }
+  // 价格区间
+  if (route.query.minPrice) {
+    minPrice.value = Number(route.query.minPrice)
+  }
+  if (route.query.maxPrice) {
+    maxPrice.value = Number(route.query.maxPrice)
+  }
+  // 排序
+  if (route.query.sortTab) {
+    activeSortTab.value = route.query.sortTab as 'default' | 'sales' | 'price' | 'newest'
+    sortBy.value = (route.query.sortBy as 'sales' | 'price' | 'created_at') || 'created_at'
+    sortOrder.value = (route.query.sortOrder as 'asc' | 'desc') || 'desc'
   }
   if (searchType.value === 'product') {
     fetchProducts(1, pageSize.value)
@@ -613,6 +880,7 @@ onMounted(() => {
   flex: 1;
   min-width: 200px;
   max-width: 400px;
+  position: relative;
 }
 
 .search-box .search-input {
@@ -637,6 +905,155 @@ onMounted(() => {
   gap: 10px;
   flex-wrap: wrap;
   flex: 1;
+}
+
+/* ===== 搜索建议下拉 ===== */
+.search-suggest-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #eaecf0;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  z-index: 100;
+  overflow: hidden;
+  padding: 4px 0;
+}
+
+.suggest-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  font-size: 13px;
+  color: #666;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.suggest-item:hover {
+  background: #f5f5f5;
+  color: #ff4400;
+}
+
+.suggest-icon {
+  color: #bbb;
+  flex-shrink: 0;
+}
+
+.suggest-item:hover .suggest-icon {
+  color: #ff4400;
+}
+
+/* ===== 排序与价格筛选栏 ===== */
+.sort-price-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  padding: 12px 24px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
+  flex-wrap: wrap;
+}
+
+.sort-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.sort-tab {
+  padding: 6px 16px;
+  border: none;
+  background: transparent;
+  font-size: 14px;
+  color: #333;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.15s;
+  font-weight: 500;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.sort-tab:hover {
+  background: #f5f5f5;
+  color: #ff4400;
+}
+
+.sort-tab.active {
+  color: #ff4400;
+  font-weight: 600;
+}
+
+.sort-arrow {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* 价格筛选 */
+.price-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.price-label {
+  font-size: 13px;
+  color: #666;
+  white-space: nowrap;
+}
+
+.price-tag {
+  padding: 4px 12px;
+  border: 1px solid #e8e8e8;
+  background: #fff;
+  font-size: 12px;
+  color: #666;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.price-tag:hover {
+  border-color: #ff4400;
+  color: #ff4400;
+}
+
+.price-tag.active {
+  background: #ff4400;
+  border-color: #ff4400;
+  color: #fff;
+}
+
+.custom-price-input {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+}
+
+.price-input {
+  width: 80px;
+}
+
+.price-input :deep(.el-input__inner) {
+  text-align: center;
+  font-size: 12px;
+}
+
+.price-separator {
+  color: #ccc;
+  font-size: 12px;
 }
 
 .filter-label {
@@ -899,9 +1316,38 @@ onMounted(() => {
   .filter-tags {
     width: 100%;
   }
-  
+
   .filter-info {
     width: 100%;
+  }
+
+  .sort-price-bar {
+    padding: 10px;
+    gap: 10px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .sort-tabs {
+    justify-content: space-around;
+  }
+
+  .sort-tab {
+    padding: 6px 10px;
+    font-size: 13px;
+  }
+
+  .price-filter {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .custom-price-input {
+    margin-left: 0;
+  }
+
+  .price-input {
+    width: 70px;
   }
   
   .product-section {
