@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.cyh.mallportal.mapper.AttributeMapper">
+
+    <!-- 根据分类ID获取该分类下的属性列表 -->
+    <select id="getByCategoryId" resultType="com.cyh.mallportal.entity.Attribute">
+        SELECT a.* FROM attributes a 
+        LEFT JOIN category_attributes ca ON a.id = ca.attr_id 
+        WHERE ca.category_id = #{categoryId} 
+        ORDER BY ca.sort ASC, a.sort ASC
+    </select>
+
+    <!-- 根据分类ID和属性类型获取属性列表 -->
+    <select id="getByCategoryIdAndType" resultType="com.cyh.mallportal.entity.Attribute">
+        SELECT a.* FROM attributes a 
+        LEFT JOIN category_attributes ca ON a.id = ca.attr_id 
+        WHERE ca.category_id = #{categoryId} AND a.attr_type = #{attrType} 
+        ORDER BY ca.sort ASC, a.sort ASC
+    </select>
+
+    <!-- 获取尚未绑定到指定分类的属性列表 -->
+    <select id="getAvailableByCategoryId" resultType="com.cyh.mallportal.entity.Attribute">
+        SELECT a.*
+        FROM attributes a
+        WHERE a.id NOT IN (
+            SELECT ca.attr_id
+            FROM category_attributes ca
+            WHERE ca.category_id = #{categoryId}
+        )
+        ORDER BY a.sort ASC, a.id ASC
+    </select>
+
+</mapper>

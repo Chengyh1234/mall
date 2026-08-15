@@ -1,0 +1,164 @@
+@import './base.css';
+
+/* ========================================
+   设计 Token — 电商商城 Design System
+   ======================================== */
+:root {
+  /* 品牌色 */
+  --color-brand-50: #fff3e6;
+  --color-brand-100: #ffdbb3;
+  --color-brand-200: #ffc280;
+  --color-brand-300: #ffa84d;
+  --color-brand-400: #ff8f1a;
+  --color-brand-500: #ff4400;       /* 主品牌色 */
+  --color-brand-600: #e63d00;
+  --color-brand-700: #cc3600;
+  --color-brand-800: #b32e00;
+  --color-brand-900: #992700;
+
+  /* 辅助色 — 冷静蓝，与品牌橙互补 */
+  --color-accent:     #0066ff;
+  --color-accent-50:  #e6f0ff;
+  --color-accent-100: #b3d4ff;
+  --color-accent-200: #80b8ff;
+  --color-accent-500: #0066ff;
+  --color-accent-600: #0052cc;
+  --color-accent-700: #003d99;
+
+  /* 中性色 — 加深对比度 */
+  --ink:       #0d0d0d;
+  --ink-soft:  #2a2a2a;
+  --ink-muted: #4a4a4a;
+  --ink-faint: #8a8a8a;
+  --border:    #d4d4d4;
+  --border-light: #e8e8e8;
+  --surface:   #ffffff;
+  --surface-soft: #f6f6f8;
+  --surface-muted: #efeff2;
+  --bg:        #ebebef;
+
+  /* 功能色 */
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-danger:  #ef4444;
+  --color-info:    #6b7280;
+
+  /* 间距 scale: 4px 基准 */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* 字体 */
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'SF Mono', 'Fira Code', 'Fira Mono', 'Roboto Mono', monospace;
+
+  /* 字号 scale: 1.25 ratio */
+  --text-xs:   12px;
+  --text-sm:   14px;
+  --text-base: 15px;
+  --text-lg:  18px;
+  --text-xl:  22px;
+  --text-2xl: 28px;
+  --text-3xl: 36px;
+  --text-4xl: 44px;
+
+  /* 行高 */
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.625;
+
+  /* 圆角 */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* 阴影 — 不使用 border + shadow 组合 */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.10);
+  --shadow-xl: 0 12px 32px rgba(0, 0, 0, 0.12);
+
+  /* 品牌阴影 (使用品牌色) */
+  --shadow-brand-sm: 0 2px 8px rgba(255, 68, 0, 0.12);
+  --shadow-brand-md: 0 4px 16px rgba(255, 68, 0, 0.18);
+
+  /* z-index scale */
+  --z-dropdown:    100;
+  --z-sticky:      200;
+  --z-overlay:     300;
+  --z-modal-bg:    400;
+  --z-modal:       500;
+  --z-toast:       600;
+  --z-tooltip:     700;
+
+  /* 过渡 */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-base: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-spring: 500ms cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* 布局 */
+  --max-width: min(92vw, 1600px);
+  --header-height: 60px;
+}
+
+/* 全局重置 */
+#app {
+  width: 100%;
+  min-height: 100vh;
+}
+
+body {
+  font-family: var(--font-sans);
+  font-size: var(--text-base);
+  line-height: var(--leading-normal);
+  color: var(--ink);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  text-decoration: none;
+  color: var(--color-brand-500);
+  transition: color var(--transition-fast);
+}
+
+a:hover {
+  color: var(--color-brand-600);
+}
+
+/* 滚动条美化 */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--ink-faint);
+  border-radius: var(--radius-full);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--ink-muted);
+}
+
+/* 选中文字颜色 */
+::selection {
+  background: var(--color-brand-100);
+  color: var(--color-brand-900);
+}

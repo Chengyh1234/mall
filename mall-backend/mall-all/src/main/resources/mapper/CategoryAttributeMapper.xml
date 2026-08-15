@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.cyh.mallportal.mapper.CategoryAttributeMapper">
+
+    <!-- 获取指定分类已绑定的属性列表（含属性信息） -->
+    <select id="getBoundAttributes" resultType="com.cyh.mallportal.entity.Attribute">
+        SELECT a.*, ca.sort AS ca_sort, ca.id AS ca_id
+        FROM category_attributes ca
+        INNER JOIN attributes a ON ca.attr_id = a.id
+        WHERE ca.category_id = #{categoryId}
+        ORDER BY ca.sort ASC, a.sort ASC
+    </select>
+
+    <!-- 统计指定分类下的 SPU 在基本属性中使用了该属性的次数 -->
+    <select id="countSpuBasicAttrUsage" resultType="int">
+        SELECT COUNT(*)
+        FROM spu_basic_attr_values bav
+        INNER JOIN spu s ON bav.spu_id = s.id AND s.is_deleted = 0
+        WHERE s.category_id = #{categoryId}
+          AND bav.attr_id = #{attrId}
+    </select>
+
+    <!-- 统计指定分类下的 SPU 在销售属性中使用了该属性的次数 -->
+    <select id="countSpuSaleAttrUsage" resultType="int">
+        SELECT COUNT(*)
+        FROM spu_sale_attr_choice sac
+        INNER JOIN spu s ON sac.spu_id = s.id AND s.is_deleted = 0
+        WHERE s.category_id = #{categoryId}
+          AND sac.attr_id = #{attrId}
+    </select>
+
+</mapper>
