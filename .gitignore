@@ -7,6 +7,10 @@ target/
 #my
 /mall-backend/ai不需要读
 /mall-backend/API_DOC.md
+#文档
+docs
+#本地图片
+uploads
 
 ### STS ###
 .apt_generated

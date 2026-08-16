@@ -54,10 +54,11 @@
 
         <!-- 右侧轮播图 -->
         <div class="carousel-area">
-          <el-carousel :interval="4000" arrow="always" height="100%" indicator-position="inside">
+          <el-carousel v-if="carouselItems.length > 0" :interval="4000" arrow="always" height="100%" indicator-position="inside">
             <el-carousel-item v-for="item in carouselItems" :key="item.id">
               <a v-if="item.linkUrl" :href="item.linkUrl" target="_blank" class="carousel-link">
                 <img
+                  v-if="!bannerLoadError[item.id]"
                   :src="getBannerImageUrl(item.imageUrl)"
                   :alt="item.title"
                   class="carousel-img"
@@ -65,23 +66,41 @@
                   height="428"
                   decoding="async"
                   fetchpriority="high"
+                  @error="handleBannerImageError(item)"
                 />
+                <div v-else class="banner-fallback">
+                  <span>{{ item.title || '图片加载失败' }}</span>
+                </div>
               </a>
-              <img
-                v-else
-                :src="getBannerImageUrl(item.imageUrl)"
-                :alt="item.title"
-                class="carousel-img"
-                width="1200"
-                height="428"
-                decoding="async"
-                fetchpriority="high"
-              />
+              <template v-else>
+                <img
+                  v-if="!bannerLoadError[item.id]"
+                  :src="getBannerImageUrl(item.imageUrl)"
+                  :alt="item.title"
+                  class="carousel-img"
+                  width="1200"
+                  height="428"
+                  decoding="async"
+                  fetchpriority="high"
+                  @error="handleBannerImageError(item)"
+                />
+                <div v-else class="banner-fallback">
+                  <span>{{ item.title || '图片加载失败' }}</span>
+                </div>
+              </template>
               <div class="carousel-overlay">
                 <span class="carousel-label">{{ item.title }}</span>
               </div>
             </el-carousel-item>
           </el-carousel>
+          <div v-else class="carousel-empty">
+            <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+              <circle cx="8.5" cy="8.5" r="1.5"/>
+              <polyline points="21 15 16 10 5 21"/>
+            </svg>
+            <span>暂无轮播图，请前往管理后台配置</span>
+          </div>
         </div>
       </div>
     </section>
@@ -317,13 +336,25 @@ const hasMore = ref(true)
 const maxProducts = 200
 
 const carouselItems = ref<BannerItem[]>([])
+const bannerLoadError = ref<Record<number, boolean>>({})
 
 const getBannerImageUrl = (imageUrl: string) => getBannerUrl(imageUrl)
 
+const handleBannerImageError = (item: BannerItem) => {
+  bannerLoadError.value[item.id] = true
+  console.warn('轮播图加载失败:', item.imageUrl)
+}
+
 const fetchBanners = async () => {
   try {
-    carouselItems.value = await getActiveBanners()
-  } catch { /* ok */ }
+    const list = await getActiveBanners()
+    carouselItems.value = list || []
+    if (!list || list.length === 0) {
+      console.info('暂无启用的轮播图数据')
+    }
+  } catch (e) {
+    console.error('获取轮播图失败:', e)
+  }
 }
 
 const isLoggedIn = computed(() => userStore.isLoggedIn)
@@ -645,6 +676,35 @@ onUnmounted(() => {
   font-size: var(--text-base);
   font-weight: 600;
   text-shadow: 0 1px 4px rgba(0,0,0,0.3);
+}
+
+.banner-fallback {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-muted);
+  color: var(--ink-muted);
+  font-size: var(--text-base);
+}
+
+.carousel-empty {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  background: var(--surface-muted);
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+  border-radius: var(--radius-lg);
+}
+
+.carousel-empty svg {
+  color: var(--ink-faint);
 }
 
 /* =============================================

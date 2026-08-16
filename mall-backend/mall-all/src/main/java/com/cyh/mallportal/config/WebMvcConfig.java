@@ -37,7 +37,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
      * 注册静态资源映射：URL /uploads/subDir/** → 本地文件 basePath + subDir
      */
     private void addHandler(ResourceHandlerRegistry registry, String subDir) {
-        String location = new File(basePath, subDir).toURI().toString();
+        // 使用拼接路径避免 subDir 以 / 开头时被当作绝对路径（Linux/Mac 兼容）
+        String location = new File(basePath + subDir).toURI().toString();
         registry.addResourceHandler(FileConstants.URL_PREFIX + subDir + "/**")
                 .addResourceLocations(location);
     }

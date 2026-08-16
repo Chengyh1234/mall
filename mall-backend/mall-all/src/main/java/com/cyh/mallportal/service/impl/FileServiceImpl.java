@@ -3,6 +3,7 @@ package com.cyh.mallportal.service.impl;
 import com.cyh.mallcommon.constant.FileConstants;
 import com.cyh.mallportal.service.FileService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
@@ -18,6 +19,9 @@ import java.util.UUID;
 @Slf4j
 @Service
 public class FileServiceImpl implements FileService {
+
+    @Value("${file.upload.base-path:./uploads}")
+    private String basePath;
 
     @Override
     public Map<String, String> uploadFile(MultipartFile file, String subDir) {
@@ -39,7 +43,7 @@ public class FileServiceImpl implements FileService {
 
             String newFileName = UUID.randomUUID().toString() + "_" + originalFilename;
 
-            String targetPath = FileConstants.BASE_PATH + subDir;
+            String targetPath = basePath + subDir;
             File uploadDir = new File(targetPath, dateDir);
             if (!uploadDir.exists()) {
                 uploadDir.mkdirs();
@@ -80,7 +84,7 @@ public class FileServiceImpl implements FileService {
         }
 
         try {
-            String targetPath = FileConstants.BASE_PATH + subDir;
+            String targetPath = basePath + subDir;
             File file = new File(targetPath, relativePath);
 
             if (!file.exists()) {
@@ -107,7 +111,7 @@ public class FileServiceImpl implements FileService {
             return null;
         }
 
-        String targetPath = FileConstants.BASE_PATH + subDir;
+        String targetPath = basePath + subDir;
         File file = new File(targetPath, relativePath);
         if (file.exists() && file.isFile()) {
             return file;

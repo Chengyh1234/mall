@@ -5,11 +5,12 @@
     <artifactId>mall-common</artifactId>
     <name>mall-common</name>
     <description>mall-common</description>
+    <version>1.0.0</version>
     <!-- 指向父模块 -->
     <parent>
         <groupId>com.cyh</groupId>
         <artifactId>mall-backend</artifactId>
-        <version>1.0-SNAPSHOT</version>
+        <version>1.0.0</version>
         <!-- 相对路径，指向父 pom.xml -->
         <relativePath>../pom.xml</relativePath>
     </parent>

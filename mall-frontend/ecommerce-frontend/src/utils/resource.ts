@@ -25,6 +25,10 @@ function isApiPath(path: string): boolean {
   return path.startsWith('/api/')
 }
 
+function isUploadsPath(path: string): boolean {
+  return path.startsWith('/uploads/')
+}
+
 function encodePathSegment(path: string): string {
   const segments = path.split('/')
   return segments.map(segment => {
@@ -44,6 +48,7 @@ export function getResourceUrl(type: ResourceType, dbPath: string): string {
   if (isFullUrl(dbPath)) return dbPath
   if (isDataUri(dbPath)) return dbPath
   if (isApiPath(dbPath)) return dbPath
+  if (isUploadsPath(dbPath)) return `${baseUrl}${dbPath}`
   const encodedPath = encodePathSegment(dbPath)
   return `${baseUrl}${resourcePaths[type]}/${encodedPath}`
 }

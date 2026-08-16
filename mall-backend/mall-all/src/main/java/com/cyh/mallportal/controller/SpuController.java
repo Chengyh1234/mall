@@ -68,7 +68,7 @@ public class SpuController {
      * 店铺ID由系统根据当前登录商家自动获取，无需前端传入
      */
     @PostMapping("/add")
-    @PreAuthorize("hasAuthority('product:add') or hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Map<String, Object>> add(@RequestPart(value = "spuDto") String spuDtoString,
                                            @RequestPart(value = "imageFiles", required = false) List<MultipartFile> imageFiles) {
         SpuDto spuDto = JSON.parseObject(spuDtoString, SpuDto.class);
@@ -154,7 +154,7 @@ public class SpuController {
      * 删除商品（逻辑删除，设置 is_deleted=1，图片保留以支持恢复）
      */
     @DeleteMapping("/delete/{id}")
-    @PreAuthorize("hasAuthority('product:delete') or hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Void> delete(@PathVariable Long id) {
         Spu spu = spuService.getById(id);
         if (spu == null) {
@@ -180,7 +180,7 @@ public class SpuController {
      * 上架前校验：SPU下必须存在启用状态的SKU，否则不允许上架
      */
     @PutMapping("/on-shelf/{id}")
-    @PreAuthorize("hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Void> onShelf(@PathVariable Long id) {
         Spu spu = spuService.getById(id);
         if (spu == null) {
@@ -209,7 +209,7 @@ public class SpuController {
      * 下架商品（设置 status=0）
      */
     @PutMapping("/off-shelf/{id}")
-    @PreAuthorize("hasAuthority('product:offShelf') or hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Void> offShelf(@PathVariable Long id) {
         Spu spu = spuService.getById(id);
         if (spu == null) {
@@ -233,7 +233,7 @@ public class SpuController {
      * 恢复商品（设置 is_deleted=0）
      */
     @PutMapping("/restore/{id}")
-    @PreAuthorize("hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Void> restore(@PathVariable Long id) {
         Long currentUserId = getCurrentUserId();
 
@@ -255,7 +255,7 @@ public class SpuController {
      * @return 更新结果
      */
     @PutMapping("/update")
-    @PreAuthorize("hasAuthority('product:edit') or hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
+    @PreAuthorize("hasRole('SUPER_ADMIN') or hasRole('SELLER') or hasRole('STORE_ADMIN')")
     public Result<Map<String, Object>> update(@RequestPart(value = "spuDto") String spuDtoString,
                                               @RequestPart(value = "imageFiles", required = false) List<MultipartFile> imageFiles) {
         SpuDto spuDto = JSON.parseObject(spuDtoString, SpuDto.class);
