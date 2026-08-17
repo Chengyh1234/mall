@@ -40,6 +40,22 @@ import java.util.Map;
  * 工作流程：
  * - 请求进入 → 检查是否有Token → 有Token则查询Redis → 获取用户信息 → 设置认证 → 放行
  * - 无Token或Redis中不存在 → 直接放行（由SecurityConfig判断是否需要认证）
+ * 过滤器执行顺序：
+ *  请求进来
+ *     ↓
+ * TokenAuthenticationFilter (你的自定义过滤器) ← **先执行**
+ *     ↓
+ * UsernamePasswordAuthenticationFilter (Spring Security默认，没有进行配置)
+ *     ↓
+ *    其他
+ *     ↓
+ * ExceptionTranslationFilter  ←  异常过滤器（内置，自动加入）
+ *     ↓
+ * AuthorizationFilter ←  这里执行 SecurityConfig中的authorizeHttpRequests 的规则
+ *     ↓
+ * Controller
+ *     ↓
+ * 响应返回
  *
  * @author cyh
  * @since 2024-01-01
@@ -91,6 +107,8 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
             "/spu/page",
             "/spu/by-store/**",
             "/spu/*/basic-attributes",
+            "/spu/search",
+            "/spu/suggest",
             "/store/detail/**",
             "/store/page"
     );
@@ -151,6 +169,7 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
             @NonNull HttpServletResponse response,
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
+        // cyhcanupdate: 应该直接将无token进行放行，然后在AuthorizationFilter进行拦截，这个类只拦截token
         // 1. 从请求头获取Token
         final String authHeader = request.getHeader(MyConstants.AUTH_HEADER);
         final String token;

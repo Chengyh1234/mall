@@ -108,6 +108,7 @@ public class SecurityConfig {
                         .requestMatchers("/uploads/images/**").permitAll()
                         // 公开浏览接口（产品浏览、品牌、分类等，无需登录）
                         .requestMatchers(HttpMethod.GET,
+                                "/captcha",
                                 "/attribute/category/**",
                                 "/attribute/sales/**",
                                 "/attribute/basic/**",
@@ -134,6 +135,8 @@ public class SecurityConfig {
                                 "/spu/page",
                                 "/spu/by-store/**",
                                 "/spu/*/basic-attributes",
+                                "/spu/search",
+                                "/spu/suggest",
                                 "/store/detail/**",
                                 "/store/page"
                         ).permitAll()
