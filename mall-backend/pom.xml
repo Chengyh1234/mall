@@ -20,6 +20,8 @@
         <module>mall-common</module>
         <module>mall-all</module>
         <module>mall-gateway</module>
+        <module>mall-auth</module>
+        <module>mall-user</module>
     </modules>
 
     <properties>

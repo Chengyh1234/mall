@@ -59,15 +59,31 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
             "/api/attribute/basic/**",
             "/api/banner/active",
             "/api/brand/**",
-            "/api/category/**",
-            "/api/delivery/**",
-            "/api/logistics/**",
+            "/api/category/detail/**",
+            "/api/category/list",
+            "/api/category/page",
+            "/api/category/tree",
+            "/api/category/level1",
+            "/api/category/children/**",
+            "/api/delivery/list/**",
+            "/api/delivery/detail/**",
+            "/api/delivery/status-desc/**",
+            "/api/logistics/list",
+            "/api/logistics/detail/**",
+            "/api/logistics/code/**",
             "/api/order/pay-status-desc/**",
-            "/api/sku/**",
-            "/api/spu/**",
+            "/api/sku/detail/**",
+            "/api/sku/total-stock/**",
+            "/api/sku/list-with-attributes",
+            "/api/sku/detail-with-attributes/**",
+            "/api/spu/detail/**",
+            "/api/spu/page",
+            "/api/spu/by-store/**",
+            "/api/spu/*/basic-attributes",
+            "/api/spu/search",
+            "/api/spu/suggest",
             "/api/store/detail/**",
-            "/api/store/page",
-            "/api/uploads/images/**"
+            "/api/store/page"
     );
 
     /**
@@ -128,7 +144,7 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
 
                     // 4. 单点登录校验：检查 sessionId 是否匹配
                     String tokenSessionId = (String) userInfo.get("sessionId");
-                    Long userId = ((Number) userInfo.get("userId")).longValue();
+                    Long userId = extractUserId(userInfo.get("userId"));
 
                     return stringRedisTemplate.opsForValue()
                             .get(RedisConstants.USER_CURRENT_SESSION_PREFIX + userId)
@@ -150,6 +166,8 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
                                 String username = (String) userInfo.get("username");
                                 String roles = extractRoles(userInfo);
 
+                                // cyhcanupdate:这里传给下游服务的数据可能需要增加
+                                //.mutate() 是基于原始请求的副本，只会追加新请求头，不会删除原有的。
                                 ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
                                         .header("X-User-Id", String.valueOf(userId))
                                         .header("X-User-Name", username != null ? username : "")
@@ -178,6 +196,30 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
             return String.join(",", rolesMap.keySet());
         }
         return "";
+    }
+
+    /**
+     * 安全提取 userId（兼容 GenericJackson2JsonRedisSerializer 的数组格式）
+     * <p>
+     * mall-auth 使用 GenericJackson2JsonRedisSerializer 存储用户信息，
+     * userId 在 Redis 中可能为 {@code ["java.lang.Long", 4]} 的数组格式，
+     * 也可能是普通 Number，此方法统一处理两种格式。
+     *
+     * @param userIdObj userId 原始值
+     * @return userId
+     */
+    private Long extractUserId(Object userIdObj) {
+        if (userIdObj instanceof Number) {
+            return ((Number) userIdObj).longValue();
+        }
+        if (userIdObj instanceof java.util.List) {
+            java.util.List<?> list = (java.util.List<?>) userIdObj;
+            if (!list.isEmpty() && list.get(list.size() - 1) instanceof Number) {
+                return ((Number) list.get(list.size() - 1)).longValue();
+            }
+        }
+        log.warn("无法解析 userId: {}", userIdObj);
+        return 0L;
     }
 
     /**

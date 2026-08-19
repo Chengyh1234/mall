@@ -11,6 +11,8 @@ target/
 docs
 #本地图片
 uploads
+#trae相关文件
+.trae
 
 ### STS ###
 .apt_generated

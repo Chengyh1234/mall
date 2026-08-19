@@ -15,15 +15,16 @@ spring:
       routes:
         # 认证授权服务
         - id: auth-service
-          uri: http://localhost:8888
+          # uri: http://localhost:8081
+          uri: lb://mall-auth #使用lb需要导入依赖
           predicates:
             - Path=/api/auth/**,/api/captcha/**
 
-        # 用户服务
+        # 用户服务（用户信息 + 收货地址）
         - id: user-service
-          uri: http://localhost:8888
+          uri: lb://mall-user
           predicates:
-            - Path=/api/user/**
+            - Path=/api/user/**,/api/address/**
 
         # 商品服务
         - id: product-service

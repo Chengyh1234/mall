@@ -117,9 +117,14 @@ public class TokenAuthenticationFilter extends OncePerRequestFilter {
      * 公开 POST 路径列表（与 SecurityConfig 保持一致）
      */
     private static final java.util.Set<String> PUBLIC_POST_PATHS = java.util.Set.of(
-            "/auth/login", "/auth/register", "/auth/register/send-email-code",
-            "/auth/admin/login", "/auth/login/send-email-code", "/auth/login/email-code",
-            "/auth/reset-password/send-code", "/auth/reset-password/reset"
+            "/auth/login",
+            "/auth/register",
+            "/auth/register/send-email-code",
+            "/auth/admin/login",
+            "/auth/login/send-email-code",
+            "/auth/login/email-code",
+            "/auth/reset-password/send-code",
+            "/auth/reset-password/reset"
     );
 
     /**
