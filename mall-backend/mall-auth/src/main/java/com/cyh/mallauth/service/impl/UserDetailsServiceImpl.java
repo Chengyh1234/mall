@@ -1,11 +1,9 @@
 package com.cyh.mallauth.service.impl;
 
-import com.cyh.mallcommon.exception.BusinessException;
-
-import com.cyh.mallauth.entity.Role;
+import com.cyh.mallcommon.dto.RoleDTO;
+import com.cyh.mallcommon.dto.UserAuthDTO;
 import com.cyh.mallauth.entity.User;
-import com.cyh.mallauth.mapper.RoleMapper;
-import com.cyh.mallauth.mapper.UserMapper;
+import com.cyh.mallauth.feign.UserServiceClient;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.core.GrantedAuthority;
@@ -21,33 +19,50 @@ import java.util.stream.Collectors;
 
 /**
  * 用户详情服务实现类
- * 用于加载用户信息和权限
+ * 通过 Feign 调用 mall-user 获取用户数据，不再直连数据库。
  */
 @Service
 @RequiredArgsConstructor
 public class UserDetailsServiceImpl implements UserDetailsService {
 
-    private final UserMapper userMapper;
-    private final RoleMapper roleMapper;
+    private final UserServiceClient userServiceClient;
 
     @Override
     public UserDetails loadUserByUsername(String account) {
-        User user = userMapper.selectByAccount(account);
-        if (user == null) {
+        UserAuthDTO userAuth = userServiceClient.loadByAccount(account);
+        if (userAuth == null) {
             throw new UsernameNotFoundException("账号不存在: " + account);
         }
 
-        List<Role> roles = roleMapper.selectByUserId(user.getId());
-        user.setRoles(roles);
+        User user = new User();
+        user.setId(userAuth.getId());
+        user.setUsername(userAuth.getUsername());
+        user.setPassword(userAuth.getPassword());
+        user.setEmail(userAuth.getEmail());
+        user.setPhone(userAuth.getPhone());
+        user.setAvatar(userAuth.getAvatar());
+        user.setRealName(userAuth.getRealName());
+        user.setStatus(userAuth.getStatus());
 
-        if (roles != null && !roles.isEmpty()) {
-
+        if (userAuth.getRoles() != null && !userAuth.getRoles().isEmpty()) {
             List<GrantedAuthority> authorities = new ArrayList<>();
-
-            for (Role role : roles) {
+            for (RoleDTO role : userAuth.getRoles()) {
                 authorities.add(new SimpleGrantedAuthority("ROLE_" + role.getCode()));
             }
             user.setAuthorities(authorities);
+        }
+
+        // 将角色列表转成 mall-auth 的 Role 实体，供后续角色校验
+        if (userAuth.getRoles() != null) {
+            user.setRoles(userAuth.getRoles().stream()
+                    .map(r -> {
+                        com.cyh.mallauth.entity.Role role = new com.cyh.mallauth.entity.Role();
+                        role.setId(r.getId());
+                        role.setCode(r.getCode());
+                        role.setName(r.getName());
+                        return role;
+                    })
+                    .collect(Collectors.toList()));
         }
 
         return user;

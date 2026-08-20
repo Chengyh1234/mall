@@ -1,12 +1,10 @@
 package com.cyh.mallauth.config;
 
 import com.cyh.mallauth.filter.GatewayHeaderAuthenticationFilter;
-import com.cyh.mallauth.filter.CustomAuthenticationEntryPoint;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
@@ -31,9 +29,8 @@ import java.util.List;
  * Spring Security安全配置类
  * <p>
  * 功能说明：
- * 1. 配置请求授权规则：GET请求公开，其他请求需要登录认证
+ * 1. 配置请求授权规则：无须认证
  * 2. 启用方法级安全：支持@PreAuthorize注解进行权限控制
- * 3. 配置Token认证：使用Redis存储Token和用户信息
  * 4. 密码加密：使用BCrypt加密
  * 5. CORS配置：支持跨域请求
  *
@@ -41,15 +38,7 @@ import java.util.List;
  * @since 2024-01-01
  */
 @Configuration
-/**
- * 启用Web安全配置
- * 启用后Spring Security会自动配置安全过滤器链
- */
 @EnableWebSecurity
-/**
- * 启用方法级安全控制
- * 支持@PreAuthorize、@PostAuthorize、@Secured注解进行方法级权限控制
- */
 @EnableMethodSecurity(prePostEnabled = true)
 @RequiredArgsConstructor
 public class SecurityConfig {
@@ -61,12 +50,6 @@ public class SecurityConfig {
     private final GatewayHeaderAuthenticationFilter gatewayHeaderAuthenticationFilter;
 
     /**
-     * 未登录认证处理器
-     * 访问受保护接口时未携带Token → 返回统一的JSON 401
-     */
-    private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
-
-    /**
      * 用户详情服务
      * 用于加载用户信息和权限
      */
@@ -75,12 +58,12 @@ public class SecurityConfig {
     /**
      * 安全过滤器链配置
      * <p>
-     * 配置详情：
+     * 配置说明：
+     * - 认证由 mall-gateway 统一处理，下游服务不做认证判断
+     * - 所有请求放行，权限控制由 @PreAuthorize 在 Controller 层处理
      * - 禁用CSRF：前后端分离架构无需CSRF保护
      * - 启用CORS：支持跨域请求
      * - 无状态Session：不创建HttpSession
-     * - 公开接口：/auth/login、/auth/register、所有GET请求
-     * - 认证接口：其他所有POST/PUT/DELETE请求需要登录
      *
      * @param http HttpSecurity对象
      * @return SecurityFilterChain 安全过滤器链
@@ -95,19 +78,9 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 // 配置无状态Session（不创建HttpSession，适合REST API）
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                // 配置请求授权规则
+                // 所有请求放行，认证由网关统一处理，授权由 @PreAuthorize 控制
                 .authorizeHttpRequests(auth -> auth
-                        // 允许获取验证码无需认证
-                        .requestMatchers(HttpMethod.GET, "/captcha").permitAll()
-                        // 允许登录/注册/密码重置接口无需认证
-                        .requestMatchers(HttpMethod.POST, "/auth/login", "/auth/register",
-                                "/auth/register/send-email-code", "/auth/admin/login",
-                                "/auth/login/send-email-code", "/auth/login/email-code",
-                                "/auth/reset-password/send-code", "/auth/reset-password/reset").permitAll()
-                        // 允许静态资源访问
-                        .requestMatchers("/uploads/images/**").permitAll()
-                        // 兜底：其他请求都需要认证
-                        .anyRequest().authenticated()
+                        .anyRequest().permitAll()
                 )
                 // 配置认证提供者
                 .authenticationProvider(authenticationProvider())
@@ -116,11 +89,7 @@ public class SecurityConfig {
                 // 禁用表单登录（前后端分离使用Token方式）
                 .formLogin(form -> form.disable())
                 // 禁用HTTP Basic认证
-                .httpBasic(basic -> basic.disable())
-                // 异常处理：接管 Spring Security 过滤器链中的认证异常
-                .exceptionHandling(ex -> ex
-                        .authenticationEntryPoint(customAuthenticationEntryPoint)
-                );
+                .httpBasic(basic -> basic.disable());
 
         return http.build();
     }

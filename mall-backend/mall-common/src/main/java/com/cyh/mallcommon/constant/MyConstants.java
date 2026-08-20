@@ -26,4 +26,5 @@ public class MyConstants {
      * 完整格式：Bearer xxx
      */
     public static final String BEARER_PREFIX = "Bearer ";
-}
+
+    }

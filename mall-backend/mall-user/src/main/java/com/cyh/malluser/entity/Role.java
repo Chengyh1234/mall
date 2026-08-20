@@ -1,5 +1,6 @@
-package com.cyh.mallauth.entity;
+package com.cyh.malluser.entity;
 
+import com.baomidou.mybatisplus.annotation.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -8,13 +9,15 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 /**
- * 角色实体类（仅用于Feign数据映射，不再关联数据库）
+ * 角色实体类
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@TableName(value = "roles", autoResultMap = true)
 public class Role implements Serializable {
 
+    @TableId(value = "id", type = IdType.AUTO)
     private Long id;
 
     private String name;
@@ -28,5 +31,4 @@ public class Role implements Serializable {
     private LocalDateTime createdAt;
 
     private LocalDateTime updatedAt;
-
-    }
+}

@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
-<mapper namespace="com.cyh.mallauth.mapper.UserMapper">
+<mapper namespace="com.cyh.malluser.mapper.UserMapper">
 
-    <resultMap id="BaseResultMap" type="com.cyh.mallauth.entity.User">
+    <resultMap id="BaseResultMap" type="com.cyh.malluser.entity.User">
         <id column="id" property="id" />
         <result column="username" property="username" />
         <result column="password" property="password" />
@@ -19,19 +19,18 @@
     </resultMap>
 
     <sql id="Base_Column_List">
-        id, username, password, email, phone, avatar, real_name, status, 
+        id, username, password, email, phone, avatar, real_name, status,
         last_login_time, last_login_ip, created_at, updated_at, deleted_at
     </sql>
 
     <select id="selectByUsername" resultMap="BaseResultMap">
         SELECT
-        <include refid="Base_Column_List" />
+        <include refid="Base_Column_List"/>
         FROM users
         WHERE username = #{username}
-          AND status = 1
+        AND status = 1
     </select>
 
-    <!-- 统一账号查询：支持用户名/手机号/邮箱 三选一登录 status为1，没有禁用-->
     <select id="selectByAccount" resultMap="BaseResultMap">
         SELECT
         <include refid="Base_Column_List" />
@@ -45,7 +44,6 @@
         LIMIT 1
     </select>
 
-    <!-- 根据手机号查询用户 -->
     <select id="selectByPhone" resultMap="BaseResultMap">
         SELECT
         <include refid="Base_Column_List" />
@@ -55,7 +53,6 @@
         LIMIT 1
     </select>
 
-    <!-- 根据邮箱查询用户 -->
     <select id="selectByEmail" resultMap="BaseResultMap">
         SELECT
         <include refid="Base_Column_List" />

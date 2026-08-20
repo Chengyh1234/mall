@@ -1,11 +1,9 @@
 package com.cyh.mallauth.entity;
 
-import com.baomidou.mybatisplus.annotation.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.io.Serializable;
@@ -13,18 +11,15 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
- * 用户实体类
+ * 用户实体类（仅用于Feign数据映射，不再关联数据库）
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@TableName(value = "users", autoResultMap = true)
 public class User implements Serializable, UserDetails {
 
-    @TableId(value = "id", type = IdType.AUTO)
     private Long id;
 
     private String username;
@@ -51,10 +46,8 @@ public class User implements Serializable, UserDetails {
 
     private LocalDateTime deletedAt;
 
-    @TableField(exist = false)
     private List<Role> roles;
 
-    @TableField(exist = false)
     private List<GrantedAuthority> authorities = new ArrayList<>();
 
     public void setAuthorities(Collection<? extends GrantedAuthority> authorities) {

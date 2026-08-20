@@ -3,6 +3,8 @@ package com.cyh.mallauth.controller;
 import cn.hutool.core.util.IdUtil;
 import com.cyh.mallcommon.constant.MyConstants;
 import com.cyh.mallcommon.constant.RedisConstants;
+import com.cyh.mallcommon.dto.RoleDTO;
+import com.cyh.mallcommon.dto.UserAuthDTO;
 import com.cyh.mallcommon.exception.CaptchaInvalidException;
 import com.cyh.mallcommon.exception.ErrorCode;
 import com.cyh.mallcommon.utils.RedisUtils;
@@ -12,37 +14,35 @@ import com.cyh.mallcommon.validation.Phone;
 import com.cyh.mallcommon.validation.Username;
 import com.cyh.mallauth.entity.Role;
 import com.cyh.mallauth.entity.User;
-import com.cyh.mallauth.entity.UserRole;
-import com.cyh.mallauth.mapper.RoleMapper;
-import com.cyh.mallauth.mapper.UserMapper;
-import com.cyh.mallauth.mapper.UserRoleMapper;
+import com.cyh.mallauth.feign.UserServiceClient;
 import com.cyh.mallauth.mq.event.EmailSendEvent;
 import com.cyh.mallauth.mq.publisher.EmailEventPublisher;
+import com.fasterxml.jackson.core.type.TypeReference;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Email;
+import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import com.fasterxml.jackson.core.type.TypeReference;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
 
 /**
  * 认证控制器 已处理响应
  * 提供登录、注册、登出等功能
+ * <p>
+ * 用户数据通过 Feign 调用 mall-user 获取，不再直连数据库。
  */
 @Slf4j
 @RestController
@@ -53,10 +53,8 @@ public class AuthController {
     private final AuthenticationManager authenticationManager;
     private final PasswordEncoder passwordEncoder;
     private final RedisUtils redisUtils;
-    private final RoleMapper roleMapper;
+    private final UserServiceClient userServiceClient;
     private final EmailEventPublisher emailEventPublisher;
-    private final UserRoleMapper userRoleMapper;
-    private final UserMapper userMapper;
 
     /**
      * 用户登录接口（仅限普通用户角色）
@@ -87,7 +85,7 @@ public class AuthController {
 
 
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getAccount(), request.getPassword())//创建认证对象
+                new UsernamePasswordAuthenticationToken(request.getAccount(), request.getPassword())
         );
 
         User user = (User) authentication.getPrincipal();
@@ -109,7 +107,6 @@ public class AuthController {
         String sessionId = IdUtil.fastSimpleUUID();
 
         // 单点登录：使旧会话失效
-        // 存储用户当前会话
         redisUtils.set(
                 RedisConstants.USER_CURRENT_SESSION_PREFIX + user.getId(),
                 sessionId,
@@ -117,7 +114,6 @@ public class AuthController {
                 TimeUnit.SECONDS
         );
 
-        // 存储 userId → token 反向映射，用于权限变更时原地更新 Redis 缓存
         redisUtils.set(
                 RedisConstants.USER_ACTIVE_TOKEN_PREFIX + user.getId(),
                 token,
@@ -132,7 +128,7 @@ public class AuthController {
         userInfo.put("realName", user.getRealName());
         userInfo.put("email", user.getEmail());
         userInfo.put("phone", user.getPhone());
-        userInfo.put("status", user.getStatus()); // 记录用户启用/禁用状态，供TokenAuthenticationFilter校验
+        userInfo.put("status", user.getStatus());
 
         Map<String, String> rolesMap = new HashMap<>();
         if (user.getRoles() != null) {
@@ -161,12 +157,6 @@ public class AuthController {
 
     /**
      * 管理员登录接口（仅限运营管理员和超级管理员）
-     * <p>
-     * 与用户登录接口共用相同的验证码流程和 Token 生成逻辑，
-     * 但登录成功后额外校验角色：仅允许 ADMIN 或 SUPER_ADMIN 角色登录。
-     * </p>
-     * <p>
-     * 需要先调用 GET /captcha 获取验证码，然后在登录时提交 captchaKey 和 captcha。
      */
     @PostMapping("/admin/login")
     public Result<Map<String, Object>> adminLogin(@RequestBody @Valid LoginRequest request) {
@@ -174,7 +164,6 @@ public class AuthController {
         String redisKey = RedisConstants.CAPTCHA_PREFIX + request.getCaptchaKey();
         String storedCaptcha = redisUtils.get(redisKey);
 
-        // 验证码不存在或已过期
         if (!StringUtils.hasText(storedCaptcha)) {
             throw new CaptchaInvalidException();
         }
@@ -206,8 +195,6 @@ public class AuthController {
         String token = IdUtil.fastSimpleUUID();
         String sessionId = IdUtil.fastSimpleUUID();
 
-        // 单点登录：使旧会话失效
-        // 存储用户当前会话
         redisUtils.set(
                 RedisConstants.USER_CURRENT_SESSION_PREFIX + user.getId(),
                 sessionId,
@@ -215,7 +202,6 @@ public class AuthController {
                 TimeUnit.SECONDS
         );
 
-        // 存储 userId → token 反向映射，用于权限变更时原地更新 Redis 缓存
         redisUtils.set(
                 RedisConstants.USER_ACTIVE_TOKEN_PREFIX + user.getId(),
                 token,
@@ -230,7 +216,7 @@ public class AuthController {
         userInfo.put("realName", user.getRealName());
         userInfo.put("email", user.getEmail());
         userInfo.put("phone", user.getPhone());
-        userInfo.put("status", user.getStatus()); // 记录用户启用/禁用状态，供TokenAuthenticationFilter校验
+        userInfo.put("status", user.getStatus());
 
         Map<String, String> rolesMap = new HashMap<>();
         if (user.getRoles() != null) {
@@ -257,13 +243,8 @@ public class AuthController {
         return Result.success("管理员登录成功", data);
     }
 
-
-
     /**
      * 发送注册邮箱验证码
-     * <p>
-     * 用户输入邮箱后，先校验图形验证码（防批量调用），
-     * 然后生成6位随机验证码发送至该邮箱，验证码存入 Redis，有效期5分钟。
      */
     @PostMapping("/register/send-email-code")
     public Result<String> sendRegisterEmailCode(@RequestBody @Valid SendRegisterEmailCodeRequest request) {
@@ -272,7 +253,6 @@ public class AuthController {
         String captcha = request.getCaptcha();
         String storedCaptcha = redisUtils.get(RedisConstants.CAPTCHA_PREFIX + captchaKey);
 
-        // 验证码不存在或已过期
         if (!StringUtils.hasText(storedCaptcha)) {
             throw new CaptchaInvalidException();
         }
@@ -286,12 +266,11 @@ public class AuthController {
 
         // 1. 检查邮箱是否已被注册
         String email = request.getEmail();
-        User existingUser = userMapper.selectByEmail(email);
-        if (existingUser != null) {
+        if (userServiceClient.checkEmail(email)) {
             return Result.error("该邮箱已被注册");
         }
 
-        // 2. 检查是否已发送过验证码（防止短时间内重复发送）
+        // 2. 检查是否已发送过验证码
         String redisKey = RedisConstants.EMAIL_REGISTER_CODE_PREFIX + email;
         if (Boolean.TRUE.equals(redisUtils.hasKey(redisKey))) {
             return Result.error("验证码已发送，请查看邮箱或稍后再试");
@@ -300,11 +279,11 @@ public class AuthController {
         // 3. 生成6位随机验证码
         String code = String.format("%06d", new Random().nextInt(999999));
 
-        // 4. 异步发送邮件（入队即返回，Consumer 实际发送）
+        // 4. 异步发送邮件
         emailEventPublisher.publish(new EmailSendEvent()
                 .setTo(email).setCode(code).setType(EmailSendEvent.EmailType.REGISTER));
 
-        // 5. 发送成功后存入 Redis，有效期分1钟
+        // 5. 发送成功后存入 Redis
         redisUtils.set(redisKey, code, RedisConstants.EMAIL_CODE_EXPIRATION, TimeUnit.SECONDS);
 
         return Result.success("验证码已发送", null);
@@ -313,8 +292,7 @@ public class AuthController {
     /**
      * 注册接口（邮箱验证码校验）
      * <p>
-     * 注册流程：邮箱验证码校验 → 唯一性校验 → 密码加密 → 插入用户 → 自动分配 USER 角色。
-     * 注册成功后可直接登录。
+     * 注册流程：邮箱验证码校验 → 唯一性校验 → 通过 Feign 调用 mall-user 创建用户。
      */
     @PostMapping("/register")
     public Result<Map<String, Object>> register(@RequestBody @Valid RegisterRequest request) {
@@ -322,7 +300,6 @@ public class AuthController {
         String redisKey = RedisConstants.EMAIL_REGISTER_CODE_PREFIX + request.getEmail();
         String storedCode = redisUtils.get(redisKey);
 
-        // 验证码不存在或已过期
         if (!StringUtils.hasText(storedCode)) {
             throw new CaptchaInvalidException();
         }
@@ -331,60 +308,36 @@ public class AuthController {
             return Result.error("验证码错误");
         }
 
-        // 验证通过后立即删除验证码（一次性使用）
         redisUtils.delete(redisKey);
 
-        // 2. 用户名唯一性校验
-        User existingUser = userMapper.selectByUsername(request.getUsername());
-        if (existingUser != null) {
+        // 2. 唯一性校验（通过 Feign 调用 mall-user）
+        if (userServiceClient.checkUsername(request.getUsername())) {
             return Result.error("用户名已存在");
         }
 
-        // 3. 手机号唯一性校验（如果提供了手机号）
-        if (StringUtils.hasText(request.getPhone())) {
-            User phoneUser = userMapper.selectByPhone(request.getPhone());
-            if (phoneUser != null) {
-                return Result.error("该手机号已被注册");
-            }
+        if (StringUtils.hasText(request.getPhone()) && userServiceClient.checkPhone(request.getPhone())) {
+            return Result.error("该手机号已被注册");
         }
 
-        // 4. 邮箱唯一性校验（双重保险）
-        User emailUser = userMapper.selectByEmail(request.getEmail());
-        if (emailUser != null) {
+        if (userServiceClient.checkEmail(request.getEmail())) {
             return Result.error("该邮箱已被注册");
         }
 
-        // 5. 创建用户
-        User user = new User();
-        user.setUsername(request.getUsername());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setEmail(request.getEmail());
-        user.setPhone(request.getPhone());
-        user.setRealName(request.getRealName());
-        user.setStatus(1);
+        // 3. 通过 Feign 调用 mall-user 注册用户
+        UserServiceClient.RegisterRequest registerReq = new UserServiceClient.RegisterRequest();
+        registerReq.setUsername(request.getUsername());
+        registerReq.setPassword(passwordEncoder.encode(request.getPassword()));
+        registerReq.setEmail(request.getEmail());
+        registerReq.setPhone(request.getPhone());
+        registerReq.setRealName(request.getRealName());
 
-        userMapper.insert(user);
-
-        // 6. 自动分配 USER 角色（注册后可直接登录）
-        com.cyh.mallauth.entity.Role userRole = roleMapper.selectByCode("USER");
-        if (userRole != null) {
-            UserRole userRoleEntity = new UserRole();
-            userRoleEntity.setUserId(user.getId());
-            userRoleEntity.setRoleId(userRole.getId());
-            userRoleMapper.insert(userRoleEntity);
-            log.info("用户 {} 注册成功，已自动分配 USER 角色", user.getUsername());
-        } else {
-            log.warn("USER 角色不存在，请检查数据库 roles 表");
-        }
+        userServiceClient.register(registerReq);
 
         return Result.success("注册成功", null);
     }
 
     /**
      * 发送邮箱登录验证码
-     * <p>
-     * 用户输入邮箱后，系统生成6位随机验证码发送至该邮箱，
-     * 验证码存入 Redis，有效期5分钟。
      */
     @PostMapping("/login/send-email-code")
     public Result<String> sendLoginEmailCode(@RequestBody @Valid SendEmailCodeRequest request) {
@@ -393,7 +346,6 @@ public class AuthController {
         String captcha = request.getCaptcha();
         String storedCaptcha = redisUtils.get(RedisConstants.CAPTCHA_PREFIX + captchaKey);
 
-        // 验证码不存在或已过期
         if (!StringUtils.hasText(storedCaptcha)) {
             throw new CaptchaInvalidException();
         }
@@ -407,20 +359,20 @@ public class AuthController {
 
         // 1. 确认该邮箱已注册
         String email = request.getEmail();
-        User user = userMapper.selectByEmail(email);
-        if (user == null) {
+        UserAuthDTO userAuth = userServiceClient.loadByEmail(email);
+        if (userAuth == null) {
             return Result.error("该邮箱未注册");
         }
 
         // 2. 生成6位随机验证码
         String code = String.format("%06d", new Random().nextInt(999999));
 
-        // 3. 异步发送邮件（入队即返回，Consumer 实际发送）
+        // 3. 异步发送邮件
         String redisKey = RedisConstants.EMAIL_LOGIN_CODE_PREFIX + email;
         emailEventPublisher.publish(new EmailSendEvent()
                 .setTo(email).setCode(code).setType(EmailSendEvent.EmailType.LOGIN));
 
-        // 4. 发送成功后存入 Redis，有效期5分钟
+        // 4. 发送成功后存入 Redis
         redisUtils.set(redisKey, code, RedisConstants.EMAIL_CODE_EXPIRATION, TimeUnit.SECONDS);
 
         return Result.success("验证码已发送", null);
@@ -428,9 +380,6 @@ public class AuthController {
 
     /**
      * 用邮箱验证码登录（仅限普通用户）
-     * <p>
-     * 使用邮箱 + 验证码进行登录，无需密码。
-     * 登录成功后校验 USER 角色。
      */
     @PostMapping("/login/email-code")
     public Result<Map<String, Object>> loginByEmailCode(@RequestBody @Valid EmailCodeLoginRequest request) {
@@ -449,54 +398,39 @@ public class AuthController {
             return Result.error("验证码错误");
         }
 
-        // 验证通过后立即删除验证码（一次性使用）
         redisUtils.delete(redisKey);
 
-        // 2. 查询用户
-        User user = userMapper.selectByEmail(email);
-        if (user == null) {
+        // 2. 通过 Feign 查询用户
+        UserAuthDTO userAuth = userServiceClient.loadByEmail(email);
+        if (userAuth == null) {
             return Result.error("用户不存在");
         }
-        // 校验用户状态：被禁用的用户拒绝登录
-        if (user.getStatus() == null || user.getStatus() != 1) {
+
+        // 校验用户状态
+        if (userAuth.getStatus() == null || userAuth.getStatus() != 1) {
             return Result.error("账号已被禁用，无法登录");
         }
 
-        // 3. 加载角色
-        var roles = roleMapper.selectByUserId(user.getId());
-        user.setRoles(roles);
-        // 只构建角色权限（不加具体权限编码）
-        var authorities = new java.util.ArrayList<GrantedAuthority>();
-        for (var role : roles) {
-            authorities.add(new org.springframework.security.core.authority.SimpleGrantedAuthority("ROLE_" + role.getCode()));
-        }
-        user.setAuthorities(authorities);
+        // 3. 构建 User 对象（用于后续 Token 生成）
+        User user = buildUserFromAuthDTO(userAuth);
 
-        // 4. 角色校验：仅允许普通用户(USER)角色使用邮箱验证码登录
+        // 4. 角色校验：仅允许普通用户(USER)角色
         boolean hasUserRole = user.getRoles() != null && user.getRoles().stream()
                 .anyMatch(role -> "USER".equals(role.getCode()));
-        // 允许同时拥有 USER 和 SELLER 角色的用户登录前台
         if (!hasUserRole) {
             return Result.error("该账号无普通用户权限，请使用管理员登录入口");
-        }
-
-        // 校验用户状态：被禁用的用户不允许登录
-        if (user.getStatus() == null || user.getStatus() != 1) {
-            return Result.error("账号已被禁用，无法登录");
         }
 
         // 5. 生成 Token
         String token = IdUtil.fastSimpleUUID();
         String sessionId = IdUtil.fastSimpleUUID();
 
-        // 单点登录：使旧会话失效
         redisUtils.set(
                 RedisConstants.USER_CURRENT_SESSION_PREFIX + user.getId(),
                 sessionId,
                 RedisConstants.TOKEN_EXPIRATION,
                 TimeUnit.SECONDS
         );
-        // 存储 userId → token 反向映射，用于权限变更时原地更新 Redis 缓存
         redisUtils.set(
                 RedisConstants.USER_ACTIVE_TOKEN_PREFIX + user.getId(),
                 token,
@@ -511,7 +445,7 @@ public class AuthController {
         userInfo.put("realName", user.getRealName());
         userInfo.put("email", user.getEmail());
         userInfo.put("phone", user.getPhone());
-        userInfo.put("status", user.getStatus()); // 记录用户启用/禁用状态，供TokenAuthenticationFilter校验
+        userInfo.put("status", user.getStatus());
 
         Map<String, String> rolesMap = new HashMap<>();
         if (user.getRoles() != null) {
@@ -541,9 +475,6 @@ public class AuthController {
 
     /**
      * 发送重置密码验证码
-     * <p>
-     * 用户输入已注册的邮箱，系统发送重置密码验证码。
-     * 验证码存入 Redis，有效期5分钟。
      */
     @PostMapping("/reset-password/send-code")
     public Result<String> sendResetPasswordCode(@RequestBody @Valid SendEmailCodeRequest request) {
@@ -565,20 +496,20 @@ public class AuthController {
 
         // 1. 确认该邮箱已注册
         String email = request.getEmail();
-        User user = userMapper.selectByEmail(email);
-        if (user == null) {
+        UserAuthDTO userAuth = userServiceClient.loadByEmail(email);
+        if (userAuth == null) {
             return Result.error("该邮箱未注册");
         }
 
         // 2. 生成6位随机验证码
         String code = String.format("%06d", new Random().nextInt(999999));
 
-        // 3. 异步发送邮件（入队即返回，Consumer 实际发送）
+        // 3. 异步发送邮件
         String redisKey = RedisConstants.EMAIL_RESET_PWD_CODE_PREFIX + email;
         emailEventPublisher.publish(new EmailSendEvent()
                 .setTo(email).setCode(code).setType(EmailSendEvent.EmailType.RESET_PASSWORD));
 
-        // 4. 发送成功后存入 Redis，有效期1分钟
+        // 4. 发送成功后存入 Redis
         redisUtils.set(redisKey, code, RedisConstants.EMAIL_CODE_EXPIRATION, TimeUnit.SECONDS);
 
         return Result.success("验证码已发送", null);
@@ -587,8 +518,7 @@ public class AuthController {
     /**
      * 重置密码
      * <p>
-     * 校验邮箱验证码后，使用 BCrypt 加密新密码并更新到数据库。
-     * 重置成功后清除该用户所有登录会话，需重新登录。
+     * 校验邮箱验证码后，通过 Feign 调用 mall-user 更新密码。
      */
     @PostMapping("/reset-password/reset")
     public Result<String> resetPassword(@RequestBody @Valid ResetPasswordRequest request) {
@@ -608,44 +538,34 @@ public class AuthController {
             return Result.error("验证码错误");
         }
 
-        // 验证通过后立即删除验证码（一次性使用）
         redisUtils.delete(redisKey);
 
-        // 2. 查询用户
-        User user = userMapper.selectByEmail(email);
-        if (user == null) {
+        // 2. 通过 Feign 查询用户
+        UserAuthDTO userAuth = userServiceClient.loadByEmail(email);
+        if (userAuth == null) {
             return Result.error("用户不存在");
         }
 
-        // 3. BCrypt 加密新密码
+        // 3. 通过 Feign 更新密码
         String encodedPassword = passwordEncoder.encode(newPassword);
+        userServiceClient.updatePassword(userAuth.getId(), encodedPassword);
 
-        // 4. 更新密码
-        user.setPassword(encodedPassword);
-        userMapper.updateById(user);
+        // 4. 清除该用户所有登录会话
+        redisUtils.delete(RedisConstants.USER_CURRENT_SESSION_PREFIX + userAuth.getId());
 
-        // 5. 清除该用户所有登录会话（强制重新登录）
-        // 清除当前会话
-        redisUtils.delete(RedisConstants.USER_CURRENT_SESSION_PREFIX + user.getId());
-        // 清除 Token（通过模糊匹配删除所有以 token: 开头且包含该 userId 的 key）
-        // 注：由于 Redis 的 key 结构限制，此处清理当前会话即可，
-        // 旧的 token 会在过期后自动失效，或由客户端在下次请求时被过滤器拦截
-
-        log.info("用户 {} 密码重置成功，已清除登录会话", user.getUsername());
+        log.info("用户 {} 密码重置成功，已清除登录会话", userAuth.getUsername());
         return Result.success("密码重置成功，请使用新密码重新登录", null);
     }
 
     /**
      * 登出接口
      */
-
     @PostMapping("/logout")
     @PreAuthorize("isAuthenticated()")
     public Result<Void> logout(@RequestHeader(value = MyConstants.AUTH_HEADER, required = false) String authHeader) {
         if (authHeader != null && authHeader.startsWith(MyConstants.BEARER_PREFIX)) {
             String token = authHeader.substring(7);
 
-            // 获取用户信息，清除用户当前会话和反向映射
             Map<String, Object> userInfo = redisUtils.getObject(RedisConstants.TOKEN_PREFIX + token,
                     new TypeReference<Map<String, Object>>() {});
             if (userInfo != null) {
@@ -659,27 +579,58 @@ public class AuthController {
         return Result.success("登出成功", null);
     }
 
+    // ==================== 私有方法 ====================
+
     private void updateLastLogin(Long userId, String ip) {
-        User user = userMapper.selectById(userId);
-        if (user != null) {
-            user.setLastLoginTime(LocalDateTime.now());
-            user.setLastLoginIp(ip);
-            userMapper.updateById(user);
-        }
+        userServiceClient.updateLastLogin(userId, ip);
     }
+
+    /**
+     * 将 UserAuthDTO 转换为 mall-auth 的 User 实体
+     */
+    private User buildUserFromAuthDTO(UserAuthDTO userAuth) {
+        User user = new User();
+        user.setId(userAuth.getId());
+        user.setUsername(userAuth.getUsername());
+        user.setPassword(userAuth.getPassword());
+        user.setEmail(userAuth.getEmail());
+        user.setPhone(userAuth.getPhone());
+        user.setAvatar(userAuth.getAvatar());
+        user.setRealName(userAuth.getRealName());
+        user.setStatus(userAuth.getStatus());
+
+        if (userAuth.getRoles() != null) {
+            List<Role> roles = userAuth.getRoles().stream()
+                    .map(r -> {
+                        Role role = new Role();
+                        role.setId(r.getId());
+                        role.setCode(r.getCode());
+                        role.setName(r.getName());
+                        return role;
+                    })
+                    .collect(Collectors.toList());
+            user.setRoles(roles);
+
+            List<GrantedAuthority> authorities = new ArrayList<>();
+            for (RoleDTO role : userAuth.getRoles()) {
+                authorities.add(new SimpleGrantedAuthority("ROLE_" + role.getCode()));
+            }
+            user.setAuthorities(authorities);
+        }
+
+        return user;
+    }
+
+    // ==================== 内部请求类 ====================
 
     @Data
     public static class LoginRequest {
-        /** 账号（用户名/手机号/邮箱 三选一） */
         @NotBlank(message = "账号不能为空")
         private String account;
-        /** 密码（6-20位） */
         @Password
         private String password;
-        /** 验证码唯一标识（从 GET /captcha 接口获取） */
         @NotBlank(message = "验证码标识不能为空")
         private String captchaKey;
-        /** 用户输入的验证码内容 */
         @NotBlank(message = "验证码不能为空")
         private String captcha;
         private String ip;
@@ -687,80 +638,59 @@ public class AuthController {
 
     @Data
     public static class RegisterRequest {
-        /** 用户名（4-20位，必须包含字母和数字，不能含特殊符号） */
         @Username
         private String username;
-        /** 密码（6-20位） */
         @Password
         private String password;
-        /** 邮箱地址 */
         @NotBlank(message = "邮箱不能为空")
         @Email(message = "邮箱格式不正确")
         private String email;
-        /** 邮箱验证码（从 /auth/register/send-email-code 获取） */
         @NotBlank(message = "邮箱验证码不能为空")
         private String emailCode;
-        /** 手机号（11位，1[3-9]开头） */
         @Phone
         private String phone;
         private String realName;
     }
 
-    /** 发送注册邮箱验证码请求 */
     @Data
     public static class SendRegisterEmailCodeRequest {
-        /** 邮箱地址 */
         @NotBlank(message = "邮箱不能为空")
         @Email(message = "邮箱格式不正确")
         private String email;
-        /** 图形验证码唯一标识 */
         @NotBlank(message = "验证码标识不能为空")
         private String captchaKey;
-        /** 图形验证码内容 */
         @NotBlank(message = "验证码不能为空")
         private String captcha;
     }
 
-    /** 发送邮箱验证码请求 */
     @Data
     public static class SendEmailCodeRequest {
-        /** 邮箱地址 */
         @NotBlank(message = "邮箱不能为空")
         @Email(message = "邮箱格式不正确")
         private String email;
-        /** 图形验证码唯一标识 */
         @NotBlank(message = "验证码标识不能为空")
         private String captchaKey;
-        /** 图形验证码内容 */
         @NotBlank(message = "验证码不能为空")
         private String captcha;
     }
 
-    /** 邮箱验证码登录请求 */
     @Data
     public static class EmailCodeLoginRequest {
-        /** 邮箱地址 */
         @NotBlank(message = "邮箱不能为空")
         @Email(message = "邮箱格式不正确")
         private String email;
-        /** 6位验证码 */
         @NotBlank(message = "验证码不能为空")
         private String code;
-        /** 客户端IP */
         private String ip;
     }
 
-    /** 重置密码请求 */
     @Data
     public static class ResetPasswordRequest {
-        /** 邮箱地址 */
         @NotBlank(message = "邮箱不能为空")
         @Email(message = "邮箱格式不正确")
         private String email;
-        /** 6位验证码 */
         @NotBlank(message = "验证码不能为空")
         private String code;
-        /** 新密码（6-20位） */
         @Password
         private String newPassword;
     }
