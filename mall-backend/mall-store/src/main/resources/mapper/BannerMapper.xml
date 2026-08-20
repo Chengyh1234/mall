@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cyh.mallstore.mapper.BannerMapper">
+
+    <resultMap id="BaseResultMap" type="com.cyh.mallstore.entity.Banner">
+        <id column="id" property="id" />
+        <result column="title" property="title" />
+        <result column="image_url" property="imageUrl" />
+        <result column="link_url" property="linkUrl" />
+        <result column="sort" property="sort" />
+        <result column="status" property="status" />
+        <result column="created_at" property="createdAt" />
+        <result column="updated_at" property="updatedAt" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, title, image_url, link_url, sort, status, created_at, updated_at
+    </sql>
+
+    <select id="selectActive" resultMap="BaseResultMap">
+        SELECT <include refid="Base_Column_List" />
+        FROM banners
+        WHERE status = 1
+        ORDER BY sort ASC, id DESC
+    </select>
+
+</mapper>

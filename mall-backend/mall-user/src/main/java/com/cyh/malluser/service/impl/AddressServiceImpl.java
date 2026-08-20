@@ -2,15 +2,14 @@ package com.cyh.malluser.service.impl;
 
 import com.cyh.mallcommon.constant.RedisConstants;
 import com.cyh.mallcommon.exception.BusinessException;
+import com.cyh.mallcommon.utils.RedisUtils;
 import com.cyh.malluser.dto.AddressDto;
 import com.cyh.malluser.entity.Address;
 import com.cyh.malluser.mapper.AddressMapper;
 import com.cyh.malluser.service.AddressService;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,8 +33,7 @@ import java.util.concurrent.TimeUnit;
 public class AddressServiceImpl implements AddressService {
 
     private final AddressMapper addressMapper;
-    private final StringRedisTemplate stringRedisTemplate;
-    private final ObjectMapper objectMapper;
+    private final RedisUtils redisUtils;
 
     /** 最大地址数量限制 */
     private static final int MAX_ADDRESS_COUNT = 10;
@@ -232,33 +230,17 @@ public class AddressServiceImpl implements AddressService {
 
     private List<Address> getAddressListFromCache(Long userId) {
         String key = RedisConstants.ADDRESS_LIST_CACHE_KEY + userId;
-        String cached = stringRedisTemplate.opsForValue().get(key);
-        if (cached == null) {
-            return null;
-        }
-        try {
-            return objectMapper.readValue(cached,
-                    objectMapper.getTypeFactory().constructCollectionType(List.class, Address.class));
-        } catch (JsonProcessingException e) {
-            log.error("反序列化地址缓存失败, key: {}", key, e);
-            stringRedisTemplate.delete(key);
-            return null;
-        }
+        return redisUtils.getObject(key, new TypeReference<List<Address>>() {});
     }
 
     private void cacheAddressList(Long userId, List<Address> list) {
         String key = RedisConstants.ADDRESS_LIST_CACHE_KEY + userId;
-        try {
-            String json = objectMapper.writeValueAsString(list);
-            stringRedisTemplate.opsForValue().set(key, json, RedisConstants.ADDRESS_CACHE_TTL_HOURS, TimeUnit.HOURS);
-        } catch (JsonProcessingException e) {
-            log.error("序列化地址缓存失败, key: {}", key, e);
-        }
+        redisUtils.setObject(key, list, RedisConstants.ADDRESS_CACHE_TTL_HOURS, TimeUnit.HOURS);
     }
 
     private void clearAddressCache(Long userId) {
         String key = RedisConstants.ADDRESS_LIST_CACHE_KEY + userId;
-        stringRedisTemplate.delete(key);
+        redisUtils.delete(key);
         log.debug("清除地址缓存, key: {}", key);
     }
 }

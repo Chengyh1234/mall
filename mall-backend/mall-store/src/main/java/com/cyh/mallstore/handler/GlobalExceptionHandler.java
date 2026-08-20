@@ -1,4 +1,4 @@
-package com.cyh.mallportal.handler;
+package com.cyh.mallstore.handler;
 
 import com.cyh.mallcommon.exception.BusinessException;
 import com.cyh.mallcommon.exception.CaptchaInvalidException;
@@ -7,8 +7,6 @@ import com.cyh.mallcommon.exception.LoginExpiredException;
 import com.cyh.mallcommon.utils.Result;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.validation.FieldError;
@@ -17,15 +15,12 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.servlet.NoHandlerFoundException;
 
-import java.util.Map;
-import java.util.NoSuchElementException;
 import java.util.stream.Collectors;
 
 /**
- * 全局异常处理器
- * <p>
- * 统一处理各类异常，返回标准 {@link Result} 格式响应，
- * 并设置对应的 HTTP 状态码。
+ * 店铺服务全局异常处理器
+ * 统一处理参数校验异常、认证授权异常、业务异常、系统异常等
+ * 按顺序：参数错误（400）→ 认证失败（401）→ 权限不足（403）→ 资源不存在（404）→ 业务异常（200）→ 系统异常（500）
  */
 @Slf4j
 @RestControllerAdvice

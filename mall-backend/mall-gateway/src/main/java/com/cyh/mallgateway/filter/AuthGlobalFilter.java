@@ -126,7 +126,10 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
 
         String token = authHeader.substring(MyConstants.BEARER_PREFIX.length());
 
-        // 3. 从 Redis 读取 Token 对应的 JSON 字符串，手动反序列化
+        // 3. 从 Redis 读取 Token 对应的 JSON 字符串，手动反序列化后校验
+        // 注意：switchIfEmpty 在 Mono<Void> 链中会误触发（Mono<Void> 完成无 onNext 信号
+        // 被判定为"空"），导致下游已正常响应后仍调用 unauthorized() 修改已提交的响应头。
+        // 配合 unauthorized() 中的 response.isCommitted() 防御检查，确保不会抛出异常。
         return stringRedisTemplate.opsForValue()
                 .get(RedisConstants.TOKEN_PREFIX + token)
                 .flatMap(jsonStr -> {
@@ -250,6 +253,10 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
 
     /**
      * 返回 401 未认证响应
+     * <p>
+     * 注意：Reactive 环境中，响应可能已被下游服务提交（如 chain.filter 返回的 Mono<Void>
+     * 被 switchIfEmpty 误判为空），此时修改响应头会抛出 UnsupportedOperationException。
+     * 因此先检查响应是否已提交，已提交则直接返回。
      *
      * @param response ServerHttpResponse
      * @param code     业务错误码
@@ -257,6 +264,10 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
      * @return Mono<Void>
      */
     private Mono<Void> unauthorized(ServerHttpResponse response, int code, String message) {
+        if (response.isCommitted()) {
+            log.warn("响应已提交，跳过 401 设置: code={}, message={}", code, message);
+            return Mono.empty();
+        }
         response.setStatusCode(HttpStatus.UNAUTHORIZED);
         response.getHeaders().setContentType(MediaType.APPLICATION_JSON);
         Result<Object> result = Result.error(code, message);

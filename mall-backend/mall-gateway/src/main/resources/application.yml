@@ -40,9 +40,9 @@ spring:
 
         # 店铺服务（含横幅广告、文件上传）
         - id: store-service
-          uri: http://localhost:8888
+          uri: lb://mall-store
           predicates:
-            - Path=/api/store/**,/api/banner/**,/api/file/**,/api/delivery/**,/api/logistics/**
+            - Path=/api/store/**,/api/banner/**,/api/file/**,/api/store-admin/**,/api/admin/store/**,/api/store/apply/**
         # 管理后台
         - id: admin-service
           uri: http://localhost:8888

@@ -22,6 +22,7 @@
         <module>mall-gateway</module>
         <module>mall-auth</module>
         <module>mall-user</module>
+        <module>mall-store</module>
     </modules>
 
     <properties>
