@@ -1,8 +1,11 @@
 package com.cyh.malluser.controller;
 
 import com.cyh.mallcommon.dto.UserAuthDTO;
+import com.cyh.mallcommon.dto.UserProfileVo;
+import com.cyh.mallcommon.utils.Result;
 import com.cyh.malluser.entity.User;
 import com.cyh.malluser.service.UserInternalService;
+import com.cyh.malluser.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
@@ -20,8 +23,10 @@ import org.springframework.web.bind.annotation.*;
 public class UserInternalController {
 
     private final UserInternalService userInternalService;
+    private final UserService userService;
 
     /**
+     * 根据账号（用户名/手机号/邮箱）加载用户认证信息
      * 根据账号（用户名/手机号/邮箱）加载用户认证信息
      */
     @PostMapping("/loadByAccount")
@@ -92,6 +97,24 @@ public class UserInternalController {
     @GetMapping("/checkPhone")
     public boolean checkPhone(@RequestParam("phone") String phone) {
         return userInternalService.isPhoneExists(phone);
+    }
+
+    /**
+     * 根据用户 ID 获取用户基本信息（供其他微服务内部调用）
+     */
+    @GetMapping("/detail/{id}")
+    public Result<UserProfileVo> getUserDetail(@PathVariable("id") Long id) {
+        User user = userService.getById(id);
+        if (user == null) {
+            return Result.error("用户不存在");
+        }
+        UserProfileVo vo = new UserProfileVo();
+        vo.setId(user.getId());
+        vo.setUsername(user.getUsername());
+        vo.setAvatar(user.getAvatar());
+        vo.setRealName(user.getRealName());
+        vo.setPhone(user.getPhone());
+        return Result.success(vo);
     }
 
     @lombok.Data

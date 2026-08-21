@@ -37,7 +37,6 @@ public class GatewayHeaderAuthenticationFilter extends OncePerRequestFilter {
                                     @NonNull FilterChain filterChain) throws ServletException, IOException {
 
         String userId = request.getHeader("X-User-Id");
-        String userName = request.getHeader("X-User-Name");
         String roles = request.getHeader("X-User-Roles");
 
         if (StringUtils.hasText(userId) && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -51,16 +50,15 @@ public class GatewayHeaderAuthenticationFilter extends OncePerRequestFilter {
                 }
             }
 
-            // 以用户名作为 principal，userId 存入 details 供后续使用
             UsernamePasswordAuthenticationToken authToken =
-                    new UsernamePasswordAuthenticationToken(userName, userId, authorities);
+                    new UsernamePasswordAuthenticationToken(userId, null, authorities);
             authToken.setDetails(
                     new org.springframework.security.web.authentication.WebAuthenticationDetailsSource()
                             .buildDetails(request)
             );
             SecurityContextHolder.getContext().setAuthentication(authToken);
 
-            log.debug("网关信任头认证成功, userId: {}, userName: {}, roles: {}", userId, userName, roles);
+            log.debug("网关信任头认证成功, userId: {}, roles: {}", userId, roles);
         }
 
         filterChain.doFilter(request, response);

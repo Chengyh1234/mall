@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.cyh.mallproduct.mapper.SpuBasicAttrValueMapper">
+
+    <!-- 根据SPU ID获取基本属性值列表 -->
+    <select id="getBySpuId" resultType="com.cyh.mallproduct.entity.SpuBasicAttrValue">
+        SELECT * FROM spu_basic_attr_values WHERE spu_id = #{spuId} ORDER BY attr_id ASC
+    </select>
+
+</mapper>

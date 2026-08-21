@@ -166,10 +166,9 @@ public class StoreAdminController {
 
     private Long getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.isAuthenticated()
-                && authentication.getCredentials() != null) {
+        if (authentication != null && authentication.getPrincipal() != null) {
             try {
-                return Long.valueOf(authentication.getCredentials().toString());
+                return Long.valueOf(authentication.getPrincipal().toString());
             } catch (NumberFormatException e) {
                 return null;
             }

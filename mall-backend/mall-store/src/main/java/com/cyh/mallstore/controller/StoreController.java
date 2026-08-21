@@ -59,7 +59,7 @@ public class StoreController {
         store.setStatus(storeDto.getStatus());
         store.setSort(storeDto.getSort());
 
-        store.setSellerId(getCurrentUserIdFromHeader());
+        store.setSellerId(getCurrentUserId());
 
         String date = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyy/MM/dd"));
 
@@ -104,7 +104,7 @@ public class StoreController {
         if (oldStore == null) {
             return Result.error("店铺不存在");
         }
-        Long currentUserId = getCurrentUserIdFromHeader();
+        Long currentUserId = getCurrentUserId();
         if (!storeService.isStoreOwner(storeDto.getId(), currentUserId)) {
             return Result.error("无权修改此店铺");
         }
@@ -193,7 +193,7 @@ public class StoreController {
     @GetMapping("/my-store")
     @PreAuthorize("hasRole('SELLER') or hasRole('SUPER_ADMIN') or hasRole('STORE_ADMIN')")
     public Result<StoreSellerVo> getMyStore() {
-        Long currentUserId = getCurrentUserIdFromHeader();
+        Long currentUserId = getCurrentUserId();
         Store store = storeService.getBySellerId(currentUserId);
         if (store != null) {
             return Result.success(StoreSellerVo.fromStore(store));
@@ -270,14 +270,13 @@ public class StoreController {
     }
 
     /**
-     * 从 SecurityContext 获取当前用户ID（由 GatewayHeaderAuthenticationFilter 注入）
+     * 从 SecurityContext 获取当前用户 ID（由 GatewayHeaderAuthenticationFilter 注入）
      */
-    private Long getCurrentUserIdFromHeader() {
+    private Long getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication != null && authentication.isAuthenticated()
-                && authentication.getCredentials() != null) {
+        if (authentication != null && authentication.getPrincipal() != null) {
             try {
-                return Long.valueOf(authentication.getCredentials().toString());
+                return Long.valueOf(authentication.getPrincipal().toString());
             } catch (NumberFormatException e) {
                 return null;
             }

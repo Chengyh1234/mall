@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.cyh.mallproduct.mapper.AttributeValueMapper">
+
+    <!-- 根据属性ID获取属性值列表 -->
+    <select id="getByAttrId" resultType="com.cyh.mallproduct.entity.AttributeValue">
+        SELECT * FROM attribute_values WHERE attr_id = #{attrId} ORDER BY sort ASC
+    </select>
+
+    <!-- 根据多个属性ID获取属性值列表 -->
+    <select id="getByAttrIds" resultType="com.cyh.mallproduct.entity.AttributeValue">
+        SELECT * FROM attribute_values 
+        WHERE attr_id IN 
+        <foreach collection="attrIds" item="attrId" open="(" separator="," close=")">
+            #{attrId}
+        </foreach>
+        ORDER BY attr_id ASC, sort ASC
+    </select>
+
+    <!-- ==================== 引用检查（只查是否存在，不查数量） ==================== -->
+
+    <!-- 检查属性值是否被 SPU 基本属性引用 -->
+    <select id="countUsedInSpuBasic" resultType="int">
+        SELECT EXISTS(
+            SELECT 1 FROM spu_basic_attr_values WHERE attr_value_id = #{attrValueId}
+        )
+    </select>
+
+    <!-- 检查属性值是否被 SPU 销售属性引用（排除逻辑删除的SPU） -->
+    <select id="countUsedInSpuSale" resultType="int">
+        SELECT EXISTS(
+            SELECT 1 FROM spu_sale_attr_choice sac
+            INNER JOIN spu ON spu.id = sac.spu_id AND spu.is_deleted = 0
+            WHERE JSON_CONTAINS(sac.selected_values, CAST(#{attrValueId} AS JSON))
+        )
+    </select>
+
+    <!-- 检查属性值是否被 SKU 销售属性引用（排除逻辑删除的SKU） -->
+    <select id="countUsedInSkuSale" resultType="int">
+        SELECT EXISTS(
+            SELECT 1 FROM sku_sale_attr_values sav
+            INNER JOIN sku ON sku.id = sav.sku_id AND sku.is_deleted = 0
+            WHERE sav.attr_value_id = #{attrValueId}
+        )
+    </select>
+
+</mapper>

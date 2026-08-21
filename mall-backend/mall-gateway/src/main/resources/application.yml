@@ -26,11 +26,11 @@ spring:
           predicates:
             - Path=/api/user/**,/api/address/**
 
-        # 商品服务
+        # 商品服务（mall-product）
         - id: product-service
-          uri: http://localhost:8888
+          uri: lb://mall-product
           predicates:
-            - Path=/api/product/**,/api/sku/**,/api/spu/**,/api/brand/**,/api/category/**,/api/attribute/**
+            - Path=/api/sku/**,/api/spu/**,/api/brand/**,/api/category/**,/api/attribute/**
 
         # 订单服务（含购物车）
         - id: order-service

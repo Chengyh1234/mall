@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.cyh.mallproduct.mapper.SpuSaleAttrCustomValueMapper">
+
+    <!-- 通用结果映射 -->
+    <resultMap id="BaseResultMap" type="com.cyh.mallproduct.entity.SpuSaleAttrCustomValue">
+        <id column="id" property="id"/>
+        <result column="spu_id" property="spuId"/>
+        <result column="attr_id" property="attrId"/>
+        <result column="value" property="value"/>
+        <result column="image_url" property="imageUrl"/>
+        <result column="sort" property="sort"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <!-- 根据SPU ID和属性ID获取自定义值列表 -->
+    <select id="getBySpuIdAndAttrId" resultMap="BaseResultMap">
+        SELECT * FROM spu_sale_attr_custom_values
+        WHERE spu_id = #{spuId} AND attr_id = #{attrId}
+        ORDER BY sort ASC, id ASC
+    </select>
+
+    <!-- 根据SPU ID获取所有自定义值列表 -->
+    <select id="getBySpuId" resultMap="BaseResultMap">
+        SELECT * FROM spu_sale_attr_custom_values
+        WHERE spu_id = #{spuId}
+        ORDER BY attr_id ASC, sort ASC, id ASC
+    </select>
+
+    <!-- 根据ID列表批量查询自定义值 -->
+    <select id="getByIds" resultMap="BaseResultMap">
+        SELECT * FROM spu_sale_attr_custom_values
+        WHERE id IN
+        <foreach collection="ids" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        ORDER BY sort ASC, id ASC
+    </select>
+
+    <!-- 根据SPU ID删除所有自定义值 -->
+    <delete id="deleteBySpuId">
+        DELETE FROM spu_sale_attr_custom_values WHERE spu_id = #{spuId}
+    </delete>
+
+    <!-- 根据SPU ID和属性ID删除所有自定义值 -->
+    <delete id="deleteBySpuIdAndAttrId">
+        DELETE FROM spu_sale_attr_custom_values
+        WHERE spu_id = #{spuId} AND attr_id = #{attrId}
+    </delete>
+
+</mapper>

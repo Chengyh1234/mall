@@ -19,7 +19,7 @@ import java.util.List;
 
 /**
  * 网关信任头认证过滤器
- * 信任网关注入的 X-User-Id、X-User-Name、X-User-Roles 请求头
+ * 信任网关注入的 X-User-Id、X-User-Roles 请求头
  * 解析后构建 Spring Security 的 Authentication 对象注入 SecurityContext
  * 下游服务无需自行校验 Token，完全信任网关
  */
@@ -38,7 +38,6 @@ public class GatewayHeaderAuthenticationFilter extends OncePerRequestFilter {
                                     @NonNull FilterChain filterChain) throws ServletException, IOException {
 
         String userId = request.getHeader("X-User-Id");
-        String userName = request.getHeader("X-User-Name");
         String roles = request.getHeader("X-User-Roles");
 
         if (StringUtils.hasText(userId) && SecurityContextHolder.getContext().getAuthentication() == null) {
@@ -53,14 +52,14 @@ public class GatewayHeaderAuthenticationFilter extends OncePerRequestFilter {
             }
 
             UsernamePasswordAuthenticationToken authToken =
-                    new UsernamePasswordAuthenticationToken(userName, userId, authorities);
+                    new UsernamePasswordAuthenticationToken(userId, null, authorities);
             authToken.setDetails(
                     new org.springframework.security.web.authentication.WebAuthenticationDetailsSource()
                             .buildDetails(request)
             );
             SecurityContextHolder.getContext().setAuthentication(authToken);
 
-            log.debug("网关信任头认证成功, userId: {}, userName: {}, roles: {}", userId, userName, roles);
+            log.debug("网关信任头认证成功, userId: {}, roles: {}", userId, roles);
         }
 
         filterChain.doFilter(request, response);
