@@ -32,22 +32,18 @@ spring:
           predicates:
             - Path=/api/sku/**,/api/spu/**,/api/brand/**,/api/category/**,/api/attribute/**
 
-        # 订单服务（含购物车）
+        # 订单服务（含购物车、物流、发货）
         - id: order-service
-          uri: http://localhost:8888
+          uri: lb://mall-order
           predicates:
-            - Path=/api/order/**,/api/cart/**
+            - Path=/api/order/**,/api/cart/**,/api/delivery/**,/api/logistics/**
 
         # 店铺服务（含横幅广告、文件上传）
         - id: store-service
           uri: lb://mall-store
           predicates:
             - Path=/api/store/**,/api/banner/**,/api/file/**,/api/store-admin/**,/api/admin/store/**,/api/store/apply/**
-        # 管理后台
-        - id: admin-service
-          uri: http://localhost:8888
-          predicates:
-            - Path=/api/admin/**,/api/uploads/**
+        
 
       # 全局跨域配置
       globalcors:

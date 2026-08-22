@@ -12,7 +12,7 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
  */
 @SpringBootApplication(scanBasePackages = {"com.cyh.mallproduct", "com.cyh.mallcommon"})
 @EnableDiscoveryClient
-@EnableFeignClients(basePackages = "com.cyh.mallproduct.feign")
+@EnableFeignClients
 public class MallProductApplication {
     public static void main(String[] args) {
         SpringApplication.run(MallProductApplication.class, args);

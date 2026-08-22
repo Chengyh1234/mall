@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cyh.mallorder.mapper.LogisticsCompanyMapper">
+
+    <resultMap id="BaseResultMap" type="com.cyh.mallorder.entity.LogisticsCompany">
+        <id column="id" property="id"/>
+        <result column="name" property="name"/>
+        <result column="code" property="code"/>
+        <result column="logo" property="logo"/>
+        <result column="website" property="website"/>
+        <result column="phone" property="phone"/>
+        <result column="sort" property="sort"/>
+        <result column="status" property="status"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <select id="selectEnabledList" resultMap="BaseResultMap">
+        SELECT * FROM logistics_companies WHERE status = 1 ORDER BY sort ASC
+    </select>
+
+    <select id="selectByCode" resultMap="BaseResultMap">
+        SELECT * FROM logistics_companies WHERE code = #{code} LIMIT 1
+    </select>
+</mapper>

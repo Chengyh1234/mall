@@ -31,6 +31,11 @@ public interface AddressService {
     Address getAddressById(Long userId, Long addressId);
 
     /**
+     * 根据ID获取地址（内部 Feign 调用，无权限校验）
+     */
+    Address getAddressById(Long id);
+
+    /**
      * 获取用户所有地址列表
      */
     List<Address> getAddressesByUserId(Long userId);

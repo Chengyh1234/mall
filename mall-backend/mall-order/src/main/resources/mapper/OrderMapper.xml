@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cyh.mallorder.mapper.OrderMapper">
+
+    <resultMap id="BaseResultMap" type="com.cyh.mallorder.entity.Order">
+        <id column="id" property="id"/>
+        <result column="order_no" property="orderNo"/>
+        <result column="user_id" property="userId"/>
+        <result column="total_amount" property="totalAmount"/>
+        <result column="pay_amount" property="payAmount"/>
+        <result column="discount_amount" property="discountAmount"/>
+        <result column="freight_amount" property="freightAmount"/>
+        <result column="status" property="status"/>
+        <result column="pay_status" property="payStatus"/>
+        <result column="pay_time" property="payTime"/>
+        <result column="expire_time" property="expireTime"/>
+        <result column="pay_type" property="payType"/>
+        <result column="delivery_type" property="deliveryType"/>
+        <result column="delivery_company" property="deliveryCompany"/>
+        <result column="delivery_no" property="deliveryNo"/>
+        <result column="delivery_time" property="deliveryTime"/>
+        <result column="receive_time" property="receiveTime"/>
+        <result column="receiver_name" property="receiverName"/>
+        <result column="receiver_phone" property="receiverPhone"/>
+        <result column="receiver_address" property="receiverAddress"/>
+        <result column="remark" property="remark"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="updated_at" property="updatedAt"/>
+        <result column="cancel_reason" property="cancelReason"/>
+        <result column="is_deleted" property="isDeleted"/>
+        <result column="refund_reason" property="refundReason"/>
+        <result column="refund_amount" property="refundAmount"/>
+        <result column="refund_from_status" property="refundFromStatus"/>
+        <result column="refund_operator_id" property="refundOperatorId"/>
+        <result column="reject_reason" property="rejectReason"/>
+        <result column="rejected_at" property="rejectedAt"/>
+    </resultMap>
+
+    <resultMap id="OrderStatusCountMap" type="com.cyh.mallorder.vo.OrderStatusCountVo">
+        <result column="pending_pay" property="pendingPay" jdbcType="INTEGER"/>
+        <result column="pending_delivery" property="pendingDelivery" jdbcType="INTEGER"/>
+        <result column="pending_receive" property="pendingReceive" jdbcType="INTEGER"/>
+        <result column="refunding" property="refunding" jdbcType="INTEGER"/>
+    </resultMap>
+
+    <select id="selectByOrderNo" resultMap="BaseResultMap">
+        SELECT * FROM orders WHERE order_no = #{orderNo}
+    </select>
+
+    <select id="selectByUserIdPaged" resultMap="BaseResultMap">
+        SELECT * FROM orders
+        WHERE user_id = #{userId} AND is_deleted = 0
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="selectByUserIdAndStatusPaged" resultMap="BaseResultMap">
+        SELECT * FROM orders
+        WHERE user_id = #{userId} AND status = #{status} AND is_deleted = 0
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="countByUserId" resultType="int">
+        SELECT COUNT(*) FROM orders WHERE user_id = #{userId} AND is_deleted = 0
+    </select>
+
+    <select id="countByUserIdAndStatus" resultType="int">
+        SELECT COUNT(*) FROM orders WHERE user_id = #{userId} AND status = #{status} AND is_deleted = 0
+    </select>
+
+    <select id="countOrderStatusByUserId" resultMap="OrderStatusCountMap">
+        SELECT
+            SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) AS pending_pay,
+            SUM(CASE WHEN status = 2 THEN 1 ELSE 0 END) AS pending_delivery,
+            SUM(CASE WHEN status = 3 THEN 1 ELSE 0 END) AS pending_receive,
+            SUM(CASE WHEN status = 6 THEN 1 ELSE 0 END) AS refunding
+        FROM orders
+        WHERE user_id = #{userId} AND is_deleted = 0
+    </select>
+
+    <select id="selectByIdsAndUserId" resultMap="BaseResultMap">
+        SELECT * FROM orders
+        WHERE id IN
+        <foreach collection="orderIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+        AND user_id = #{userId} AND is_deleted = 0
+    </select>
+
+    <select id="selectBySellerId" resultMap="BaseResultMap">
+        SELECT DISTINCT o.* FROM orders o
+        INNER JOIN order_items oi ON o.id = oi.order_id
+        INNER JOIN spu s ON oi.spu_id = s.id
+        WHERE s.seller_id = #{sellerId}
+        ORDER BY o.created_at DESC
+    </select>
+
+    <select id="selectBySellerIdAndStatus" resultMap="BaseResultMap">
+        SELECT DISTINCT o.* FROM orders o
+        INNER JOIN order_items oi ON o.id = oi.order_id
+        INNER JOIN spu s ON oi.spu_id = s.id
+        WHERE s.seller_id = #{sellerId} AND o.status = #{status}
+        ORDER BY o.created_at DESC
+    </select>
+
+    <select id="countBySellerId" resultType="int">
+        SELECT COUNT(DISTINCT o.id) FROM orders o
+        INNER JOIN order_items oi ON o.id = oi.order_id
+        INNER JOIN spu s ON oi.spu_id = s.id
+        WHERE s.seller_id = #{sellerId}
+    </select>
+
+    <select id="countBySellerIdAndStatus" resultType="int">
+        SELECT COUNT(DISTINCT o.id) FROM orders o
+        INNER JOIN order_items oi ON o.id = oi.order_id
+        INNER JOIN spu s ON oi.spu_id = s.id
+        WHERE s.seller_id = #{sellerId} AND o.status = #{status}
+    </select>
+
+    <select id="selectBySellerIdWithFilters" resultMap="BaseResultMap">
+        SELECT DISTINCT o.* FROM orders o
+        INNER JOIN order_items oi ON o.id = oi.order_id
+        INNER JOIN spu s ON oi.spu_id = s.id
+        WHERE s.seller_id = #{sellerId}
+        <if test="status != null">
+            AND o.status = #{status}
+        </if>
+        <if test="userId != null">
+            AND o.user_id = #{userId}
+        </if>
+        <if test="orderNo != null and orderNo != ''">
+            AND o.order_no LIKE CONCAT('%', #{orderNo}, '%')
+        </if>
+        <if test="payTimeStart != null">
+            AND o.pay_time &gt;= #{payTimeStart}
+        </if>
+        <if test="payTimeEnd != null">
+            AND o.pay_time &lt;= #{payTimeEnd}
+        </if>
+        <if test="deliveryTimeStart != null">
+            AND o.delivery_time &gt;= #{deliveryTimeStart}
+        </if>
+        <if test="deliveryTimeEnd != null">
+            AND o.delivery_time &lt;= #{deliveryTimeEnd}
+        </if>
+        <if test="receiveTimeStart != null">
+            AND o.receive_time &gt;= #{receiveTimeStart}
+        </if>
+        <if test="receiveTimeEnd != null">
+            AND o.receive_time &lt;= #{receiveTimeEnd}
+        </if>
+        ORDER BY o.created_at DESC
+    </select>
+
+    <select id="countBySellerIdWithFilters" resultType="int">
+        SELECT COUNT(DISTINCT o.id) FROM orders o
+        INNER JOIN order_items oi ON o.id = oi.order_id
+        INNER JOIN spu s ON oi.spu_id = s.id
+        WHERE s.seller_id = #{sellerId}
+        <if test="status != null">
+            AND o.status = #{status}
+        </if>
+        <if test="userId != null">
+            AND o.user_id = #{userId}
+        </if>
+        <if test="orderNo != null and orderNo != ''">
+            AND o.order_no LIKE CONCAT('%', #{orderNo}, '%')
+        </if>
+        <if test="payTimeStart != null">
+            AND o.pay_time &gt;= #{payTimeStart}
+        </if>
+        <if test="payTimeEnd != null">
+            AND o.pay_time &lt;= #{payTimeEnd}
+        </if>
+        <if test="deliveryTimeStart != null">
+            AND o.delivery_time &gt;= #{deliveryTimeStart}
+        </if>
+        <if test="deliveryTimeEnd != null">
+            AND o.delivery_time &lt;= #{deliveryTimeEnd}
+        </if>
+        <if test="receiveTimeStart != null">
+            AND o.receive_time &gt;= #{receiveTimeStart}
+        </if>
+        <if test="receiveTimeEnd != null">
+            AND o.receive_time &lt;= #{receiveTimeEnd}
+        </if>
+    </select>
+
+    <select id="selectByOrderNoAndSellerId" resultMap="BaseResultMap">
+        SELECT DISTINCT o.* FROM orders o
+        INNER JOIN order_items oi ON o.id = oi.order_id
+        INNER JOIN spu s ON oi.spu_id = s.id
+        WHERE o.order_no = #{orderNo} AND s.seller_id = #{sellerId}
+    </select>
+
+    <select id="selectByOrderNoForAdmin" resultMap="BaseResultMap">
+        SELECT * FROM orders WHERE order_no = #{orderNo}
+    </select>
+
+    <select id="selectAllOrdersWithFilters" resultMap="BaseResultMap">
+        SELECT * FROM orders
+        WHERE 1=1
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+        <if test="userId != null">
+            AND user_id = #{userId}
+        </if>
+        <if test="orderNo != null and orderNo != ''">
+            AND order_no LIKE CONCAT('%', #{orderNo}, '%')
+        </if>
+        <if test="payTimeStart != null">
+            AND pay_time &gt;= #{payTimeStart}
+        </if>
+        <if test="payTimeEnd != null">
+            AND pay_time &lt;= #{payTimeEnd}
+        </if>
+        <if test="deliveryTimeStart != null">
+            AND delivery_time &gt;= #{deliveryTimeStart}
+        </if>
+        <if test="deliveryTimeEnd != null">
+            AND delivery_time &lt;= #{deliveryTimeEnd}
+        </if>
+        <if test="receiveTimeStart != null">
+            AND receive_time &gt;= #{receiveTimeStart}
+        </if>
+        <if test="receiveTimeEnd != null">
+            AND receive_time &lt;= #{receiveTimeEnd}
+        </if>
+        ORDER BY created_at DESC
+    </select>
+
+    <select id="countAllOrdersWithFilters" resultType="int">
+        SELECT COUNT(*) FROM orders
+        WHERE 1=1
+        <if test="status != null">
+            AND status = #{status}
+        </if>
+        <if test="userId != null">
+            AND user_id = #{userId}
+        </if>
+        <if test="orderNo != null and orderNo != ''">
+            AND order_no LIKE CONCAT('%', #{orderNo}, '%')
+        </if>
+        <if test="payTimeStart != null">
+            AND pay_time &gt;= #{payTimeStart}
+        </if>
+        <if test="payTimeEnd != null">
+            AND pay_time &lt;= #{payTimeEnd}
+        </if>
+        <if test="deliveryTimeStart != null">
+            AND delivery_time &gt;= #{deliveryTimeStart}
+        </if>
+        <if test="deliveryTimeEnd != null">
+            AND delivery_time &lt;= #{deliveryTimeEnd}
+        </if>
+        <if test="receiveTimeStart != null">
+            AND receive_time &gt;= #{receiveTimeStart}
+        </if>
+        <if test="receiveTimeEnd != null">
+            AND receive_time &lt;= #{receiveTimeEnd}
+        </if>
+    </select>
+</mapper>

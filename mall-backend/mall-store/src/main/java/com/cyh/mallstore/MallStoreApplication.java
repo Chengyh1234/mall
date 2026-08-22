@@ -3,6 +3,7 @@ package com.cyh.mallstore;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+import org.springframework.cloud.openfeign.EnableFeignClients;
 
 /**
  * mall-store 店铺服务启动类
@@ -11,6 +12,7 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
  */
 @SpringBootApplication(scanBasePackages = {"com.cyh.mallstore", "com.cyh.mallcommon"})
 @EnableDiscoveryClient
+@EnableFeignClients
 public class MallStoreApplication {
     public static void main(String[] args) {
         SpringApplication.run(MallStoreApplication.class, args);

@@ -944,4 +944,17 @@ public class RedisUtils {
     public StringRedisTemplate getTemplate() {
         return stringRedisTemplate;
     }
+
+    /**
+     * 执行 Lua 脚本
+     *
+     * @param script Redis 脚本
+     * @param keys   键列表
+     * @param args   参数列表
+     * @param <T>    返回值类型
+     * @return 脚本执行结果
+     */
+    public <T> T execute(DefaultRedisScript<T> script, List<String> keys, Object... args) {
+        return stringRedisTemplate.execute(script, keys, args);
+    }
 }

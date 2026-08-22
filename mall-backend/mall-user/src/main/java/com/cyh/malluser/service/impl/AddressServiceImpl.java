@@ -92,6 +92,11 @@ public class AddressServiceImpl implements AddressService {
         return result;
     }
 
+    @Override
+    public Address getAddressById(Long id) {
+        return addressMapper.selectById(id);
+    }
+
     // ==================== 写操作（含缓存清除） ====================
 
     @Override
