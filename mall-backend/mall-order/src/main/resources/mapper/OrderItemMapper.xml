@@ -36,4 +36,21 @@
     <select id="selectBySkuId" resultMap="BaseResultMap">
         SELECT * FROM order_items WHERE sku_id = #{skuId}
     </select>
+
+    <!-- ==================== 商家仪表盘统计（Feign 内部调用） ==================== -->
+
+    <select id="selectProductSalesRanking" resultType="java.util.Map">
+        SELECT oi.product_name AS name,
+               SUM(oi.total_amount) AS salesAmount,
+               SUM(oi.quantity) AS salesCount
+        FROM order_items oi
+        INNER JOIN orders o ON oi.order_id = o.id
+        INNER JOIN spu s ON oi.spu_id = s.id
+        WHERE s.seller_id = #{sellerId}
+          AND o.status = 4
+          AND o.created_at >= #{startTime}
+        GROUP BY oi.spu_id, oi.product_name
+        ORDER BY salesAmount DESC
+    </select>
+
 </mapper>

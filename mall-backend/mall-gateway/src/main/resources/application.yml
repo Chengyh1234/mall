@@ -13,12 +13,12 @@ spring:
     gateway:
       # 路由规则（当前阶段所有服务仍在 mall-all，后续拆分后更新 uri 为 lb://xxx）
       routes:
-        # 认证授权服务
+        # 认证授权服务（含管理员仪表盘）
         - id: auth-service
           # uri: http://localhost:8081
           uri: lb://mall-auth #使用lb需要导入依赖
           predicates:
-            - Path=/api/auth/**,/api/captcha/**
+            - Path=/api/auth/**,/api/captcha/**,/api/admin/**
 
         # 用户服务（用户信息 + 收货地址）
         - id: user-service

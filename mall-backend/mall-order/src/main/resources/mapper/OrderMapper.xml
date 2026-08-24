@@ -260,4 +260,101 @@
             AND receive_time &lt;= #{receiveTimeEnd}
         </if>
     </select>
+
+    <!-- ==================== 商家仪表盘统计（Feign 内部调用） ==================== -->
+
+    <select id="sumCompletedSalesByTimeRange" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(od.pay_amount), 0)
+        FROM (
+            SELECT DISTINCT o.id, o.pay_amount
+            FROM orders o
+            INNER JOIN order_items oi ON o.id = oi.order_id
+            INNER JOIN spu s ON oi.spu_id = s.id
+            WHERE s.seller_id = #{sellerId}
+              AND o.status = 4
+              AND o.created_at >= #{startTime}
+        ) od
+    </select>
+
+    <select id="sumCompletedCostByTimeRange" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(oi.quantity * sk.cost_price), 0)
+        FROM orders o
+        INNER JOIN order_items oi ON o.id = oi.order_id
+        INNER JOIN sku sk ON oi.sku_id = sk.id
+        INNER JOIN spu s ON oi.spu_id = s.id
+        WHERE s.seller_id = #{sellerId}
+          AND o.status = 4
+          AND o.created_at >= #{startTime}
+    </select>
+
+    <select id="selectDailySalesBySellerId" resultType="java.util.Map">
+        SELECT DATE_FORMAT(od.created_at, '%Y-%m-%d') AS date, SUM(od.pay_amount) AS amount
+        FROM (
+            SELECT DISTINCT o.id, o.pay_amount, o.created_at
+            FROM orders o
+            INNER JOIN order_items oi ON o.id = oi.order_id
+            INNER JOIN spu s ON oi.spu_id = s.id
+            WHERE s.seller_id = #{sellerId}
+              AND o.status = 4
+              AND o.created_at >= #{startTime}
+        ) od
+        GROUP BY date
+        ORDER BY date
+    </select>
+
+    <select id="selectSalesTimeSeries" resultType="java.util.Map">
+        <bind name="dateFormat" value="isHourly ? '%Y-%m-%d %H:00:00' : '%Y-%m-%d'" />
+        SELECT
+            DATE_FORMAT(od.created_at, '${dateFormat}') AS `label`,
+            SUM(od.pay_amount) AS salesAmount,
+            COUNT(*) AS orderCount,
+            COALESCE(SUM(oq.totalQuantity), 0) AS salesVolume
+        FROM (
+            SELECT DISTINCT o.id, o.created_at, o.pay_amount
+            FROM orders o
+            INNER JOIN order_items oi ON o.id = oi.order_id
+            INNER JOIN spu s ON oi.spu_id = s.id
+            WHERE s.seller_id = #{sellerId}
+              AND o.status = 4
+              AND o.created_at >= #{startTime}
+        ) od
+        LEFT JOIN (
+            SELECT oi.order_id, SUM(oi.quantity) AS totalQuantity
+            FROM order_items oi
+            GROUP BY oi.order_id
+        ) oq ON od.id = oq.order_id
+        GROUP BY `label`
+        ORDER BY `label`
+    </select>
+
+    <select id="selectAdminSalesTimeSeries" resultType="java.util.Map">
+        <bind name="dateFormat" value="isHourly ? '%Y-%m-%d %H:00:00' : '%Y-%m-%d'" />
+        SELECT
+            DATE_FORMAT(o.created_at, '${dateFormat}') AS `label`,
+            SUM(o.pay_amount) AS salesAmount,
+            COUNT(o.id) AS orderCount,
+            COALESCE(SUM(oq.totalQuantity), 0) AS salesVolume
+        FROM orders o
+        LEFT JOIN (
+            SELECT oi.order_id, SUM(oi.quantity) AS totalQuantity
+            FROM order_items oi
+            GROUP BY oi.order_id
+        ) oq ON o.id = oq.order_id
+        WHERE o.status = 4
+          AND o.created_at >= #{startTime}
+        GROUP BY `label`
+        ORDER BY `label`
+    </select>
+
+    <select id="countTodayOrders" resultType="java.lang.Long">
+        SELECT COUNT(*) FROM orders WHERE created_at >= #{todayStart}
+    </select>
+
+    <select id="sumAdminCompletedSalesByTimeRange" resultType="java.math.BigDecimal">
+        SELECT COALESCE(SUM(pay_amount), 0)
+        FROM orders
+        WHERE status = 4
+          AND created_at >= #{startTime}
+    </select>
+
 </mapper>

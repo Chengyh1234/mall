@@ -5,11 +5,14 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cyh.mallorder.entity.Order;
 import com.cyh.mallorder.vo.OrderStatusCountVo;
+import org.apache.ibatis.annotations.MapKey;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 订单数据访问层
@@ -138,4 +141,51 @@ public interface OrderMapper extends BaseMapper<Order> {
                                   @Param("deliveryTimeEnd") LocalDateTime deliveryTimeEnd,
                                   @Param("receiveTimeStart") LocalDateTime receiveTimeStart,
                                   @Param("receiveTimeEnd") LocalDateTime receiveTimeEnd);
+
+    // ==================== 商家仪表盘统计（Feign 内部调用） ====================
+
+    /**
+     * 统计商家指定时间范围内已完成订单的销售总额
+     */
+    BigDecimal sumCompletedSalesByTimeRange(@Param("sellerId") Long sellerId, @Param("startTime") LocalDateTime startTime);
+
+    /**
+     * 统计商家指定时间范围内已完成订单的商品总成本
+     */
+    BigDecimal sumCompletedCostByTimeRange(@Param("sellerId") Long sellerId, @Param("startTime") LocalDateTime startTime);
+
+    /**
+     * 查询商家近7天每日销售额明细
+     */
+    @MapKey("date")
+    Map<String, Map<String, Object>> selectDailySalesBySellerId(@Param("sellerId") Long sellerId, @Param("startTime") LocalDateTime startTime);
+
+    /**
+     * 统计商家各时段/每日的销售额、订单量、销量
+     */
+    @MapKey("label")
+    Map<String, Map<String, Object>> selectSalesTimeSeries(
+            @Param("sellerId") Long sellerId,
+            @Param("startTime") LocalDateTime startTime,
+            @Param("isHourly") boolean isHourly);
+
+    // ==================== 管理员仪表盘统计（Feign 内部调用） ====================
+
+    /**
+     * 统计平台各时段/每日的销售额、订单量、销量（不区分商家）
+     */
+    @MapKey("label")
+    Map<String, Map<String, Object>> selectAdminSalesTimeSeries(
+            @Param("startTime") LocalDateTime startTime,
+            @Param("isHourly") boolean isHourly);
+
+    /**
+     * 统计今日订单数
+     */
+    Long countTodayOrders(@Param("todayStart") LocalDateTime todayStart);
+
+    /**
+     * 统计平台指定时间范围内已完成订单的销售总额
+     */
+    BigDecimal sumAdminCompletedSalesByTimeRange(@Param("startTime") LocalDateTime startTime);
 }
