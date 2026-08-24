@@ -1,6 +1,7 @@
 package com.cyh.mallgateway.filter;
 import com.cyh.mallcommon.constant.MyConstants;
 import com.cyh.mallcommon.constant.RedisConstants;
+import com.cyh.mallcommon.exception.ErrorCode;
 import com.cyh.mallcommon.utils.Result;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -31,7 +32,7 @@ import java.util.Set;
  * <p>
  * 功能说明：
  * 1. 白名单路径直接放行（登录、注册、公开商品查询等）
- * 2. 非白名单路径需校验 JWT Token
+ * 2. 非白名单路径需校验 Session Token（基于 Redis 存储）
  * 3. 从 Redis 读取 Token JSON 字符串，手动反序列化后校验
  * 4. 校验通过后将用户信息注入请求头，传递给下游服务
  * 5. 自动刷新 Token 过期时间
@@ -101,8 +102,18 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
     );
 
     /**
+     * 认证错误信息存储 Key（通过 exchange 属性传递）
+     */
+    private static final String ATTR_AUTH_ERROR_CODE = "auth_error_code";
+    private static final String ATTR_AUTH_ERROR_MSG = "auth_error_msg";
+
+    /**
      * 核心过滤逻辑
-     * Gateway的全局过滤器进行过滤
+     * <p>
+     * 注意：认证结果通过 {@link #authenticate(ServerWebExchange, String)} 返回 {@code Mono<ServerHttpRequest>}
+     * （会发射值），避免将 {@code Mono<Void>} 放入 flatMap + switchIfEmpty 链中，
+     * 防止 chain.filter() 的 complete-only 信号被 switchIfEmpty 误判为"空"。
+     *
      * @param exchange ServerWebExchange
      * @param chain    GatewayFilterChain
      * @return Mono<Void>
@@ -121,68 +132,112 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
         // 2. 获取 Token
         String authHeader = request.getHeaders().getFirst(MyConstants.AUTH_HEADER);
         if (!StringUtils.hasText(authHeader) || !authHeader.startsWith(MyConstants.BEARER_PREFIX)) {
-            return unauthorized(exchange.getResponse(), 40101, "未登录，请先登录");
+            return unauthorized(exchange.getResponse(), ErrorCode.NOT_LOGGED_IN.getBusinessCode(), ErrorCode.NOT_LOGGED_IN.getMessage());
         }
 
         String token = authHeader.substring(MyConstants.BEARER_PREFIX.length());
 
-        // 3. 从 Redis 读取 Token 对应的 JSON 字符串，手动反序列化后校验
-        // 注意：switchIfEmpty 在 Mono<Void> 链中会误触发（Mono<Void> 完成无 onNext 信号
-        // 被判定为"空"），导致下游已正常响应后仍调用 unauthorized() 修改已提交的响应头。
-        // 配合 unauthorized() 中的 response.isCommitted() 防御检查，确保不会抛出异常。
+        // 3. 认证 Token
+        //    chain.filter() 返回 Mono<Void>，它在 Reactor 中"完成但不发射值"，
+        //    直接放在 flatMap 中，switchIfEmpty 会将 chain.filter() 的成功完成误判为"空流"并触发 fallback。
+        //    因此用 .then(Mono.just(true)) 将成功信号转为有值的 Mono<Boolean>，
+        //    确保 switchIfEmpty 仅在 authenticate() 返回空（认证失败）时触发。
+        return authenticate(exchange, token)
+                .flatMap(mutatedRequest ->
+                        chain.filter(exchange.mutate().request(mutatedRequest).build())
+                                .then(Mono.just(true)))
+                .switchIfEmpty(Mono.defer(() -> {
+                    Integer code = exchange.getAttribute(ATTR_AUTH_ERROR_CODE);
+                    String msg = exchange.getAttribute(ATTR_AUTH_ERROR_MSG);
+                    if (code == null) {
+                        code = ErrorCode.LOGIN_EXPIRED.getBusinessCode();
+                        msg = ErrorCode.LOGIN_EXPIRED.getMessage();
+                    }
+                    log.warn("认证失败, code={}, message={}", code, msg);
+                    return unauthorized(exchange.getResponse(), code, msg)
+                            .then(Mono.just(false));
+                }))
+                .then();
+    }
+
+    /**
+     * 认证 Token 并构建注入用户信息的请求
+     * <p>
+     * 返回 {@code Mono<ServerHttpRequest>} 表示认证成功，
+     * 返回 {@code Mono.empty()} 表示认证失败（由 switchIfEmpty 处理）。
+     * 通过 exchange 属性传递具体错误码和消息。
+     *
+     * @param exchange ServerWebExchange
+     * @param token    Session Token
+     * @return 认证成功时发射注入用户信息的请求，失败时发射空
+     */
+    private Mono<ServerHttpRequest> authenticate(ServerWebExchange exchange, String token) {
         return stringRedisTemplate.opsForValue()
                 .get(RedisConstants.TOKEN_PREFIX + token)
                 .flatMap(jsonStr -> {
+                    // 3.1 反序列化 Token JSON
                     Map<String, Object> userInfo;
                     try {
                         userInfo = objectMapper.readValue(jsonStr, new TypeReference<Map<String, Object>>() {});
                     } catch (JsonProcessingException e) {
                         log.error("Token 反序列化失败: {}", jsonStr, e);
-                        return unauthorized(exchange.getResponse(), 40103, "登录已失效，请重新登录");
+                        return Mono.empty();
                     }
 
                     if (userInfo == null || userInfo.isEmpty()) {
-                        return unauthorized(exchange.getResponse(), 40103, "登录已失效，请重新登录");
+                        return Mono.empty();
                     }
 
-                    // 4. 单点登录校验：检查 sessionId 是否匹配
+                    // 3.2 单点登录校验：检查 sessionId 是否匹配
                     String tokenSessionId = (String) userInfo.get("sessionId");
                     Long userId = extractUserId(userInfo.get("userId"));
+                    if (userId == null) {
+                        return Mono.empty();
+                    }
 
                     return stringRedisTemplate.opsForValue()
                             .get(RedisConstants.USER_CURRENT_SESSION_PREFIX + userId)
                             .flatMap(currentSessionId -> {
                                 if (tokenSessionId == null || !tokenSessionId.equals(currentSessionId)) {
-                                    // 会话不一致，删除旧 token 后返回 401
+                                    // 会话不一致，删除旧 token 后返回空
+                                    exchange.getAttributes().put(ATTR_AUTH_ERROR_CODE, ErrorCode.LOGIN_EXPIRED.getBusinessCode());
+                                    exchange.getAttributes().put(ATTR_AUTH_ERROR_MSG, ErrorCode.LOGIN_EXPIRED.getMessage());
                                     return stringRedisTemplate.delete(RedisConstants.TOKEN_PREFIX + token)
-                                            .then(unauthorized(exchange.getResponse(), 40102, "账号已在其他设备登录"));
+                                            .then(Mono.empty());
                                 }
-
-                                // 5. 校验用户状态
+                                // 3.3 校验用户状态
                                 Integer status = userInfo.get("status") != null
                                         ? ((Number) userInfo.get("status")).intValue() : null;
                                 if (status == null || status != 1) {
-                                    return unauthorized(exchange.getResponse(), 40105, "账号已被禁用，无法访问");
+                                    exchange.getAttributes().put(ATTR_AUTH_ERROR_CODE, ErrorCode.ACCOUNT_DISABLED.getBusinessCode());
+                                    exchange.getAttributes().put(ATTR_AUTH_ERROR_MSG, ErrorCode.ACCOUNT_DISABLED.getMessage());
+                                    return Mono.empty();
                                 }
-
-                                // 6. 将用户信息注入请求头，传递给下游服务
-                                String username = (String) userInfo.get("username");
+                                // 3.4 构建注入用户信息的请求
                                 String roles = extractRoles(userInfo);
-
-                                // cyhcanupdate:这里传给下游服务的数据可能需要增加
-                                //.mutate() 是基于原始请求的副本，只会追加新请求头，不会删除原有的。
                                 ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
                                         .header("X-User-Id", String.valueOf(userId))
-                                        .header("X-User-Name", username != null ? username : "")
                                         .header("X-User-Roles", roles)
                                         .build();
-
-                                // 7. 刷新 Token 过期时间，完成后转发请求
+                                // 3.5 刷新 Token 过期时间，返回 mutatedRequest
                                 return refreshTokenExpiration(token, userId)
-                                        .then(chain.filter(exchange.mutate().request(mutatedRequest).build()));
-                            });
-                })
-                .switchIfEmpty(Mono.defer(() -> unauthorized(exchange.getResponse(), 40103, "登录已失效，请重新登录")));
+                                        .then(Mono.just(mutatedRequest));
+                            })
+                            .switchIfEmpty(Mono.defer(() -> {
+                                // 检查是否已有错误属性（session 不匹配、用户禁用等），有则透传空
+                                if (exchange.getAttribute(ATTR_AUTH_ERROR_CODE) != null) {
+                                    return Mono.empty();
+                                }
+                                // 无当前 session 记录（首次登录或已过期），视为有效
+                                String roles = extractRoles(userInfo);
+                                ServerHttpRequest mutatedRequest = exchange.getRequest().mutate()
+                                        .header("X-User-Id", String.valueOf(userId))
+                                        .header("X-User-Roles", roles)
+                                        .build();
+                                return refreshTokenExpiration(token, userId)
+                                        .then(Mono.just(mutatedRequest));
+                            }));
+                });
     }
 
     /**
@@ -222,7 +277,7 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
             }
         }
         log.warn("无法解析 userId: {}", userIdObj);
-        return 0L;
+        return null;
     }
 
     /**
