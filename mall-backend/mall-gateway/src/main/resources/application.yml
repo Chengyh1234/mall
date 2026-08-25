@@ -4,12 +4,7 @@ server:
 spring:
   application:
     name: mall-gateway
-  profiles:
-    active: dev
   cloud:
-    nacos:
-      discovery:
-        group: DEFAULT_GROUP
     gateway:
       # 路由规则（当前阶段所有服务仍在 mall-all，后续拆分后更新 uri 为 lb://xxx）
       routes:

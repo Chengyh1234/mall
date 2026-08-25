@@ -1,0 +1,14 @@
+spring:
+  application:
+    name: mall-order
+  cloud:
+    nacos:
+      config:
+        server-addr: 192.168.31.140:8848
+        namespace: 6e152ee2-97b5-461d-aa45-32f1fb13a5ca
+        group: DEFAULT_GROUP
+        file-extension: yml
+        shared-configs:
+          - data-id: mall-shared-config.yml
+            group: DEFAULT_GROUP
+            refresh: true

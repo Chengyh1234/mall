@@ -85,10 +85,10 @@
             <version>1.0.0</version>
         </dependency>
 
-        <!-- Redisson（分布式锁） -->
+        <!-- Redisson（分布式锁，使用核心包手动配置） -->
         <dependency>
             <groupId>org.redisson</groupId>
-            <artifactId>redisson-spring-boot-starter</artifactId>
+            <artifactId>redisson</artifactId>
             <version>3.17.7</version>
         </dependency>
 
@@ -124,6 +124,16 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
+        </dependency>
+        <!-- Nacos 配置中心 -->
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-alibaba-nacos-config</artifactId>
+        </dependency>
+        <!-- Bootstrap 上下文（Nacos Config 需要） -->
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-bootstrap</artifactId>
         </dependency>
     </dependencies>
 
