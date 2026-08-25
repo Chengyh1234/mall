@@ -84,3 +84,8 @@ management:
   endpoint:
     health:
       show-details: always
+
+# 日志配置 配合TraceIdGatewayFilter进程操作 为%X{traceId}
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId}] %logger{36} - %msg%n"

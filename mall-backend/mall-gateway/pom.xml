@@ -39,11 +39,21 @@
             <artifactId>spring-boot-starter-data-redis-reactive</artifactId>
         </dependency>
 
-        <!-- 公共模块 -->
+        <!-- 公共模块（排除 spring-boot-starter-web 和 sentinel Spring MVC 适配器，避免与 Gateway WebFlux 冲突） -->
         <dependency>
             <groupId>com.cyh</groupId>
             <artifactId>mall-common</artifactId>
             <version>1.0.0</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.springframework.boot</groupId>
+                    <artifactId>spring-boot-starter-web</artifactId>
+                </exclusion>
+                <exclusion>
+                    <groupId>com.alibaba.csp</groupId>
+                    <artifactId>sentinel-spring-webmvc-6x-adapter</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <!--lombok-->
         <dependency>

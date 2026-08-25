@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
  * 用户管理员统计 Feign 客户端
  * 调用 mall-user 获取平台用户统计数据
  */
-@FeignClient(name = "mall-user", path = "/api/internal/user/admin")
+@FeignClient(name = "mall-user", contextId = "userAdminCount", path = "/api/internal/user/admin")
 public interface UserAdminCountClient {
 
     /**

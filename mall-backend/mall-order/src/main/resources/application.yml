@@ -40,6 +40,11 @@ spring:
         server-addr: 192.168.31.140:8848
         namespace: 6e152ee2-97b5-461d-aa45-32f1fb13a5ca
         group: DEFAULT_GROUP
+    # ==================== Sentinel 熔断降级 ====================
+    sentinel:
+      transport:
+        dashboard: localhost:8718
+      eager: true
   rabbitmq:
     virtual-host: /
     listener:
@@ -72,3 +77,15 @@ mybatis-plus:
 mall:
   order:
     pay-expire-minutes: 30
+
+# ==================== Feign 熔断降级（使用 Sentinel） ====================
+feign:
+  circuitbreaker:
+    enabled: true
+
+# Feign 日志级别
+logging:
+  level:
+    com.cyh.mallorder.feign: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId}] %logger{36} - %msg%n"

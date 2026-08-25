@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.*;
  * 调用 mall-user 的内部接口获取用户认证数据，替代直连数据库。
  * 服务名 mall-user 通过 Nacos 服务发现解析。
  */
-@FeignClient(name = "mall-user", path = "/api/internal/user")
+@FeignClient(name = "mall-user", contextId = "userService", path = "/api/internal/user")
 public interface UserServiceClient {
 
     /**
