@@ -282,12 +282,21 @@ public class AuthGlobalFilter implements GlobalFilter, Ordered {
 
     /**
      * 判断是否为公开路径（无需鉴权）
+     * <p>
+     * OPTIONS 请求（CORS 预检）直接放行，避免浏览器因预检失败而阻止实际请求。
+     * <p>
+     * 注意：此处放行 OPTIONS 是兜底措施，主 CORS 处理由 {@code CorsWebFilter} 负责。
      *
      * @param path   请求路径
      * @param method HTTP 方法
      * @return true-公开路径，false-需要鉴权
      */
     private boolean isPublicPath(String path, String method) {
+        // CORS 预检请求直接放行
+        if ("OPTIONS".equalsIgnoreCase(method)) {
+            return true;
+        }
+
         // 静态资源公开
         if (pathMatcher.match("/api/uploads/images/**", path)) {
             return true;

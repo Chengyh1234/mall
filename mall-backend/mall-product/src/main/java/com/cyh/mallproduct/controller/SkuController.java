@@ -3,7 +3,7 @@ package com.cyh.mallproduct.controller;
 import com.cyh.mallcommon.utils.Result;
 import com.cyh.mallcommon.constant.FileConstants;
 import com.cyh.mallproduct.entity.Sku;
-import com.cyh.mallproduct.service.FileService;
+import com.cyh.mallcommon.service.FileService;
 import com.cyh.mallproduct.service.SkuService;
 import com.cyh.mallproduct.vo.SkuAdminVo;
 import com.cyh.mallproduct.vo.SkuStoreVo;

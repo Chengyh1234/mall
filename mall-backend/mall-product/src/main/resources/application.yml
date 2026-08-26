@@ -36,10 +36,10 @@ elasticsearch:
   port: 9200
   index: mall_spu
 
-# 文件上传配置
-file:
-  upload:
-    base-path: ./uploads
+# 文件上传配置（已迁移至 mall-common 的 FileServiceImpl）
+#file:
+#  upload:
+#    base-path: ./uploads
 
 # ==================== Feign 熔断降级（使用 Sentinel） ====================
 feign:

@@ -6,7 +6,7 @@ import com.cyh.mallcommon.constant.FileConstants;
 import com.cyh.mallproduct.dto.CategoryDto;
 import com.cyh.mallproduct.entity.Category;
 import com.cyh.mallproduct.service.CategoryService;
-import com.cyh.mallproduct.service.FileService;
+import com.cyh.mallcommon.service.FileService;
 import com.cyh.mallproduct.vo.CategoryTreeVo;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;

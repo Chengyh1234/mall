@@ -31,10 +31,10 @@ mybatis-plus:
   configuration:
     map-underscore-to-camel-case: true
 
-# 文件上传配置
-file:
-  upload:
-    base-path: ./uploads
+# 文件上传配置（已迁移至 mall-common 的 FileServiceImpl）
+#file:
+#  upload:
+#    base-path: ./uploads
 
 # 日志配置
 logging:

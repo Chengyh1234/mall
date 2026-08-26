@@ -7,7 +7,7 @@ import com.cyh.mallcommon.constant.FileConstants;
 import com.cyh.mallproduct.dto.BrandDto;
 import com.cyh.mallproduct.entity.Brand;
 import com.cyh.mallproduct.service.BrandService;
-import com.cyh.mallproduct.service.FileService;
+import com.cyh.mallcommon.service.FileService;
 import com.cyh.mallproduct.vo.BrandVo;
 import lombok.extern.slf4j.Slf4j;
 import lombok.RequiredArgsConstructor;

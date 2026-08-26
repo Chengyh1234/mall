@@ -9,6 +9,7 @@ import com.cyh.mallproduct.entity.*;
 import com.cyh.mallproduct.mapper.AttributeMapper;
 import com.cyh.mallproduct.mapper.AttributeValueMapper;
 import com.cyh.mallproduct.es.service.SpuSearchService;
+import com.cyh.mallcommon.service.FileService;
 import com.cyh.mallproduct.feign.StoreClient;
 import com.cyh.mallproduct.service.*;
 import com.cyh.mallproduct.vo.*;

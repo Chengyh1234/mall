@@ -48,27 +48,14 @@ spring:
         response-timeout: 10s
 
       # 全局跨域配置
-      globalcors:
-        # 1. 必须保留，解决OPTIONS预检请求
-        add-to-simple-url-handler-mapping: true
-        cors-configurations:
-          '[/**]':
-            # 2. 核心：去掉 "*"，换上你前端的真实域名（注意用 patterns）
-            allowed-origin-patterns:
-              - "http://localhost.*"   # 你的正式前端域名
-            # 3. 方法限制：只开放你需要的方法（不要无脑全开）
-            allowed-methods:
-              - GET
-              - POST
-              - PUT
-              - DELETE
-              - OPTIONS  # OPTIONS 必须保留，预检要用
-            # 4. 请求头：如果需要自定义 Token 头，建议明确列出
-            allowed-headers: "*"
-            # 5. 携带凭证（如果你的登录态依赖 Cookie 或 Header Token，必须开）
-            allow-credentials: true
-            # 6. 缓存时间可以设长一点，减少预检请求
-            maxAge: 3600
+      # 已迁移至 CorsConfig.java（CorsWebFilter），在 WebFlux 层面统一处理 CORS 预检请求
+      # globalcors 配置在 WebFlux 中效果不佳，已移除
+
+# 文件上传基础路径
+# 实际目录：mall-backend/uploads/，相对于工作目录 mall/ 的路径为 mall-backend/uploads
+file:
+  upload:
+    base-path: ./uploads
 
 # 健康检查端点
 management:

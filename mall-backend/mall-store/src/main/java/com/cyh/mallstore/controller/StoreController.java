@@ -5,7 +5,7 @@ import com.cyh.mallcommon.constant.FileConstants;
 import com.cyh.mallcommon.utils.Result;
 import com.cyh.mallstore.dto.StoreDto;
 import com.cyh.mallstore.entity.Store;
-import com.cyh.mallstore.service.FileService;
+import com.cyh.mallcommon.service.FileService;
 import com.cyh.mallstore.service.StoreService;
 import com.cyh.mallstore.vo.StoreAdminVo;
 import com.cyh.mallstore.vo.StoreDetailVo;

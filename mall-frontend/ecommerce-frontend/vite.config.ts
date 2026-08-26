@@ -53,7 +53,7 @@ export default defineConfig({
     strictPort: true,  // 端口被占用时不自动切换
     proxy: {
       '/api': {
-        target: 'http://localhost:8888',
+        target: 'http://localhost:8080',
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, '/api')
       }

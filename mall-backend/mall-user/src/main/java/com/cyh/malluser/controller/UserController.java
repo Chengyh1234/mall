@@ -4,7 +4,7 @@ import com.cyh.mallcommon.constant.FileConstants;
 import com.cyh.mallcommon.utils.Result;
 import com.cyh.malluser.entity.User;
 import com.cyh.malluser.mapper.RoleMapper;
-import com.cyh.malluser.service.FileService;
+import com.cyh.mallcommon.service.FileService;
 import com.cyh.malluser.service.UserService;
 import com.cyh.malluser.vo.UserInfoVo;
 import lombok.RequiredArgsConstructor;
