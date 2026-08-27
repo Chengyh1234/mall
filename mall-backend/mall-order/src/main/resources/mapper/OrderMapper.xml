@@ -37,9 +37,9 @@
     </resultMap>
 
     <resultMap id="OrderStatusCountMap" type="com.cyh.mallorder.vo.OrderStatusCountVo">
-        <result column="pending_pay" property="pendingPay" jdbcType="INTEGER"/>
+        <result column="pending_pay" property="pendingPayment" jdbcType="INTEGER"/>
         <result column="pending_delivery" property="pendingDelivery" jdbcType="INTEGER"/>
-        <result column="pending_receive" property="pendingReceive" jdbcType="INTEGER"/>
+        <result column="pending_receive" property="pendingReceipt" jdbcType="INTEGER"/>
         <result column="refunding" property="refunding" jdbcType="INTEGER"/>
     </resultMap>
 

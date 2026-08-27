@@ -1,16 +1,14 @@
 package com.cyh.mallcommon.config;
 
-import com.cyh.mallcommon.filter.TraceIdFilter;
 import feign.Request;
 import feign.Retryer;
-import org.slf4j.MDC;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
  * Feign 统一配置
  * <p>
- * 配置超时、重试、日志、TraceId 传播等
+ * 配置超时、重试、日志等
  * <p>
  * 注意：不配置请求拦截器自动传播用户请求头（X-User-Id/X-User-Roles），
  * 内部 Feign 调用为服务间通信，不应伪造用户身份上下文。
@@ -49,21 +47,5 @@ public class FeignConfig {
     @Bean
     public feign.Logger.Level feignLoggerLevel() {
         return feign.Logger.Level.BASIC;
-    }
-
-    /**
-     * TraceId 传播拦截器：将当前 MDC 中的 TraceId 写入 Feign 请求头
-     * <p>
-     * 只有 TraceId（纯技术标识符）会被传播，不涉及用户身份信息，无安全风险。
-     * 下游服务通过 {@link TraceIdFilter} 从请求头提取并写入 MDC。
-     */
-    @Bean
-    public feign.RequestInterceptor traceIdRequestInterceptor() {
-        return template -> {
-            String traceId = MDC.get(TraceIdFilter.MDC_KEY);
-            if (traceId != null) {
-                template.header(TraceIdFilter.TRACE_ID_HEADER, traceId);
-            }
-        };
     }
 }

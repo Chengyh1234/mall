@@ -49,6 +49,4 @@ feign:
 # Feign 日志级别
 logging:
   level:
-    com.cyh.mallproduct.feign: DEBUG
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId}] %logger{36} - %msg%n"
+    com.cyh.mallproduct.feign: INFO

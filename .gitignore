@@ -13,6 +13,8 @@ docs
 uploads
 #trae相关文件
 .trae
+#移除不用的模块
+mall-backend/mall-all/
 
 ### STS ###
 .apt_generated

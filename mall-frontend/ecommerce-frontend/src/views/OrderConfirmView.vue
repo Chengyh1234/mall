@@ -457,6 +457,7 @@ const confirmOrder = async () => {
         payAmount: payAmount.value,
         items: orderItems.value.map(item => ({
           skuId: item.skuId,
+          spuId: item.spuId,
           quantity: item.quantity,
           productName: item.name,
           productImage: item.image,

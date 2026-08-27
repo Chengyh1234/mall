@@ -39,9 +39,7 @@ feign:
 # Feign 日志级别（全局默认）
 logging:
   level:
-    com.cyh.mallauth.feign: DEBUG
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level [%X{traceId}] %logger{36} - %msg%n"
+    com.cyh.mallauth.feign: INFO
 
 management:
   endpoints:

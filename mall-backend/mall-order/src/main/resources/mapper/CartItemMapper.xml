@@ -6,6 +6,7 @@
         <id column="id" property="id"/>
         <result column="user_id" property="userId"/>
         <result column="sku_id" property="skuId"/>
+        <result column="spu_id" property="spuId"/>
         <result column="quantity" property="quantity"/>
         <result column="selected" property="selected"/>
         <result column="product_name" property="productName"/>

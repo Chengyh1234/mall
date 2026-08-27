@@ -16,6 +16,7 @@ import org.elasticsearch.search.suggest.completion.CompletionSuggestion;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
+
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.*;
@@ -31,10 +32,14 @@ public class SpuSearchServiceImpl implements SpuSearchService {
 
     private final SpuIndexRepository spuIndexRepository;
 
-    /** 允许排序的字段集合 */
+    /**
+     * 允许排序的字段集合
+     */
     private static final Set<String> ALLOWED_SORT_FIELDS = Set.of("sales", "price", "created_at");
 
-    /** 默认分页大小 */
+    /**
+     * 默认分页大小
+     */
     private static final int DEFAULT_PAGE_SIZE = 10;
 
     /**
@@ -62,10 +67,10 @@ public class SpuSearchServiceImpl implements SpuSearchService {
         int size = (pageSize == null || pageSize < 1) ? DEFAULT_PAGE_SIZE : pageSize;
         int from = (pageNum - 1) * size;
 
-        // 【深度分页保护】防止超大页码导致 ES OOM
-        int maxOffset = 10000;
-        if (from > maxOffset) {
-            throw new IllegalArgumentException("页码超过最大限制，请使用更精准的关键词或调整筛选条件");
+        // 【深度分页保护】防止超大页码导致 ES OOM，最多100页
+        int maxPage = 100;
+        if (pageNum > maxPage) {
+            throw new IllegalArgumentException("页码超过最大限制（最多" + maxPage + "页），请使用更精准的关键词或调整筛选条件");
         }
 
         BoolQueryBuilder boolQuery = QueryBuilders.boolQuery();
@@ -77,12 +82,12 @@ public class SpuSearchServiceImpl implements SpuSearchService {
             //boolQuery.must(QueryBuilders.multiMatchQuery(keyword.trim(),
             //        "name^3", "category_name^1.5", "brand_name^1.5", "store_name^1.5", "description^1"));
             boolQuery.must(QueryBuilders.multiMatchQuery
-                    (keyword.trim()).
-                    field("name",3.0f)
-                    .field("category_name",1.5f)
-                    .field("brand_name",1.5f)
-                    .field("store_name",1.5f)
-                    .field("description",1.0f)
+                            (keyword.trim()).
+                    field("name", 3.0f)
+                    .field("category_name", 1.5f)
+                    .field("brand_name", 1.5f)
+                    .field("store_name", 1.5f)
+                    .field("description", 1.0f)
 
             );
         }
@@ -158,6 +163,10 @@ public class SpuSearchServiceImpl implements SpuSearchService {
         }
 
         long total = Objects.requireNonNull(response.getHits().getTotalHits()).value;
+        //最大页数为100
+        if (total > 100) {
+            total = 100;
+        }
 
         Map<String, Object> result = new HashMap<>();
         result.put("list", list);

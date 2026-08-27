@@ -15,7 +15,6 @@ export interface CartItemVo {
   price: number
   subtotal: number
   stock: number
-  skuStatus: number
 }
 
 /**
@@ -24,8 +23,7 @@ export interface CartItemVo {
 export interface CartSummary {
   totalCount: number
   selectedCount: number
-  totalAmount: number
-  selectedAmount: number
+  totalPrice: number
 }
 
 // 获取购物车列表

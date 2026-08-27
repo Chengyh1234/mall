@@ -349,7 +349,9 @@ const fetchShops = async (page = 1, size = 10) => {
     if (result) {
       shops.value = result.list || []
       shopCurrentPage.value = result.page || page
-      shopTotal.value = result.total || 0
+      // 限制最多展示 100 页
+      const maxTotal = MAX_PAGES * size
+      shopTotal.value = Math.min(result.total || 0, maxTotal)
     }
   } catch {
     ElMessage.error('获取店铺列表失败')
@@ -401,6 +403,8 @@ const getSelectedBrandName = computed(() => {
 })
 
 // 获取商品列表（ES 搜索）
+// 最多展示 100 页
+const MAX_PAGES = 100
 const fetchProducts = async (page = 1, size = 10) => {
   try {
     loading.value = true
@@ -428,7 +432,9 @@ const fetchProducts = async (page = 1, size = 10) => {
     if (result && result.list) {
       currentPage.value = result.page || page
       pageSize.value = result.pageSize || size
-      total.value = result.total || result.list.length
+      // 限制最多展示 100 页
+      const maxTotal = MAX_PAGES * pageSize.value
+      total.value = Math.min(result.total || result.list.length, maxTotal)
 
       products.value = result.list.map((item: SpuSearchVO) => ({
         id: item.id,

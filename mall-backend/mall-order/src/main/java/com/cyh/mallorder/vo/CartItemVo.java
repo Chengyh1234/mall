@@ -31,6 +31,11 @@ public class CartItemVo {
     private Long skuId;
 
     /**
+     * SPU ID
+     */
+    private Long spuId;
+
+    /**
      * 数量
      */
     private Integer quantity;
@@ -85,6 +90,7 @@ public class CartItemVo {
         CartItemVo vo = new CartItemVo();
         vo.setId(cartItem.getId());
         vo.setSkuId(cartItem.getSkuId());
+        vo.setSpuId(cartItem.getSpuId());
         vo.setQuantity(cartItem.getQuantity());
         vo.setSelected(cartItem.getSelected());
         vo.setProductName(cartItem.getProductName());

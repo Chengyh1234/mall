@@ -22,6 +22,7 @@ public class OrderItemDto {
     private Long skuId;
 
     /** SPU ID */
+    @NotNull(message = "SPU ID不能为空")
     private Long spuId;
 
     /** 数量 */

@@ -120,6 +120,7 @@ export interface CreateOrderRequest {
   remark?: string
   items: Array<{
     skuId: number
+    spuId: number
     quantity: number
     productName: string
     productImage?: string

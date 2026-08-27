@@ -69,15 +69,29 @@ public class SpuServiceImpl implements SpuService {
 
     private final SkuMapper skuMapper;
 
+    /** 商家 SPU 数量上限 */
+    private static final long MAX_SPU_PER_SELLER = 5000;
+
     // ==================== 增删改 ====================
 
     /**
      * 新增 SPU
      * <p>新增时无缓存可清除，仅在 SKU 操作更新最低售价时才触发缓存失效。</p>
      */
+
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long add(Spu spu) {
+        // 校验商家 SPU 数量上限
+        if (spu.getSellerId() != null) {
+            Long currentCount = spuMapper.selectCount(
+                    new LambdaQueryWrapper<Spu>()
+                            .eq(Spu::getSellerId, spu.getSellerId())
+            );
+            if (currentCount >= MAX_SPU_PER_SELLER) {
+                throw new BusinessException("商品数量已达上限（" + MAX_SPU_PER_SELLER + "个），请删除部分商品后再添加");
+            }
+        }
         // 校验同商家下商品名称唯一性
         if (spu.getName() != null && spu.getSellerId() != null) {
             Long count = spuMapper.selectCount(

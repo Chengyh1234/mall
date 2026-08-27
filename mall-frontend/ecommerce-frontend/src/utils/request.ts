@@ -71,22 +71,22 @@ request.interceptors.response.use(
         // 认证失效 → 清除 Pinia 与 localStorage 登录态，跳转登录页
         useUserStore().clearToken()
         router.push('/login')
-        ElMessage.error(errMsg)
+        ElMessage.error({ message: errMsg, showClose: true, duration: 5000 })
         break
 
       case ErrorCategory.USER_ACTION:
         // 用户可修正的错误（参数错误、业务规则等）→ 仅弹提示
-        ElMessage.warning(errMsg)
+        ElMessage.warning({ message: errMsg, showClose: true, duration: 5000 })
         break
 
       case ErrorCategory.SYSTEM:
         // 系统异常 → 弹错误提示
-        ElMessage.error(errMsg)
+        ElMessage.error({ message: errMsg, showClose: true, duration: 5000 })
         // TODO: 可扩展错误上报
         break
 
       default:
-        ElMessage.info(errMsg)
+        ElMessage.info({ message: errMsg, showClose: true, duration: 5000 })
     }
 
     return Promise.reject(new BusinessError(res.code, errMsg))
@@ -111,12 +111,12 @@ request.interceptors.response.use(
           // 用户名或密码错误 → 清登录态，跳转登录页
           userStore.clearToken()
           router.push('/login')
-          ElMessage.warning(body?.msg || body?.message || ERROR_DEFAULT_MSG[ErrorCode.AUTH_FAILED])
+          ElMessage.warning({ message: body?.msg || body?.message || ERROR_DEFAULT_MSG[ErrorCode.AUTH_FAILED], showClose: true, duration: 5000 })
         } else if (bizCode === ErrorCode.LOGIN_EXPIRED) {
           // 登录已失效 → 清登录态，跳转登录页
           userStore.clearToken()
           router.push('/login')
-          ElMessage.error(body?.msg || body?.message || ERROR_DEFAULT_MSG[ErrorCode.LOGIN_EXPIRED])
+          ElMessage.error({ message: body?.msg || body?.message || ERROR_DEFAULT_MSG[ErrorCode.LOGIN_EXPIRED], showClose: true, duration: 5000 })
         } else if (bizCode === ErrorCode.CAPTCHA_EXPIRED) {
           // 验证码过期/无效 → 不清除登录态，不跳转，由调用方自行处理
           return Promise.reject(new BusinessError(bizCode, body?.msg || body?.message || ERROR_DEFAULT_MSG[ErrorCode.CAPTCHA_EXPIRED]))
@@ -127,23 +127,23 @@ request.interceptors.response.use(
         }
       } else if (httpStatus === 403) {
         // 权限不足 → 跳转 403 页面
-        ElMessage.warning(body?.msg || body?.message || ERROR_DEFAULT_MSG[ErrorCode.FORBIDDEN])
+        ElMessage.warning({ message: body?.msg || body?.message || ERROR_DEFAULT_MSG[ErrorCode.FORBIDDEN], showClose: true, duration: 5000 })
         router.push('/forbidden')
       } else if (httpStatus === 404) {
         // 资源不存在 → 跳转 404 页面，展示后端错误信息
         const errMsg = body?.msg || body?.message || ERROR_DEFAULT_MSG[ErrorCode.NOT_FOUND]
         router.push({ name: 'not-found', query: { message: errMsg } })
       } else if (httpStatus >= 500) {
-        ElMessage.error(body?.msg || body?.message || ERROR_DEFAULT_MSG[ErrorCode.SYSTEM_ERROR])
+        ElMessage.error({ message: body?.msg || body?.message || ERROR_DEFAULT_MSG[ErrorCode.SYSTEM_ERROR], showClose: true, duration: 5000 })
       } else {
         const errMsg = body?.msg || body?.message || `请求失败 (${httpStatus})`
-        ElMessage.warning(errMsg)
+        ElMessage.warning({ message: errMsg, showClose: true, duration: 5000 })
       }
     } else if (error.request) {
       // 请求发出但无响应（网络断开/超时）
-      ElMessage.error('网络错误，请检查网络连接')
+      ElMessage.error({ message: '网络错误，请检查网络连接', showClose: true, duration: 5000 })
     } else {
-      ElMessage.warning(error.message || '操作失败')
+      ElMessage.warning({ message: error.message || '操作失败', showClose: true, duration: 5000 })
     }
 
     return Promise.reject(error)

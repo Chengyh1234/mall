@@ -100,6 +100,7 @@ public class CartItemServiceImpl implements CartItemService {
             cartItem.setSkuId(cartItemDto.getSkuId());
             cartItem.setQuantity(cartItemDto.getQuantity() != null ? cartItemDto.getQuantity() : 1);
             cartItem.setSelected(1);
+            cartItem.setSpuId(sku.getSpuId());
             if (spu != null) {
                 cartItem.setProductName(spu.getName());
             }
