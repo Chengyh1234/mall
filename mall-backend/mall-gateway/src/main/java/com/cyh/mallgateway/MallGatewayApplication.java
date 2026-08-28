@@ -15,8 +15,6 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 public class MallGatewayApplication {
 
     public static void main(String[] args) {
-        String workDir = System.getProperty("user.dir");
-        System.out.println("-----------------当前工作目录: " + workDir);
         SpringApplication.run(MallGatewayApplication.class, args);
     }
 }

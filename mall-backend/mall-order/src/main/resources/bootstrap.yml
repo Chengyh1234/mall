@@ -1,6 +1,8 @@
 spring:
   application:
     name: mall-order
+  #Nacos 有一个默认行为： 会自动加载一个 Data ID 为 {spring.application.name}.{file-extension} 的配置
+  #服务专用配置 (mall-order.yml) > 共享配置 (mall-shared-config.yml)
   cloud:
     nacos:
       config:
