@@ -160,14 +160,16 @@ docker run -d \
 #### 部署 Redis（订单缓存专用）
 
 ```bash
-docker run -d \
+docker run \
+  -d \
   --name redis-order \
   --network cyh-net \
   -p 6380:6379 \
   --restart unless-stopped \
   -v /home/redis-order/data:/data \
+  -v /home/redis-order/conf/redis.conf:/usr/local/bin/redisconfig/redis.conf \
   redis:6.2.6 \
-  redis-server --appendonly yes
+  redis-server /usr/local/bin/redisconfig/redis.conf 
 ```
 
 #### 部署 RabbitMQ
